@@ -14,7 +14,212 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      normalized_products: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      receipt_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string
+          id: string
+          normalized_product: string | null
+          quantity: number
+          receipt_id: string
+          total: number
+          unit: string | null
+          unit_price: number
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          normalized_product?: string | null
+          quantity?: number
+          receipt_id: string
+          total?: number
+          unit?: string | null
+          unit_price?: number
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          normalized_product?: string | null
+          quantity?: number
+          receipt_id?: string
+          total?: number
+          unit?: string | null
+          unit_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_items_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receipts: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          merchant: string
+          notes: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          purchased_at: string
+          source: Database["public"]["Enums"]["receipt_source"]
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          merchant: string
+          notes?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          purchased_at?: string
+          source?: Database["public"]["Enums"]["receipt_source"]
+          total?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          merchant?: string
+          notes?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          purchased_at?: string
+          source?: Database["public"]["Enums"]["receipt_source"]
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recurring_bills: {
+        Row: {
+          active: boolean
+          amount: number
+          category: string | null
+          created_at: string
+          due_day: number | null
+          frequency: Database["public"]["Enums"]["recurrence_frequency"]
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          amount?: number
+          category?: string | null
+          created_at?: string
+          due_day?: number | null
+          frequency?: Database["public"]["Enums"]["recurrence_frequency"]
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          category?: string | null
+          created_at?: string
+          due_day?: number | null
+          frequency?: Database["public"]["Enums"]["recurrence_frequency"]
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          active: boolean
+          amount: number
+          created_at: string
+          frequency: Database["public"]["Enums"]["recurrence_frequency"]
+          id: string
+          name: string
+          next_due_date: string | null
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          amount?: number
+          created_at?: string
+          frequency?: Database["public"]["Enums"]["recurrence_frequency"]
+          id?: string
+          name: string
+          next_due_date?: string | null
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          created_at?: string
+          frequency?: Database["public"]["Enums"]["recurrence_frequency"]
+          id?: string
+          name?: string
+          next_due_date?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +228,22 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      payment_method:
+        | "pix"
+        | "credito"
+        | "debito"
+        | "dinheiro"
+        | "vale_alimentacao"
+        | "vale_refeicao"
+        | "outros"
+      receipt_source: "manual" | "ocr_foto" | "ocr_pdf"
+      recurrence_frequency:
+        | "semanal"
+        | "mensal"
+        | "bimestral"
+        | "trimestral"
+        | "semestral"
+        | "anual"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +370,25 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      payment_method: [
+        "pix",
+        "credito",
+        "debito",
+        "dinheiro",
+        "vale_alimentacao",
+        "vale_refeicao",
+        "outros",
+      ],
+      receipt_source: ["manual", "ocr_foto", "ocr_pdf"],
+      recurrence_frequency: [
+        "semanal",
+        "mensal",
+        "bimestral",
+        "trimestral",
+        "semestral",
+        "anual",
+      ],
+    },
   },
 } as const
