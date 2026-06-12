@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
-import { brl, fmtDateTime, paymentLabel } from "@/lib/format";
+import { brl, fmtDate, paymentLabel } from "@/lib/format";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -13,10 +13,10 @@ export const Route = createFileRoute("/_authenticated/despesas")({
 
 interface Row {
   id: string;
-  merchant: string;
+  merchant_name: string;
   category: string | null;
-  purchased_at: string;
-  total: number;
+  expense_date: string;
+  total_amount: number;
   payment_method: string;
 }
 
@@ -25,9 +25,9 @@ function Despesas() {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     supabase
-      .from("receipts")
-      .select("id,merchant,category,purchased_at,total,payment_method")
-      .order("purchased_at", { ascending: false })
+      .from("expenses")
+      .select("id,merchant_name,category,expense_date,total_amount,payment_method")
+      .order("expense_date", { ascending: false })
       .then(({ data }) => {
         setRows((data ?? []) as Row[]);
         setLoading(false);
@@ -50,18 +50,15 @@ function Despesas() {
       ) : (
         <div className="space-y-2">
           {rows.map((r) => (
-            <div
-              key={r.id}
-              className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card p-4 rounded-2xl border border-border"
-            >
+            <div key={r.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card p-4 rounded-2xl border border-border">
               <div className="min-w-0">
-                <p className="text-sm font-semibold truncate">{r.merchant}</p>
+                <p className="text-sm font-semibold truncate">{r.merchant_name}</p>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                  {fmtDateTime(r.purchased_at)} • {paymentLabel[r.payment_method] ?? r.payment_method}
+                  {fmtDate(r.expense_date)} • {paymentLabel[r.payment_method] ?? r.payment_method}
                   {r.category ? ` • ${r.category}` : ""}
                 </p>
               </div>
-              <p className="text-sm font-bold">{brl(Number(r.total))}</p>
+              <p className="text-sm font-bold">{brl(Number(r.total_amount))}</p>
             </div>
           ))}
         </div>

@@ -7,6 +7,7 @@ import {
   Sparkles,
   CreditCard,
   Repeat,
+  MessageCircle,
   LogOut,
   ScanLine,
 } from "lucide-react";
@@ -20,6 +21,7 @@ const NAV = [
   { to: "/consumo", label: "Consumo", icon: ShoppingBasket },
   { to: "/produtos", label: "Produtos", icon: Package },
   { to: "/insights", label: "Insights", icon: Sparkles },
+  { to: "/chat", label: "Pergunte", icon: MessageCircle },
   { to: "/assinaturas", label: "Assinaturas", icon: CreditCard },
   { to: "/recorrentes", label: "Recorrentes", icon: Repeat },
 ] as const;
@@ -95,7 +97,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <ScanLine className="size-6" strokeWidth={2.2} />
             </div>
           </Link>
-          {[NAV[4], NAV[5]].map(({ to, label, icon: Icon }) => (
+          {[NAV[5], NAV[4]].map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
               to={to}

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { PeriodFilter } from "@/components/period-filter";
 import { periodRange, type PeriodKey } from "@/lib/period";
-import { brl, brlCompact, fmtDateTime } from "@/lib/format";
+import { brl, brlCompact, fmtDate } from "@/lib/format";
 import { Sparkles, TrendingDown, Store, Package as PackageIcon } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -17,23 +17,28 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   }),
 });
 
-interface ReceiptRow {
+interface ExpenseRow {
   id: string;
-  merchant: string;
+  merchant_name: string;
   category: string | null;
-  purchased_at: string;
-  total: number;
+  expense_date: string;
+  total_amount: number;
 }
 interface ItemRow {
-  normalized_product: string | null;
-  description: string;
-  total: number;
+  normalized_name: string | null;
+  raw_name: string;
+  total_price: number;
+  unit_price: number;
   category: string | null;
+}
+
+function isoDate(d: Date | null) {
+  return d ? d.toISOString().slice(0, 10) : null;
 }
 
 function Dashboard() {
   const [period, setPeriod] = useState<PeriodKey>("este_mes");
-  const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
+  const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [items, setItems] = useState<ItemRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,77 +46,79 @@ function Dashboard() {
     let cancel = false;
     setLoading(true);
     const { start, end } = periodRange(period);
+    const s = isoDate(start);
+    const e = isoDate(end);
     (async () => {
       let q = supabase
-        .from("receipts")
-        .select("id, merchant, category, purchased_at, total")
-        .order("purchased_at", { ascending: false });
-      if (start) q = q.gte("purchased_at", start.toISOString());
-      if (end) q = q.lte("purchased_at", end.toISOString());
-      const { data: rec } = await q;
+        .from("expenses")
+        .select("id,merchant_name,category,expense_date,total_amount")
+        .order("expense_date", { ascending: false });
+      if (s) q = q.gte("expense_date", s);
+      if (e) q = q.lte("expense_date", e);
+      const { data: exp } = await q;
+      const expRows = (exp ?? []) as ExpenseRow[];
 
-      let q2 = supabase
-        .from("receipt_items")
-        .select("normalized_product, description, total, category, receipts!inner(purchased_at)");
-      if (start) q2 = q2.gte("receipts.purchased_at", start.toISOString());
-      if (end) q2 = q2.lte("receipts.purchased_at", end.toISOString());
-      const { data: it } = await q2;
+      const ids = expRows.map((r) => r.id);
+      let itRows: ItemRow[] = [];
+      if (ids.length) {
+        const { data: it } = await supabase
+          .from("expense_items")
+          .select("normalized_name,raw_name,total_price,unit_price,category")
+          .in("expense_id", ids);
+        itRows = (it ?? []) as ItemRow[];
+      }
 
       if (cancel) return;
-      setReceipts((rec ?? []) as ReceiptRow[]);
-      setItems(((it ?? []) as unknown as ItemRow[]) || []);
+      setExpenses(expRows);
+      setItems(itRows);
       setLoading(false);
     })();
-    return () => {
-      cancel = true;
-    };
+    return () => { cancel = true; };
   }, [period]);
 
   const kpis = useMemo(() => {
-    const total = receipts.reduce((s, r) => s + Number(r.total), 0);
+    const total = expenses.reduce((s, r) => s + Number(r.total_amount), 0);
 
     const byCat = new Map<string, number>();
-    for (const r of receipts) {
+    for (const r of expenses) {
       const k = r.category || "Sem categoria";
-      byCat.set(k, (byCat.get(k) ?? 0) + Number(r.total));
+      byCat.set(k, (byCat.get(k) ?? 0) + Number(r.total_amount));
     }
     const topCat = [...byCat.entries()].sort((a, b) => b[1] - a[1])[0];
 
     const byProd = new Map<string, number>();
     for (const it of items) {
-      const k = it.normalized_product || it.description;
-      byProd.set(k, (byProd.get(k) ?? 0) + Number(it.total ?? 0));
+      const k = it.normalized_name || it.raw_name;
+      byProd.set(k, (byProd.get(k) ?? 0) + Number(it.total_price ?? 0));
     }
     const topProd = [...byProd.entries()].sort((a, b) => b[1] - a[1])[0];
 
     const byStore = new Map<string, number>();
-    for (const r of receipts) {
-      byStore.set(r.merchant, (byStore.get(r.merchant) ?? 0) + 1);
-    }
+    for (const r of expenses) byStore.set(r.merchant_name, (byStore.get(r.merchant_name) ?? 0) + 1);
     const topStore = [...byStore.entries()].sort((a, b) => b[1] - a[1])[0];
 
-    // savings: count of items whose unit price is below their normalized-product average
+    // Economia: itens com preço unitário abaixo da média do produto normalizado
     const prodAvg = new Map<string, { sum: number; count: number }>();
     for (const it of items) {
-      const k = it.normalized_product;
-      if (!k) continue;
+      const k = it.normalized_name;
+      if (!k || !it.unit_price) continue;
       const v = prodAvg.get(k) ?? { sum: 0, count: 0 };
-      v.sum += Number(it.total ?? 0);
+      v.sum += Number(it.unit_price);
       v.count += 1;
       prodAvg.set(k, v);
     }
     let savings = 0;
     for (const it of items) {
-      const k = it.normalized_product;
-      if (!k) continue;
+      const k = it.normalized_name;
+      if (!k || !it.unit_price) continue;
       const stats = prodAvg.get(k);
       if (!stats || stats.count < 2) continue;
       const avg = stats.sum / stats.count;
-      if (Number(it.total ?? 0) < avg) savings += avg - Number(it.total ?? 0);
+      if (Number(it.unit_price) < avg) savings += (avg - Number(it.unit_price)) * 1;
     }
 
     return { total, topCat, topProd, topStore, savings };
-  }, [receipts, items]);
+  }, [expenses, items]);
 
   return (
     <>
@@ -133,35 +140,19 @@ function Dashboard() {
             </h2>
           </div>
           <p className="text-[11px] text-muted-foreground mt-2">
-            {receipts.length} {receipts.length === 1 ? "nota fiscal" : "notas fiscais"}
+            {expenses.length} {expenses.length === 1 ? "nota fiscal" : "notas fiscais"}
           </p>
         </div>
 
-        <KpiCard
-          icon={<PackageIcon className="size-4" />}
-          label="Categoria top"
-          value={kpis.topCat?.[0] ?? "—"}
-          sub={kpis.topCat ? brlCompact(kpis.topCat[1]) : ""}
-        />
-        <KpiCard
-          icon={<Sparkles className="size-4" />}
-          label="Produto top"
-          value={kpis.topProd?.[0] ?? "—"}
-          sub={kpis.topProd ? brlCompact(kpis.topProd[1]) : ""}
-        />
-        <KpiCard
-          icon={<Store className="size-4" />}
-          label="Estabelecimento"
+        <KpiCard icon={<PackageIcon className="size-4" />} label="Categoria top"
+          value={kpis.topCat?.[0] ?? "—"} sub={kpis.topCat ? brlCompact(kpis.topCat[1]) : ""} />
+        <KpiCard icon={<Sparkles className="size-4" />} label="Produto top"
+          value={kpis.topProd?.[0] ?? "—"} sub={kpis.topProd ? brlCompact(kpis.topProd[1]) : ""} />
+        <KpiCard icon={<Store className="size-4" />} label="Estabelecimento"
           value={kpis.topStore?.[0] ?? "—"}
-          sub={kpis.topStore ? `${kpis.topStore[1]} visita${kpis.topStore[1] > 1 ? "s" : ""}` : ""}
-        />
-        <KpiCard
-          icon={<TrendingDown className="size-4" />}
-          label="Economia"
-          value={brl(kpis.savings)}
-          sub="vs. preço médio"
-          accent
-        />
+          sub={kpis.topStore ? `${kpis.topStore[1]} visita${kpis.topStore[1] > 1 ? "s" : ""}` : ""} />
+        <KpiCard icon={<TrendingDown className="size-4" />} label="Economia"
+          value={brl(kpis.savings)} sub="vs. preço médio" accent />
       </section>
 
       <section className="mb-6 animate-aura-in">
@@ -169,7 +160,7 @@ function Dashboard() {
           <div className="relative z-10">
             <h3 className="font-display text-lg font-semibold mb-1">Insight</h3>
             <p className="text-secondary-foreground/70 text-sm leading-relaxed max-w-[85%]">
-              {receipts.length === 0
+              {expenses.length === 0
                 ? "Adicione sua primeira nota fiscal para receber insights de consumo."
                 : kpis.topCat
                   ? `Sua categoria principal é ${kpis.topCat[0]}, com ${brlCompact(kpis.topCat[1])} no período.`
@@ -186,27 +177,22 @@ function Dashboard() {
         </div>
         {loading ? (
           <p className="text-sm text-muted-foreground">Carregando…</p>
-        ) : receipts.length === 0 ? (
+        ) : expenses.length === 0 ? (
           <div className="bg-card border border-border rounded-2xl p-6 text-center">
             <p className="text-sm text-muted-foreground">Nenhuma despesa no período.</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {receipts.slice(0, 5).map((r) => (
-              <div
-                key={r.id}
-                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 bg-card p-4 rounded-2xl border border-border"
-              >
-                <div className="size-10 shrink-0 rounded-xl bg-muted grid place-items-center font-mono text-[10px] font-bold text-muted-foreground">
-                  NF
-                </div>
+            {expenses.slice(0, 5).map((r) => (
+              <div key={r.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 bg-card p-4 rounded-2xl border border-border">
+                <div className="size-10 shrink-0 rounded-xl bg-muted grid place-items-center font-mono text-[10px] font-bold text-muted-foreground">NF</div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">{r.merchant}</p>
+                  <p className="text-sm font-semibold truncate">{r.merchant_name}</p>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                    {fmtDateTime(r.purchased_at)} {r.category ? `• ${r.category}` : ""}
+                    {fmtDate(r.expense_date)} {r.category ? `• ${r.category}` : ""}
                   </p>
                 </div>
-                <p className="text-sm font-bold text-right">{brl(Number(r.total))}</p>
+                <p className="text-sm font-bold text-right">{brl(Number(r.total_amount))}</p>
               </div>
             ))}
           </div>
@@ -216,26 +202,14 @@ function Dashboard() {
   );
 }
 
-function KpiCard({
-  icon,
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub: string;
-  accent?: boolean;
+function KpiCard({ icon, label, value, sub, accent }: {
+  icon: React.ReactNode; label: string; value: string; sub: string; accent?: boolean;
 }) {
   return (
     <div className="bg-card p-4 rounded-3xl border border-border shadow-[var(--shadow-card)] min-w-0">
       <div className="flex items-center gap-1.5 mb-2">
         <span className={accent ? "text-primary" : "text-muted-foreground"}>{icon}</span>
-        <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
-          {label}
-        </p>
+        <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">{label}</p>
       </div>
       <p className={`font-semibold text-sm truncate ${accent ? "text-primary" : ""}`}>{value}</p>
       <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{sub}</p>
