@@ -38,7 +38,7 @@ function Produtos() {
       v.qty += Number(p.quantity);
       v.total += Number(p.unit_price) * Number(p.quantity);
       v.prices.push(Number(p.unit_price));
-      const arr = v.byStore.get(p.merchant_name) ?? [];
+      const arr: number[] = v.byStore.get(p.merchant_name) ?? [];
       arr.push(Number(p.unit_price));
       v.byStore.set(p.merchant_name, arr);
       m.set(p.normalized_name, v);
