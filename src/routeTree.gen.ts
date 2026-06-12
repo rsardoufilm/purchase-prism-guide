@@ -19,6 +19,7 @@ import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDespesasRouteImport } from './routes/_authenticated/despesas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConsumoRouteImport } from './routes/_authenticated/consumo'
+import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenticated/assinaturas'
 import { Route as AuthenticatedDespesasNovaRouteImport } from './routes/_authenticated/despesas.nova'
 
@@ -72,6 +73,11 @@ const AuthenticatedConsumoRoute = AuthenticatedConsumoRouteImport.update({
   path: '/consumo',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedChatRoute = AuthenticatedChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAssinaturasRoute =
   AuthenticatedAssinaturasRouteImport.update({
     id: '/assinaturas',
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/assinaturas': typeof AuthenticatedAssinaturasRoute
+  '/chat': typeof AuthenticatedChatRoute
   '/consumo': typeof AuthenticatedConsumoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/despesas': typeof AuthenticatedDespesasRouteWithChildren
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/assinaturas': typeof AuthenticatedAssinaturasRoute
+  '/chat': typeof AuthenticatedChatRoute
   '/consumo': typeof AuthenticatedConsumoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/despesas': typeof AuthenticatedDespesasRouteWithChildren
@@ -118,6 +126,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/assinaturas': typeof AuthenticatedAssinaturasRoute
+  '/_authenticated/chat': typeof AuthenticatedChatRoute
   '/_authenticated/consumo': typeof AuthenticatedConsumoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/despesas': typeof AuthenticatedDespesasRouteWithChildren
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/assinaturas'
+    | '/chat'
     | '/consumo'
     | '/dashboard'
     | '/despesas'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/assinaturas'
+    | '/chat'
     | '/consumo'
     | '/dashboard'
     | '/despesas'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/assinaturas'
+    | '/_authenticated/chat'
     | '/_authenticated/consumo'
     | '/_authenticated/dashboard'
     | '/_authenticated/despesas'
@@ -248,6 +260,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConsumoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/chat': {
+      id: '/_authenticated/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof AuthenticatedChatRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/assinaturas': {
       id: '/_authenticated/assinaturas'
       path: '/assinaturas'
@@ -280,6 +299,7 @@ const AuthenticatedDespesasRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAssinaturasRoute: typeof AuthenticatedAssinaturasRoute
+  AuthenticatedChatRoute: typeof AuthenticatedChatRoute
   AuthenticatedConsumoRoute: typeof AuthenticatedConsumoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDespesasRoute: typeof AuthenticatedDespesasRouteWithChildren
@@ -290,6 +310,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAssinaturasRoute: AuthenticatedAssinaturasRoute,
+  AuthenticatedChatRoute: AuthenticatedChatRoute,
   AuthenticatedConsumoRoute: AuthenticatedConsumoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDespesasRoute: AuthenticatedDespesasRouteWithChildren,
@@ -310,13 +331,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

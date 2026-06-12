@@ -17,18 +17,21 @@ export const Route = createFileRoute("/_authenticated/assinaturas")({
 });
 
 interface Sub { id: string; name: string; amount: number; frequency: string; next_due_date: string | null }
-const FREQS = ["semanal","mensal","bimestral","trimestral","semestral","anual"] as const;
+const FREQS = ["mensal","bimestral","trimestral","semestral","anual"] as const;
+type Freq = typeof FREQS[number];
 
 function Assinaturas() {
   const [rows, setRows] = useState<Sub[]>([]);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [frequency, setFrequency] = useState<typeof FREQS[number]>("mensal");
+  const [frequency, setFrequency] = useState<Freq>("mensal");
   const [due, setDue] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const load = () => supabase.from("subscriptions").select("*").order("created_at", { ascending: false }).then(({ data }) => setRows((data ?? []) as Sub[]));
+  const load = () =>
+    supabase.from("subscriptions").select("*").order("created_at", { ascending: false })
+      .then(({ data }) => setRows((data ?? []) as Sub[]));
   useEffect(() => { load(); }, []);
 
   const save = async () => {
@@ -65,7 +68,7 @@ function Assinaturas() {
             <div className="grid grid-cols-2 gap-3">
               <Field label="Valor"><Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
               <Field label="Frequência">
-                <Select value={frequency} onValueChange={(v) => setFrequency(v as typeof FREQS[number])}>
+                <Select value={frequency} onValueChange={(v) => setFrequency(v as Freq)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{FREQS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
                 </Select>

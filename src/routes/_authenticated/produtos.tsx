@@ -9,47 +9,52 @@ export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({ meta: [{ title: "Produtos — AURA Finance" }] }),
 });
 
-interface It {
-  normalized_product: string | null;
-  description: string;
-  quantity: number;
+interface Price {
+  normalized_name: string;
+  merchant_name: string;
   unit_price: number;
-  total: number;
+  quantity: number;
+  unit: string | null;
+  purchase_date: string;
 }
 
 function Produtos() {
-  const [items, setItems] = useState<It[]>([]);
+  const [prices, setPrices] = useState<Price[]>([]);
   useEffect(() => {
     supabase
-      .from("receipt_items")
-      .select("normalized_product,description,quantity,unit_price,total")
-      .then(({ data }) => setItems((data ?? []) as It[]));
+      .from("product_prices")
+      .select("normalized_name,merchant_name,unit_price,quantity,unit,purchase_date")
+      .order("purchase_date", { ascending: false })
+      .then(({ data }) => setPrices((data ?? []) as Price[]));
   }, []);
 
   const products = useMemo(() => {
-    const m = new Map<
-      string,
-      { qty: number; total: number; prices: number[] }
-    >();
-    for (const it of items) {
-      const k = it.normalized_product || it.description;
-      const v = m.get(k) ?? { qty: 0, total: 0, prices: [] };
-      v.qty += Number(it.quantity);
-      v.total += Number(it.total);
-      if (it.unit_price > 0) v.prices.push(Number(it.unit_price));
-      m.set(k, v);
+    const m = new Map<string, {
+      qty: number; total: number; prices: number[];
+      byStore: Map<string, number[]>; unit: string | null;
+    }>();
+    for (const p of prices) {
+      const v = m.get(p.normalized_name) ?? { qty: 0, total: 0, prices: [], byStore: new Map(), unit: p.unit };
+      v.qty += Number(p.quantity);
+      v.total += Number(p.unit_price) * Number(p.quantity);
+      v.prices.push(Number(p.unit_price));
+      const arr: number[] = v.byStore.get(p.merchant_name) ?? [];
+      arr.push(Number(p.unit_price));
+      v.byStore.set(p.merchant_name, arr);
+      m.set(p.normalized_name, v);
     }
     return [...m.entries()]
-      .map(([name, v]) => ({
-        name,
-        qty: v.qty,
-        total: v.total,
-        avg: v.prices.length ? v.prices.reduce((a, b) => a + b, 0) / v.prices.length : 0,
-        min: v.prices.length ? Math.min(...v.prices) : 0,
-        max: v.prices.length ? Math.max(...v.prices) : 0,
-      }))
+      .map(([name, v]) => {
+        const avg = v.prices.reduce((a, b) => a + b, 0) / v.prices.length;
+        const min = Math.min(...v.prices);
+        const max = Math.max(...v.prices);
+        const cheapestStore = [...v.byStore.entries()]
+          .map(([s, arr]) => ({ s, avg: arr.reduce((a, b) => a + b, 0) / arr.length }))
+          .sort((a, b) => a.avg - b.avg)[0];
+        return { name, qty: v.qty, total: v.total, avg, min, max, cheapestStore, unit: v.unit };
+      })
       .sort((a, b) => b.total - a.total);
-  }, [items]);
+  }, [prices]);
 
   return (
     <>
@@ -59,15 +64,12 @@ function Produtos() {
       ) : (
         <div className="space-y-2">
           {products.map((p) => (
-            <details
-              key={p.name}
-              className="bg-card border border-border rounded-2xl p-4 group"
-            >
+            <details key={p.name} className="bg-card border border-border rounded-2xl p-4 group">
               <summary className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 cursor-pointer list-none">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{p.name}</p>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {p.qty.toLocaleString("pt-BR")} acumulado
+                    {p.qty.toLocaleString("pt-BR")} {p.unit ?? "un"} acumulado
                   </p>
                 </div>
                 <p className="text-sm font-bold">{brl(p.total)}</p>
@@ -77,6 +79,11 @@ function Produtos() {
                 <Mini label="Mín" value={brl(p.min)} />
                 <Mini label="Máx" value={brl(p.max)} />
               </div>
+              {p.cheapestStore && (
+                <p className="text-[11px] text-primary mt-3 font-medium">
+                  Mais barato em <span className="font-semibold">{p.cheapestStore.s}</span> ({brl(p.cheapestStore.avg)})
+                </p>
+              )}
             </details>
           ))}
         </div>
@@ -88,9 +95,7 @@ function Produtos() {
 function Mini({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">
-        {label}
-      </p>
+      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
       <p className="text-xs font-semibold">{value}</p>
     </div>
   );

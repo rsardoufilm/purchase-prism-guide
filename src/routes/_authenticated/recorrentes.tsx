@@ -17,7 +17,8 @@ export const Route = createFileRoute("/_authenticated/recorrentes")({
 });
 
 interface Bill { id: string; name: string; category: string | null; amount: number; due_day: number | null; frequency: string }
-const FREQS = ["semanal","mensal","bimestral","trimestral","semestral","anual"] as const;
+const FREQS = ["mensal","bimestral","trimestral","semestral","anual"] as const;
+type Freq = typeof FREQS[number];
 
 function Recorrentes() {
   const [rows, setRows] = useState<Bill[]>([]);
@@ -26,17 +27,19 @@ function Recorrentes() {
   const [category, setCategory] = useState("");
   const [amount, setAmount] = useState("");
   const [dueDay, setDueDay] = useState("");
-  const [frequency, setFrequency] = useState<typeof FREQS[number]>("mensal");
+  const [frequency, setFrequency] = useState<Freq>("mensal");
   const [saving, setSaving] = useState(false);
 
-  const load = () => supabase.from("recurring_bills").select("*").order("created_at", { ascending: false }).then(({ data }) => setRows((data ?? []) as Bill[]));
+  const load = () =>
+    supabase.from("recurring_expenses").select("*").order("created_at", { ascending: false })
+      .then(({ data }) => setRows((data ?? []) as Bill[]));
   useEffect(() => { load(); }, []);
 
   const save = async () => {
     if (!name.trim() || !amount) { toast.error("Preencha nome e valor."); return; }
     setSaving(true);
     const { data: user } = await supabase.auth.getUser();
-    const { error } = await supabase.from("recurring_bills").insert({
+    const { error } = await supabase.from("recurring_expenses").insert({
       user_id: user.user!.id,
       name: name.trim(),
       category: category || null,
@@ -70,7 +73,7 @@ function Recorrentes() {
               <Field label="Dia vencim."><Input type="number" min="1" max="31" value={dueDay} onChange={(e) => setDueDay(e.target.value)} /></Field>
             </div>
             <Field label="Frequência">
-              <Select value={frequency} onValueChange={(v) => setFrequency(v as typeof FREQS[number])}>
+              <Select value={frequency} onValueChange={(v) => setFrequency(v as Freq)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{FREQS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
               </Select>
@@ -87,7 +90,9 @@ function Recorrentes() {
             <div key={r.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-4">
               <div className="min-w-0">
                 <p className="text-sm font-semibold truncate">{r.name}</p>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{r.frequency}{r.due_day ? ` • dia ${r.due_day}` : ""}{r.category ? ` • ${r.category}` : ""}</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {r.frequency}{r.due_day ? ` • dia ${r.due_day}` : ""}{r.category ? ` • ${r.category}` : ""}
+                </p>
               </div>
               <p className="text-sm font-bold">{brl(Number(r.amount))}</p>
             </div>

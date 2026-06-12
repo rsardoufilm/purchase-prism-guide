@@ -2,25 +2,27 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 const Input = z.object({
-  fileDataUrl: z.string().min(20).max(15_000_000), // data:...;base64,...
+  fileDataUrl: z.string().min(20).max(15_000_000),
   mimeType: z.string().min(3).max(100),
 });
 
 const ItemSchema = z.object({
-  description: z.string(),
-  normalized_product: z.string().nullable().optional(),
+  raw_name: z.string(),
+  normalized_name: z.string().nullable().optional(),
   category: z.string().nullable().optional(),
   quantity: z.number().nullable().optional(),
   unit: z.string().nullable().optional(),
   unit_price: z.number().nullable().optional(),
-  total: z.number().nullable().optional(),
+  total_price: z.number().nullable().optional(),
 });
 
 const ResultSchema = z.object({
-  merchant: z.string(),
+  merchant_name: z.string(),
+  merchant_document: z.string().nullable().optional(),
   category: z.string().nullable().optional(),
-  purchased_at: z.string().nullable().optional(),
-  total: z.number(),
+  expense_date: z.string().nullable().optional(), // YYYY-MM-DD
+  expense_time: z.string().nullable().optional(), // HH:MM or HH:MM:SS
+  total_amount: z.number(),
   payment_method: z
     .enum(["pix", "credito", "debito", "dinheiro", "vale_alimentacao", "vale_refeicao", "outros"])
     .default("outros"),
@@ -29,32 +31,39 @@ const ResultSchema = z.object({
 
 export type OcrResult = z.infer<typeof ResultSchema>;
 
-const SYSTEM_PROMPT = `Você é um extrator de notas fiscais brasileiras (NFC-e/NF-e/cupons fiscais).
-Extraia os dados em JSON ESTRITO no schema:
+const CATEGORIES = [
+  "Supermercado","Carnes","Padaria","Bebidas","Laticínios","Higiene",
+  "Limpeza","Farmácia","Combustível","Restaurantes","Outros",
+] as const;
+
+const SYSTEM_PROMPT = `Você é um extrator OCR especialista em notas fiscais brasileiras (NFC-e/NF-e/cupons fiscais).
+Extraia os dados em JSON ESTRITO com este schema:
 {
-  "merchant": string,                // nome do estabelecimento
-  "category": string|null,           // categoria do estabelecimento (ex: "Supermercado", "Combustível", "Restaurante", "Farmácia")
-  "purchased_at": string|null,       // ISO 8601 com fuso -03:00 se possível
-  "total": number,                   // valor total da nota (numérico, ponto como decimal)
+  "merchant_name": string,
+  "merchant_document": string|null,        // CNPJ se identificável (apenas dígitos com pontuação ou só dígitos)
+  "category": string|null,                 // uma de: ${CATEGORIES.join(", ")}
+  "expense_date": string|null,             // formato YYYY-MM-DD
+  "expense_time": string|null,             // formato HH:MM:SS
+  "total_amount": number,                  // valor total (numérico, ponto decimal)
   "payment_method": "pix"|"credito"|"debito"|"dinheiro"|"vale_alimentacao"|"vale_refeicao"|"outros",
   "items": [
     {
-      "description": string,         // descrição original
-      "normalized_product": string|null, // produto normalizado (ex: "Arroz", "Pães", "Leite", "Café")
-      "category": string|null,       // categoria do item (ex: "Alimentos", "Bebidas", "Limpeza")
+      "raw_name": string,                  // descrição original do cupom
+      "normalized_name": string|null,      // forma normalizada agrupando equivalentes (ex: "ARROZ TIPO 1 5KG" → "Arroz", "COCA COLA 2L" → "Refrigerante", "PÃO FRANCÊS" → "Pães")
+      "category": string|null,             // uma das categorias acima
       "quantity": number|null,
-      "unit": string|null,           // "kg","g","l","ml","un","cx","pct","dz"
+      "unit": string|null,                 // "kg","g","l","ml","un","cx","pct","dz"
       "unit_price": number|null,
-      "total": number|null
+      "total_price": number|null
     }
   ]
 }
 
-Regras:
-- normalized_product agrupa equivalentes: "ARROZ TIPO 1 5KG" → "Arroz"; "PÃO FRANCÊS" → "Pães"; "COCA COLA 2L" → "Refrigerante".
-- Use número decimal com ponto (ex: 12.90). NUNCA strings.
-- Se um campo não estiver claro, retorne null.
-- Responda APENAS com o objeto JSON, sem markdown.`;
+Regras críticas:
+- Todos os valores numéricos com ponto decimal (12.90), NUNCA strings.
+- normalized_name agrupa variações do mesmo produto.
+- Se um campo não estiver claro, use null.
+- Responda APENAS o objeto JSON, sem markdown.`;
 
 export const ocrReceipt = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => Input.parse(d))
@@ -64,9 +73,7 @@ export const ocrReceipt = createServerFn({ method: "POST" })
 
     const isImage = data.mimeType.startsWith("image/");
     const isPdf = data.mimeType === "application/pdf";
-    if (!isImage && !isPdf) {
-      throw new Error("Apenas imagens ou PDF são aceitos");
-    }
+    if (!isImage && !isPdf) throw new Error("Apenas imagens ou PDF são aceitos");
 
     const userContent: Array<Record<string, unknown>> = [
       { type: "text", text: "Extraia esta nota fiscal e responda apenas com o JSON." },
@@ -83,10 +90,7 @@ export const ocrReceipt = createServerFn({ method: "POST" })
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": apiKey,
-      },
+      headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
@@ -104,16 +108,13 @@ export const ocrReceipt = createServerFn({ method: "POST" })
       throw new Error(`OCR falhou (${res.status}): ${txt.slice(0, 200)}`);
     }
 
-    const body = (await res.json()) as {
-      choices: Array<{ message: { content: string } }>;
-    };
+    const body = (await res.json()) as { choices: Array<{ message: { content: string } }> };
     const raw = body.choices?.[0]?.message?.content ?? "{}";
     let parsed: unknown;
     try {
       parsed = JSON.parse(raw);
     } catch {
-      const cleaned = raw.replace(/```json\s*|```/g, "").trim();
-      parsed = JSON.parse(cleaned);
+      parsed = JSON.parse(raw.replace(/```json\s*|```/g, "").trim());
     }
     return ResultSchema.parse(parsed);
   });

@@ -10,22 +10,25 @@ export const Route = createFileRoute("/_authenticated/insights")({
   head: () => ({ meta: [{ title: "Insights — AURA Finance" }] }),
 });
 
-interface R { merchant: string; total: number; category: string | null; purchased_at: string }
-interface It { normalized_product: string | null; description: string; unit_price: number; total: number }
+interface E { merchant_name: string; total_amount: number; category: string | null; expense_date: string }
+interface P { normalized_name: string; merchant_name: string; unit_price: number; purchase_date: string }
 
 function Insights() {
-  const [receipts, setReceipts] = useState<R[]>([]);
-  const [items, setItems] = useState<It[]>([]);
+  const [expenses, setExpenses] = useState<E[]>([]);
+  const [prices, setPrices] = useState<P[]>([]);
 
   useEffect(() => {
-    supabase.from("receipts").select("merchant,total,category,purchased_at").then(({ data }) => setReceipts((data ?? []) as R[]));
-    supabase.from("receipt_items").select("normalized_product,description,unit_price,total").then(({ data }) => setItems((data ?? []) as It[]));
+    supabase.from("expenses").select("merchant_name,total_amount,category,expense_date")
+      .then(({ data }) => setExpenses((data ?? []) as E[]));
+    supabase.from("product_prices").select("normalized_name,merchant_name,unit_price,purchase_date")
+      .order("purchase_date", { ascending: true })
+      .then(({ data }) => setPrices((data ?? []) as P[]));
   }, []);
 
   const insights = useMemo(() => {
     const out: { icon: React.ReactNode; title: string; desc: string }[] = [];
 
-    if (receipts.length === 0) {
+    if (expenses.length === 0) {
       return [{
         icon: <Sparkles className="size-5" />,
         title: "Comece a registrar",
@@ -33,11 +36,10 @@ function Insights() {
       }];
     }
 
-    // Top category
     const byCat = new Map<string, number>();
-    for (const r of receipts) {
+    for (const r of expenses) {
       const k = r.category || "Sem categoria";
-      byCat.set(k, (byCat.get(k) ?? 0) + Number(r.total));
+      byCat.set(k, (byCat.get(k) ?? 0) + Number(r.total_amount));
     }
     const top = [...byCat.entries()].sort((a, b) => b[1] - a[1])[0];
     if (top) {
@@ -48,11 +50,10 @@ function Insights() {
       });
     }
 
-    // Cheapest / most expensive store by avg ticket
     const byStore = new Map<string, { sum: number; count: number }>();
-    for (const r of receipts) {
-      const v = byStore.get(r.merchant) ?? { sum: 0, count: 0 };
-      v.sum += Number(r.total); v.count++; byStore.set(r.merchant, v);
+    for (const r of expenses) {
+      const v = byStore.get(r.merchant_name) ?? { sum: 0, count: 0 };
+      v.sum += Number(r.total_amount); v.count++; byStore.set(r.merchant_name, v);
     }
     const stores = [...byStore.entries()]
       .filter(([_, v]) => v.count >= 2)
@@ -74,46 +75,62 @@ function Insights() {
       });
     }
 
-    // Price variance per product
-    const prodPrices = new Map<string, number[]>();
-    for (const it of items) {
-      const k = it.normalized_product || it.description;
-      if (it.unit_price > 0) {
-        const arr = prodPrices.get(k) ?? [];
-        arr.push(Number(it.unit_price));
-        prodPrices.set(k, arr);
+    // Variação de preço por produto (do histórico product_prices)
+    const prodPrices = new Map<string, P[]>();
+    for (const p of prices) {
+      const arr = prodPrices.get(p.normalized_name) ?? [];
+      arr.push(p);
+      prodPrices.set(p.normalized_name, arr);
+    }
+
+    let biggestSwing: { name: string; min: number; max: number; minStore: string; maxStore: string } | null = null;
+    let priceUp: { name: string; first: number; last: number; pct: number } | null = null;
+    for (const [name, arr] of prodPrices) {
+      if (arr.length < 2) continue;
+      const sorted = [...arr].sort((a, b) => Number(a.unit_price) - Number(b.unit_price));
+      const min = sorted[0];
+      const max = sorted[sorted.length - 1];
+      if (!biggestSwing || Number(max.unit_price) - Number(min.unit_price) > biggestSwing.max - biggestSwing.min) {
+        biggestSwing = {
+          name, min: Number(min.unit_price), max: Number(max.unit_price),
+          minStore: min.merchant_name, maxStore: max.merchant_name,
+        };
+      }
+      // Aumento no tempo
+      const byDate = [...arr].sort((a, b) => a.purchase_date.localeCompare(b.purchase_date));
+      const first = Number(byDate[0].unit_price);
+      const last = Number(byDate[byDate.length - 1].unit_price);
+      if (first > 0 && last > first) {
+        const pct = ((last - first) / first) * 100;
+        if (!priceUp || pct > priceUp.pct) priceUp = { name, first, last, pct };
       }
     }
-    let biggestSwing: { name: string; min: number; max: number } | null = null;
-    for (const [name, prices] of prodPrices) {
-      if (prices.length < 2) continue;
-      const min = Math.min(...prices);
-      const max = Math.max(...prices);
-      if (!biggestSwing || max - min > biggestSwing.max - biggestSwing.min) {
-        biggestSwing = { name, min, max };
-      }
-    }
+
     if (biggestSwing) {
       const pct = ((biggestSwing.max - biggestSwing.min) / biggestSwing.min) * 100;
       out.push({
         icon: <TrendingDown className="size-5" />,
-        title: `${biggestSwing.name} variou ${pct.toFixed(0)}% em preço`,
-        desc: `De ${brl(biggestSwing.min)} a ${brl(biggestSwing.max)}. Compre na loja mais barata para economizar.`,
+        title: `${biggestSwing.name} varia ${pct.toFixed(0)}% entre lojas`,
+        desc: `${brl(biggestSwing.min)} em ${biggestSwing.minStore} vs ${brl(biggestSwing.max)} em ${biggestSwing.maxStore}.`,
+      });
+    }
+    if (priceUp) {
+      out.push({
+        icon: <TrendingUp className="size-5" />,
+        title: `${priceUp.name} subiu ${priceUp.pct.toFixed(0)}%`,
+        desc: `De ${brl(priceUp.first)} para ${brl(priceUp.last)} no histórico.`,
       });
     }
 
     return out;
-  }, [receipts, items]);
+  }, [expenses, prices]);
 
   return (
     <>
       <PageHeader eyebrow="Insights" title="Sua inteligência" />
       <div className="space-y-3">
         {insights.map((ins, i) => (
-          <div
-            key={i}
-            className="bg-card border border-border rounded-3xl p-5 grid grid-cols-[auto_minmax(0,1fr)] gap-4"
-          >
+          <div key={i} className="bg-card border border-border rounded-3xl p-5 grid grid-cols-[auto_minmax(0,1fr)] gap-4">
             <div className="size-11 shrink-0 rounded-2xl bg-primary-soft text-primary grid place-items-center">
               {ins.icon}
             </div>

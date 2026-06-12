@@ -14,29 +14,177 @@ export type Database = {
   }
   public: {
     Tables: {
-      normalized_products: {
+      expense_items: {
         Row: {
           category: string | null
           created_at: string
+          expense_id: string
           id: string
-          name: string
+          normalized_name: string | null
+          quantity: number
+          raw_name: string
+          total_price: number
+          unit: string | null
+          unit_price: number
           user_id: string
         }
         Insert: {
           category?: string | null
           created_at?: string
+          expense_id: string
           id?: string
-          name: string
+          normalized_name?: string | null
+          quantity?: number
+          raw_name: string
+          total_price?: number
+          unit?: string | null
+          unit_price?: number
           user_id: string
         }
         Update: {
           category?: string | null
           created_at?: string
+          expense_id?: string
           id?: string
-          name?: string
+          normalized_name?: string | null
+          quantity?: number
+          raw_name?: string
+          total_price?: number
+          unit?: string | null
+          unit_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_items_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          category: string | null
+          created_at: string
+          expense_date: string
+          expense_time: string | null
+          id: string
+          merchant_document: string | null
+          merchant_name: string
+          notes: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          source: Database["public"]["Enums"]["expense_source"]
+          storage_path: string | null
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          expense_date?: string
+          expense_time?: string | null
+          id?: string
+          merchant_document?: string | null
+          merchant_name: string
+          notes?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          source?: Database["public"]["Enums"]["expense_source"]
+          storage_path?: string | null
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          expense_date?: string
+          expense_time?: string | null
+          id?: string
+          merchant_document?: string | null
+          merchant_name?: string
+          notes?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          source?: Database["public"]["Enums"]["expense_source"]
+          storage_path?: string | null
+          total_amount?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      product_normalization: {
+        Row: {
+          confidence: number
+          created_at: string
+          id: string
+          normalized_name: string
+          raw_name: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          normalized_name: string
+          raw_name: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          normalized_name?: string
+          raw_name?: string
+        }
+        Relationships: []
+      }
+      product_prices: {
+        Row: {
+          created_at: string
+          expense_item_id: string | null
+          id: string
+          merchant_name: string
+          normalized_name: string
+          purchase_date: string
+          quantity: number
+          unit: string | null
+          unit_price: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expense_item_id?: string | null
+          id?: string
+          merchant_name: string
+          normalized_name: string
+          purchase_date: string
+          quantity?: number
+          unit?: string | null
+          unit_price: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expense_item_id?: string | null
+          id?: string
+          merchant_name?: string
+          normalized_name?: string
+          purchase_date?: string
+          quantity?: number
+          unit?: string | null
+          unit_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_prices_expense_item_id_fkey"
+            columns: ["expense_item_id"]
+            isOneToOne: false
+            referencedRelation: "expense_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -59,99 +207,7 @@ export type Database = {
         }
         Relationships: []
       }
-      receipt_items: {
-        Row: {
-          category: string | null
-          created_at: string
-          description: string
-          id: string
-          normalized_product: string | null
-          quantity: number
-          receipt_id: string
-          total: number
-          unit: string | null
-          unit_price: number
-          user_id: string
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string
-          description: string
-          id?: string
-          normalized_product?: string | null
-          quantity?: number
-          receipt_id: string
-          total?: number
-          unit?: string | null
-          unit_price?: number
-          user_id: string
-        }
-        Update: {
-          category?: string | null
-          created_at?: string
-          description?: string
-          id?: string
-          normalized_product?: string | null
-          quantity?: number
-          receipt_id?: string
-          total?: number
-          unit?: string | null
-          unit_price?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "receipt_items_receipt_id_fkey"
-            columns: ["receipt_id"]
-            isOneToOne: false
-            referencedRelation: "receipts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      receipts: {
-        Row: {
-          category: string | null
-          created_at: string
-          id: string
-          merchant: string
-          notes: string | null
-          payment_method: Database["public"]["Enums"]["payment_method"]
-          purchased_at: string
-          source: Database["public"]["Enums"]["receipt_source"]
-          total: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string
-          id?: string
-          merchant: string
-          notes?: string | null
-          payment_method?: Database["public"]["Enums"]["payment_method"]
-          purchased_at?: string
-          source?: Database["public"]["Enums"]["receipt_source"]
-          total?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          category?: string | null
-          created_at?: string
-          id?: string
-          merchant?: string
-          notes?: string | null
-          payment_method?: Database["public"]["Enums"]["payment_method"]
-          purchased_at?: string
-          source?: Database["public"]["Enums"]["receipt_source"]
-          total?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      recurring_bills: {
+      recurring_expenses: {
         Row: {
           active: boolean
           amount: number
@@ -228,6 +284,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      expense_source: "manual" | "photo" | "pdf"
       payment_method:
         | "pix"
         | "credito"
@@ -236,7 +293,6 @@ export type Database = {
         | "vale_alimentacao"
         | "vale_refeicao"
         | "outros"
-      receipt_source: "manual" | "ocr_foto" | "ocr_pdf"
       recurrence_frequency:
         | "semanal"
         | "mensal"
@@ -371,6 +427,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      expense_source: ["manual", "photo", "pdf"],
       payment_method: [
         "pix",
         "credito",
@@ -380,7 +437,6 @@ export const Constants = {
         "vale_refeicao",
         "outros",
       ],
-      receipt_source: ["manual", "ocr_foto", "ocr_pdf"],
       recurrence_frequency: [
         "semanal",
         "mensal",

@@ -10,28 +10,28 @@ export const Route = createFileRoute("/_authenticated/consumo")({
 });
 
 interface ItemRow {
-  normalized_product: string | null;
-  description: string;
+  normalized_name: string | null;
+  raw_name: string;
   category: string | null;
   quantity: number;
   unit: string | null;
-  total: number;
+  total_price: number;
 }
 
 function Consumo() {
   const [items, setItems] = useState<ItemRow[]>([]);
   useEffect(() => {
     supabase
-      .from("receipt_items")
-      .select("normalized_product,description,category,quantity,unit,total")
+      .from("expense_items")
+      .select("normalized_name,raw_name,category,quantity,unit,total_price")
       .then(({ data }) => setItems((data ?? []) as ItemRow[]));
   }, []);
 
   const byCategory = useMemo(() => {
     const m = new Map<string, number>();
     for (const it of items) {
-      const k = it.category || it.normalized_product || "Outros";
-      m.set(k, (m.get(k) ?? 0) + Number(it.total));
+      const k = it.category || it.normalized_name || "Outros";
+      m.set(k, (m.get(k) ?? 0) + Number(it.total_price));
     }
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [items]);
@@ -39,9 +39,9 @@ function Consumo() {
   const byProduct = useMemo(() => {
     const m = new Map<string, { total: number; qty: number; unit: string | null }>();
     for (const it of items) {
-      const k = it.normalized_product || it.description;
+      const k = it.normalized_name || it.raw_name;
       const v = m.get(k) ?? { total: 0, qty: 0, unit: it.unit };
-      v.total += Number(it.total);
+      v.total += Number(it.total_price);
       v.qty += Number(it.quantity);
       m.set(k, v);
     }
@@ -55,10 +55,7 @@ function Consumo() {
         <h2 className="font-display font-semibold mb-3">Categorias mais consumidas</h2>
         <div className="space-y-2">
           {byCategory.slice(0, 6).map(([cat, total]) => (
-            <div
-              key={cat}
-              className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-4"
-            >
+            <div key={cat} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-4">
               <p className="text-sm font-semibold truncate">{cat}</p>
               <p className="text-sm font-bold">{brl(total)}</p>
             </div>
@@ -72,10 +69,7 @@ function Consumo() {
         <h2 className="font-display font-semibold mb-3">Produtos mais consumidos</h2>
         <div className="space-y-2">
           {byProduct.map(([prod, v]) => (
-            <div
-              key={prod}
-              className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-4"
-            >
+            <div key={prod} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-4">
               <div className="min-w-0">
                 <p className="text-sm font-semibold truncate">{prod}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
