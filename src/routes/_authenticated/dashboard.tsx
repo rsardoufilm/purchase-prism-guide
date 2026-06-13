@@ -41,6 +41,13 @@ function Dashboard() {
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [items, setItems] = useState<ItemRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reloadTick, setReloadTick] = useState(0);
+
+  useEffect(() => {
+    const onChange = () => setReloadTick((t) => t + 1);
+    window.addEventListener("aura:data-changed", onChange);
+    return () => window.removeEventListener("aura:data-changed", onChange);
+  }, []);
 
   useEffect(() => {
     let cancel = false;
@@ -74,7 +81,7 @@ function Dashboard() {
       setLoading(false);
     })();
     return () => { cancel = true; };
-  }, [period]);
+  }, [period, reloadTick]);
 
   const kpis = useMemo(() => {
     const total = expenses.reduce((s, r) => s + Number(r.total_amount), 0);
