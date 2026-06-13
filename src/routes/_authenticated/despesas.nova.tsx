@@ -10,14 +10,18 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, ScanLine, Upload, Trash2 } from "lucide-react";
+import { Loader2, ScanLine, Upload, Trash2, Check, Circle } from "lucide-react";
 import { ocrReceipt, type OcrResult } from "@/lib/ocr.functions";
 import { brl } from "@/lib/format";
+import { classifyItem, normalizeName, classifyMerchant } from "@/lib/classifier";
 
 export const Route = createFileRoute("/_authenticated/despesas/nova")({
   component: NovaDespesa,
   head: () => ({ meta: [{ title: "Nova despesa — AURA Finance" }] }),
 });
+
+const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+const ACCEPTED = new Set(["image/jpeg", "image/jpg", "image/png", "application/pdf"]);
 
 const PAYMENTS = ["pix","credito","debito","dinheiro","vale_alimentacao","vale_refeicao","outros"] as const;
 const PAYMENT_LABELS: Record<string,string> = {
@@ -26,7 +30,24 @@ const PAYMENT_LABELS: Record<string,string> = {
 };
 const RECUR_CATEGORIES = ["energia","água","internet","telefonia","streaming","luz"];
 
+const CATEGORY_OPTIONS = [
+  "Arroz","Feijão","Carne Bovina","Frango","Suínos","Peixes","Frios","Queijos",
+  "Leite","Iogurtes","Pães","Massas","Óleos","Açúcar","Café","Bebidas",
+  "Refrigerantes","Cervejas","Águas","Frutas","Verduras","Legumes",
+  "Higiene","Limpeza","Pet","Snacks","Doces","Congelados","Outros",
+];
+
 type Source = "manual" | "photo" | "pdf";
+type StepState = "pending" | "running" | "done" | "error";
+type Step = { key: string; label: string; state: StepState };
+
+const STEP_TEMPLATE: Step[] = [
+  { key: "receive",  label: "Arquivo recebido",        state: "pending" },
+  { key: "upload",   label: "Upload concluído",        state: "pending" },
+  { key: "ocr",      label: "OCR concluído",           state: "pending" },
+  { key: "items",    label: "Itens encontrados",       state: "pending" },
+  { key: "classify", label: "Classificação executada", state: "pending" },
+];
 
 function todayISO() { return new Date().toISOString().slice(0, 10); }
 
@@ -38,10 +59,23 @@ function NovaDespesa() {
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<OcrResult | null>(null);
   const [storagePath, setStoragePath] = useState<string | null>(null);
+  const [steps, setSteps] = useState<Step[]>(STEP_TEMPLATE);
+  const [itemsCount, setItemsCount] = useState<number>(0);
+
+  const setStep = (key: string, state: StepState) =>
+    setSteps((prev) => prev.map((s) => (s.key === key ? { ...s, state } : s)));
 
   const handleFile = async (file: File) => {
-    if (file.size > 12_000_000) { toast.error("Arquivo muito grande (máx. 12MB)."); return; }
+    if (!ACCEPTED.has(file.type)) {
+      toast.error("Formato inválido. Use JPG, PNG ou PDF."); return;
+    }
+    if (file.size > MAX_BYTES) {
+      toast.error("Arquivo muito grande (máximo 10MB)."); return;
+    }
     setScanning(true);
+    setSteps(STEP_TEMPLATE.map((s) => ({ ...s })));
+    setStep("receive", "done");
+
     try {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
@@ -58,18 +92,37 @@ function NovaDespesa() {
         fr.readAsDataURL(file);
       });
 
-      // Upload + OCR em paralelo
+      setStep("upload", "running");
+      setStep("ocr", "running");
       const [{ error: upErr }, result] = await Promise.all([
         supabase.storage.from("receipts").upload(path, file, { contentType: file.type, upsert: false }),
         runOcr({ data: { fileDataUrl: dataUrl, mimeType: file.type } }),
       ]);
-      if (upErr) throw upErr;
+      if (upErr) { setStep("upload", "error"); throw upErr; }
+      setStep("upload", "done");
+      setStep("ocr", "done");
+
+      // Classificação determinística pós-OCR
+      const enriched: OcrResult = {
+        ...result,
+        category: result.category ?? classifyMerchant(result.merchant_name) ?? null,
+        items: result.items.map((it) => {
+          const cat = it.category ?? classifyItem(it.raw_name);
+          const norm = it.normalized_name ?? normalizeName(it.raw_name);
+          return { ...it, category: cat, normalized_name: norm };
+        }),
+      };
+
+      setItemsCount(enriched.items.length);
+      setStep("items", "done");
+      setStep("classify", "done");
 
       setStoragePath(path);
       setSource(file.type === "application/pdf" ? "pdf" : "photo");
-      setDraft(result);
-      toast.success("Nota lida! Confira e salve.");
+      setDraft(enriched);
+      toast.success(`Nota lida! ${enriched.items.length} ${enriched.items.length === 1 ? "item" : "itens"} encontrados.`);
     } catch (e) {
+      setSteps((prev) => prev.map((s) => (s.state === "running" ? { ...s, state: "error" } : s)));
       toast.error(e instanceof Error ? e.message : "Falha no OCR");
     } finally { setScanning(false); }
   };
@@ -77,6 +130,7 @@ function NovaDespesa() {
   const startManual = () => {
     setSource("manual");
     setStoragePath(null);
+    setSteps(STEP_TEMPLATE);
     setDraft({
       merchant_name: "",
       merchant_document: null,
@@ -91,8 +145,7 @@ function NovaDespesa() {
 
   const detectRecurring = (d: OcrResult): string | null => {
     const text = `${d.merchant_name} ${d.category ?? ""}`.toLowerCase();
-    const hit = RECUR_CATEGORIES.find((c) => text.includes(c));
-    return hit ?? null;
+    return RECUR_CATEGORIES.find((c) => text.includes(c)) ?? null;
   };
 
   const save = async () => {
@@ -140,7 +193,6 @@ function NovaDespesa() {
           .select("id,normalized_name,unit_price,quantity,unit");
         if (e2) throw e2;
 
-        // Persiste histórico de preços e cache de normalização
         const prices = (insertedItems ?? [])
           .filter((it) => it.normalized_name && Number(it.unit_price) > 0)
           .map((it) => ({
@@ -153,27 +205,29 @@ function NovaDespesa() {
             purchase_date: draft.expense_date ?? todayISO(),
             expense_item_id: it.id,
           }));
-        if (prices.length) {
-          await supabase.from("product_prices").insert(prices);
-        }
+        if (prices.length) await supabase.from("product_prices").insert(prices);
 
         const norms = draft.items
           .filter((it) => it.normalized_name && it.raw_name)
           .map((it) => ({
             raw_name: it.raw_name.toUpperCase().trim(),
             normalized_name: it.normalized_name as string,
-            confidence: 0.85,
+            confidence: 0.9,
           }));
         if (norms.length) {
           await supabase.from("product_normalization").upsert(norms, { onConflict: "raw_name" });
         }
       }
 
-      // Sugerir cadastro como recorrente
+      // Notifica dashboards para atualizar
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("aura:data-changed"));
+      }
+
       const recur = detectRecurring(draft);
       if (recur) {
         toast.message("Conta recorrente detectada", {
-          description: `Cadastrar "${draft.merchant_name}" como ${recur} recorrente?`,
+          description: `Cadastrar "${draft.merchant_name}" como ${recur}?`,
           action: { label: "Cadastrar", onClick: () => navigate({ to: "/recorrentes" }) },
         });
       }
@@ -199,19 +253,20 @@ function NovaDespesa() {
               <div className="min-w-0">
                 <p className="font-semibold">Escanear nota (foto ou PDF)</p>
                 <p className="text-xs text-muted-foreground">
-                  Extração automática com IA: estabelecimento, itens, valores.
+                  JPG, PNG ou PDF até 10MB. Extração automática com IA.
                 </p>
               </div>
             </div>
             <input
               type="file"
-              accept="image/*,application/pdf"
+              accept="image/jpeg,image/jpg,image/png,application/pdf"
+              capture="environment"
               className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
             />
             {scanning && (
               <div className="mt-4 flex items-center gap-2 text-sm text-primary">
-                <Loader2 className="size-4 animate-spin" /> Lendo nota fiscal…
+                <Loader2 className="size-4 animate-spin" /> Processando nota fiscal…
               </div>
             )}
           </label>
@@ -230,11 +285,17 @@ function NovaDespesa() {
               </div>
             </div>
           </button>
+
+          {steps.some((s) => s.state !== "pending") && (
+            <AuditLog steps={steps} itemsCount={itemsCount} />
+          )}
         </div>
       )}
 
       {draft && (
         <div className="space-y-4">
+          <AuditLog steps={steps} itemsCount={itemsCount} compact />
+
           <div className="bg-primary-soft border border-primary/20 rounded-2xl p-3 text-[12px] text-primary font-medium">
             {source !== "manual"
               ? "Prévia extraída pela IA. Revise antes de salvar."
@@ -316,22 +377,39 @@ function NovaDespesa() {
                 {draft.items.map((it, i) => (
                   <div
                     key={i}
-                    className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 bg-card border border-border rounded-xl p-3"
+                    className="bg-card border border-border rounded-xl p-3 space-y-2"
                   >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{it.raw_name}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {it.normalized_name ?? "—"} • {it.quantity ?? 1} {it.unit ?? ""}
-                      </p>
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{it.raw_name}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {it.normalized_name ?? "—"} • {it.quantity ?? 1} {it.unit ?? ""}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold">{brl(Number(it.total_price ?? 0))}</p>
+                      <button
+                        onClick={() => setDraft({ ...draft, items: draft.items.filter((_, j) => j !== i) })}
+                        className="text-muted-foreground hover:text-destructive p-1"
+                        aria-label="Remover"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
                     </div>
-                    <p className="text-sm font-semibold">{brl(Number(it.total_price ?? 0))}</p>
-                    <button
-                      onClick={() => setDraft({ ...draft, items: draft.items.filter((_, j) => j !== i) })}
-                      className="text-muted-foreground hover:text-destructive p-1"
-                      aria-label="Remover"
+                    <Select
+                      value={it.category ?? "Outros"}
+                      onValueChange={(v) => {
+                        const next = [...draft.items];
+                        next[i] = { ...next[i], category: v };
+                        setDraft({ ...draft, items: next });
+                      }}
                     >
-                      <Trash2 className="size-3.5" />
-                    </button>
+                      <SelectTrigger className="rounded-lg h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {CATEGORY_OPTIONS.map((c) => (
+                          <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 ))}
               </div>
@@ -339,7 +417,7 @@ function NovaDespesa() {
           )}
 
           <div className="flex gap-2 pt-2">
-            <Button variant="outline" onClick={() => { setDraft(null); setStoragePath(null); }} className="flex-1 h-12 rounded-2xl">
+            <Button variant="outline" onClick={() => { setDraft(null); setStoragePath(null); setSteps(STEP_TEMPLATE); }} className="flex-1 h-12 rounded-2xl">
               Cancelar
             </Button>
             <Button
@@ -348,12 +426,36 @@ function NovaDespesa() {
               className="flex-1 h-12 rounded-2xl bg-primary text-primary-foreground font-semibold"
             >
               {saving && <Loader2 className="size-4 mr-2 animate-spin" />}
-              Salvar despesa
+              Confirmar importação
             </Button>
           </div>
         </div>
       )}
     </>
+  );
+}
+
+function AuditLog({ steps, itemsCount, compact }: { steps: Step[]; itemsCount: number; compact?: boolean }) {
+  return (
+    <div className={`bg-card border border-border rounded-2xl ${compact ? "p-3" : "p-4"}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+        Auditoria do processamento
+      </p>
+      <ol className="space-y-1.5">
+        {steps.map((s) => (
+          <li key={s.key} className="flex items-center gap-2 text-xs">
+            {s.state === "done" && <Check className="size-3.5 text-primary shrink-0" />}
+            {s.state === "running" && <Loader2 className="size-3.5 animate-spin text-primary shrink-0" />}
+            {s.state === "error" && <Circle className="size-3.5 text-destructive fill-destructive shrink-0" />}
+            {s.state === "pending" && <Circle className="size-3.5 text-muted-foreground/40 shrink-0" />}
+            <span className={s.state === "done" ? "text-foreground" : "text-muted-foreground"}>
+              {s.label}
+              {s.key === "items" && s.state === "done" && itemsCount > 0 && ` (${itemsCount})`}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
