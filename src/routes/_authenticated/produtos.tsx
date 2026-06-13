@@ -29,12 +29,13 @@ function Produtos() {
   }, []);
 
   const products = useMemo(() => {
-    const m = new Map<string, {
+    type Agg = {
       qty: number; total: number; prices: number[];
       byStore: Map<string, number[]>; unit: string | null;
-    }>();
+    };
+    const m = new Map<string, Agg>();
     for (const p of prices) {
-      const v = m.get(p.normalized_name) ?? { qty: 0, total: 0, prices: [], byStore: new Map(), unit: p.unit };
+      const v: Agg = m.get(p.normalized_name) ?? { qty: 0, total: 0, prices: [], byStore: new Map<string, number[]>(), unit: p.unit };
       v.qty += Number(p.quantity);
       v.total += Number(p.unit_price) * Number(p.quantity);
       v.prices.push(Number(p.unit_price));
