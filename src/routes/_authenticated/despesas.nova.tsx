@@ -54,6 +54,8 @@ function todayISO() { return new Date().toISOString().slice(0, 10); }
 function NovaDespesa() {
   const navigate = useNavigate();
   const runOcr = useServerFn(ocrReceipt);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [source, setSource] = useState<Source>("manual");
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
