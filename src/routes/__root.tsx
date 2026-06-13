@@ -86,13 +86,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "AURA Finance é a inteligência de consumo baseada em OCR de notas fiscais. Entenda seus gastos, hábitos de compra e oportunidades de economia.",
       },
-      { property: "og:title", content: "AURA Finance" },
+      { property: "og:title", content: "AURA Finance — Entenda para onde seu dinheiro está indo" },
       {
         property: "og:description",
         content: "Inteligência de consumo premium baseada em OCR de notas fiscais.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "AURA Finance — Entenda para onde seu dinheiro está indo" },
+      { name: "description", content: "Aura Insights analyzes your spending by OCR scanning receipts to reveal where your money goes." },
+      { property: "og:description", content: "Aura Insights analyzes your spending by OCR scanning receipts to reveal where your money goes." },
+      { name: "twitter:description", content: "Aura Insights analyzes your spending by OCR scanning receipts to reveal where your money goes." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c5d7aa33-7ea8-4114-a051-9b9e5dcc6e61/id-preview-ae29b580--efdf7c1f-7283-4cce-8935-c6dee4e4083d.lovable.app-1781342193111.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c5d7aa33-7ea8-4114-a051-9b9e5dcc6e61/id-preview-ae29b580--efdf7c1f-7283-4cce-8935-c6dee4e4083d.lovable.app-1781342193111.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
