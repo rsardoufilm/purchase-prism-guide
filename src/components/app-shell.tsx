@@ -10,6 +10,7 @@ import {
   MessageCircle,
   LogOut,
   ScanLine,
+  Settings,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +25,7 @@ const NAV = [
   { to: "/chat", label: "Pergunte", icon: MessageCircle },
   { to: "/assinaturas", label: "Assinaturas", icon: CreditCard },
   { to: "/recorrentes", label: "Recorrentes", icon: Repeat },
+  { to: "/configuracoes", label: "Ajustes", icon: Settings },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
