@@ -87,7 +87,38 @@
   --ring: hsl(24 95% 53%);
 }
 
-/* No dark mode — single premium identity */
+/* Dark theme — toggle via .dark class on <html> */
+.dark {
+  --background: hsl(222 47% 6%);
+  --foreground: hsl(210 25% 96%);
+
+  --card: hsl(222 40% 10%);
+  --card-foreground: hsl(210 25% 96%);
+  --popover: hsl(222 40% 10%);
+  --popover-foreground: hsl(210 25% 96%);
+
+  --primary: hsl(24 95% 58%);
+  --primary-foreground: hsl(0 0% 100%);
+  --primary-soft: hsl(24 95% 58% / 0.14);
+
+  --secondary: hsl(210 25% 96%);
+  --secondary-foreground: hsl(222 47% 11%);
+
+  --muted: hsl(222 35% 14%);
+  --muted-foreground: hsl(210 15% 65%);
+
+  --accent: hsl(217 60% 30%);
+  --accent-foreground: hsl(0 0% 100%);
+
+  --destructive: hsl(0 72% 55%);
+  --destructive-foreground: hsl(0 0% 100%);
+
+  --success: hsl(158 64% 45%);
+
+  --border: hsl(210 25% 96% / 0.1);
+  --input: hsl(210 25% 96% / 0.14);
+  --ring: hsl(24 95% 58%);
+}
 
 @layer base {
   * {

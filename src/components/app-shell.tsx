@@ -10,6 +10,7 @@ import {
   MessageCircle,
   LogOut,
   ScanLine,
+  Settings,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +25,7 @@ const NAV = [
   { to: "/chat", label: "Pergunte", icon: MessageCircle },
   { to: "/assinaturas", label: "Assinaturas", icon: CreditCard },
   { to: "/recorrentes", label: "Recorrentes", icon: Repeat },
+  { to: "/configuracoes", label: "Ajustes", icon: Settings },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -105,7 +107,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <ScanLine className="size-6" strokeWidth={2.2} />
             </span>
           </button>
-          {[NAV[5], NAV[4]].map(({ to, label, icon: Icon }) => (
+          {[NAV[5], NAV[8]].map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
               to={to}
