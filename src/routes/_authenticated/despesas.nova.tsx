@@ -10,7 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, ScanLine, Upload, Trash2, Check, Circle, Camera, FileText } from "lucide-react";
+import { Loader2, ScanLine, Upload, Trash2, Check, Circle, Camera, FileText, Plus } from "lucide-react";
 import { ocrReceipt, type OcrResult } from "@/lib/ocr.functions";
 import { brl } from "@/lib/format";
 import { classifyItem, normalizeName, classifyMerchant } from "@/lib/classifier";
