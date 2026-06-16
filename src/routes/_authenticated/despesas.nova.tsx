@@ -240,88 +240,100 @@ function NovaDespesa() {
 
       {!draft && (
         <div className="space-y-3">
-          <div className="bg-card border border-border rounded-3xl p-5 space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="size-12 shrink-0 rounded-2xl bg-primary-soft grid place-items-center text-primary">
-                <ScanLine className="size-6" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold">Escanear nota</p>
-                <p className="text-xs text-muted-foreground">
-                  Foto pela câmera, imagem da galeria ou PDF (até 10MB).
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-12 rounded-2xl"
-                onClick={() => {
-                  console.log("[CAMERA_OPEN] abrindo câmera");
-                  cameraRef.current?.click();
-                }}
-              >
-                <Camera className="size-4 mr-2" /> Câmera
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-12 rounded-2xl"
-                onClick={() => {
-                  console.log("[FILE_PICKER_OPEN] abrindo seletor de arquivo");
-                  fileRef.current?.click();
-                }}
-              >
-                <FileText className="size-4 mr-2" /> Arquivo
-              </Button>
-            </div>
-            <input
-              ref={cameraRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="sr-only"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                console.log("[CAMERA_OPEN] arquivo selecionado:", f?.name, f?.type, f?.size);
-                if (f) handleFile(f);
-                e.target.value = "";
-              }}
-            />
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,application/pdf"
-              className="sr-only"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                console.log("[FILE_PICKER_OPEN] arquivo selecionado:", f?.name, f?.type, f?.size);
-                if (f) handleFile(f);
-                e.target.value = "";
-              }}
-            />
-            {scanning && (
-              <div className="flex items-center gap-2 text-sm text-primary">
-                <Loader2 className="size-4 animate-spin" /> Processando nota fiscal…
-              </div>
-            )}
-          </div>
+          <p className="text-xs text-muted-foreground px-1">
+            Escolha como adicionar sua despesa:
+          </p>
 
+          {/* 1. OCR — foto pela câmera */}
           <button
-            onClick={startManual}
-            className="block w-full bg-card border border-border rounded-3xl p-6 text-left hover:bg-muted transition-colors"
+            type="button"
+            onClick={() => {
+              console.log("[CAMERA_OPEN] abrindo câmera");
+              cameraRef.current?.click();
+            }}
+            className="w-full bg-card border border-border rounded-3xl p-5 text-left hover:bg-muted transition-colors flex items-center gap-4"
           >
-            <div className="flex items-center gap-4">
-              <div className="size-12 shrink-0 rounded-2xl bg-muted grid place-items-center text-muted-foreground">
-                <Upload className="size-6" />
-              </div>
-              <div>
-                <p className="font-semibold">Inclusão manual</p>
-                <p className="text-xs text-muted-foreground">Preencha os campos sem foto.</p>
-              </div>
+            <div className="size-12 shrink-0 rounded-2xl bg-primary-soft grid place-items-center text-primary">
+              <ScanLine className="size-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">Escanear com a câmera</p>
+              <p className="text-xs text-muted-foreground">
+                OCR automático da nota fiscal — tire uma foto.
+              </p>
+            </div>
+            <Camera className="size-5 text-muted-foreground shrink-0" />
+          </button>
+
+          {/* 2. Upload de arquivo */}
+          <button
+            type="button"
+            onClick={() => {
+              console.log("[FILE_PICKER_OPEN] abrindo seletor de arquivo");
+              fileRef.current?.click();
+            }}
+            className="w-full bg-card border border-border rounded-3xl p-5 text-left hover:bg-muted transition-colors flex items-center gap-4"
+          >
+            <div className="size-12 shrink-0 rounded-2xl bg-primary-soft grid place-items-center text-primary">
+              <FileText className="size-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">Enviar arquivo</p>
+              <p className="text-xs text-muted-foreground">
+                Imagem (JPG/PNG) ou PDF da galeria — até 10MB.
+              </p>
+            </div>
+            <Upload className="size-5 text-muted-foreground shrink-0" />
+          </button>
+
+          {/* 3. Manual */}
+          <button
+            type="button"
+            onClick={startManual}
+            className="w-full bg-card border border-border rounded-3xl p-5 text-left hover:bg-muted transition-colors flex items-center gap-4"
+          >
+            <div className="size-12 shrink-0 rounded-2xl bg-muted grid place-items-center text-muted-foreground">
+              <Plus className="size-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">Inclusão manual</p>
+              <p className="text-xs text-muted-foreground">
+                Preencher os campos sem foto nem OCR.
+              </p>
             </div>
           </button>
+
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              console.log("[CAMERA_OPEN] arquivo selecionado:", f?.name, f?.type, f?.size);
+              if (f) handleFile(f);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,application/pdf"
+            className="sr-only"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              console.log("[FILE_PICKER_OPEN] arquivo selecionado:", f?.name, f?.type, f?.size);
+              if (f) handleFile(f);
+              e.target.value = "";
+            }}
+          />
+
+          {scanning && (
+            <div className="flex items-center gap-2 text-sm text-primary px-1">
+              <Loader2 className="size-4 animate-spin" /> Processando nota fiscal…
+            </div>
+          )}
 
           {steps.some((s) => s.state !== "pending") && (
             <AuditLog steps={steps} itemsCount={itemsCount} />
