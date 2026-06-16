@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const Input = z.object({
   fileDataUrl: z.string().min(20).max(15_000_000),
@@ -66,6 +67,7 @@ Regras críticas:
 - Responda APENAS o objeto JSON, sem markdown.`;
 
 export const ocrReceipt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;

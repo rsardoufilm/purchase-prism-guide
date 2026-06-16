@@ -209,16 +209,9 @@ function NovaDespesa() {
           }));
         if (prices.length) await supabase.from("product_prices").insert(prices);
 
-        const norms = draft.items
-          .filter((it) => it.normalized_name && it.raw_name)
-          .map((it) => ({
-            raw_name: it.raw_name.toUpperCase().trim(),
-            normalized_name: it.normalized_name as string,
-            confidence: 0.9,
-          }));
-        if (norms.length) {
-          await supabase.from("product_normalization").upsert(norms, { onConflict: "raw_name" });
-        }
+        // product_normalization é uma tabela de lookup compartilhada
+        // gerenciada server-side; clientes não escrevem nela.
+
       }
 
       // Notifica dashboards para atualizar
