@@ -35,10 +35,10 @@ function Despesas() {
   }, []);
   return (
     <>
-      <PageHeader eyebrow="Despesas" title="Suas notas fiscais" />
+      <PageHeader eyebrow="Despesas" title="Suas despesas" />
       <Link to="/despesas/nova" className="block mb-5">
         <Button className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-semibold gap-2">
-          <Plus className="size-4" /> Nova despesa (manual ou OCR)
+          <Plus className="size-4" /> Nova despesa
         </Button>
       </Link>
       {loading ? (
