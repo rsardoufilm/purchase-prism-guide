@@ -107,7 +107,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <ScanLine className="size-6" strokeWidth={2.2} />
             </span>
           </button>
-          {[NAV[5], NAV[4]].map(({ to, label, icon: Icon }) => (
+          {[NAV[5], NAV[8]].map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
               to={to}
