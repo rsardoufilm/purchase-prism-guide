@@ -67,6 +67,8 @@ Regras críticas:
 - Responda APENAS o objeto JSON, sem markdown.`;
 
 export const ocrReceipt = createServerFn({ method: "POST" })
+export const ocrReceipt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
