@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
@@ -21,6 +21,7 @@ interface Row {
 }
 
 function Despesas() {
+  const location = useLocation();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -33,14 +34,18 @@ function Despesas() {
         setLoading(false);
       });
   }, []);
+  if (location.pathname !== "/despesas") {
+    return <Outlet />;
+  }
+
   return (
     <>
       <PageHeader eyebrow="Despesas" title="Suas despesas" />
-      <Link to="/despesas/nova" className="block mb-5">
-        <Button className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-semibold gap-2">
+      <Button asChild className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-semibold gap-2 mb-5">
+        <Link to="/despesas/nova" onClick={() => console.log("[PLUS_CLICK] navegando para /despesas/nova") }>
           <Plus className="size-4" /> Nova despesa
-        </Button>
-      </Link>
+        </Link>
+      </Button>
       {loading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
       ) : rows.length === 0 ? (
