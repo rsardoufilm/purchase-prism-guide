@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
@@ -21,6 +21,7 @@ interface Row {
 }
 
 function Despesas() {
+  const location = useLocation();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -33,6 +34,10 @@ function Despesas() {
         setLoading(false);
       });
   }, []);
+  if (location.pathname !== "/despesas") {
+    return <Outlet />;
+  }
+
   return (
     <>
       <PageHeader eyebrow="Despesas" title="Suas despesas" />
