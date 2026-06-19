@@ -41,11 +41,11 @@ function Despesas() {
   return (
     <>
       <PageHeader eyebrow="Despesas" title="Suas despesas" />
-      <Link to="/despesas/nova" className="block mb-5">
-        <Button className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-semibold gap-2">
+      <Button asChild className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-semibold gap-2 mb-5">
+        <Link to="/despesas/nova" onClick={() => console.log("[PLUS_CLICK] navegando para /despesas/nova") }>
           <Plus className="size-4" /> Nova despesa
-        </Button>
-      </Link>
+        </Link>
+      </Button>
       {loading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
       ) : rows.length === 0 ? (
