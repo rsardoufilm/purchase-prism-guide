@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
   head: () => ({
     meta: [
-      { title: "Dashboard — AURA Finance" },
+      { title: "Dashboard — AURA Consumo" },
       { name: "description", content: "Resumo inteligente do seu consumo no período." },
     ],
   }),
@@ -129,7 +129,7 @@ function Dashboard() {
 
   return (
     <>
-      <PageHeader eyebrow="Dashboard" title="AURA Finance" />
+      <PageHeader eyebrow="Dashboard" title="AURA Consumo" />
 
       <div className="mb-6 animate-aura-in">
         <PeriodFilter value={period} onChange={setPeriod} />

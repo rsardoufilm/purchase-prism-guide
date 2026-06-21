@@ -6,11 +6,11 @@ export const Route = createFileRoute("/legal/privacidade")({
   component: PrivacidadePage,
   head: () => ({
     meta: [
-      { title: "Política de Privacidade — AURA Finance" },
+      { title: "Política de Privacidade — AURA Consumo" },
       {
         name: "description",
         content:
-          "Como o AURA Finance coleta, usa e protege seus dados pessoais, em conformidade com a LGPD.",
+          "Como o AURA Consumo coleta, usa e protege seus dados pessoais, em conformidade com a LGPD.",
       },
     ],
   }),

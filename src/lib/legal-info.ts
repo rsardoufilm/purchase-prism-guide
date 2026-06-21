@@ -1,8 +1,8 @@
-// Dados do responsável legal pelo AURA Finance.
+// Dados do responsável legal pelo AURA Consumo.
 // Atualize o e-mail de contato/DPO quando confirmado oficialmente.
 
 export const LEGAL = {
-  appName: "AURA Finance",
+  appName: "AURA Consumo",
   owner: "Aura R Sistemas",
   ownerCity: "Rio de Janeiro, Brasil",
   contactEmail: "contato@aurar.com.br", // ⚠️ atualize quando o e-mail oficial estiver pronto

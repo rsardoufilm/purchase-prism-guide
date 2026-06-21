@@ -19,7 +19,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/despesas/")({
   component: DespesasIndex,
-  head: () => ({ meta: [{ title: "Despesas — AURA Finance" }] }),
+  head: () => ({ meta: [{ title: "Despesas — AURA Consumo" }] }),
 });
 
 interface Row {

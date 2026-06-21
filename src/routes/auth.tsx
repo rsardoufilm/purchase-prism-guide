@@ -14,10 +14,10 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
   head: () => ({
     meta: [
-      { title: "Entrar — AURA Finance" },
+      { title: "Entrar — AURA Consumo" },
       {
         name: "description",
-        content: "Acesse o AURA Finance e entenda para onde seu dinheiro está indo.",
+        content: "Acesse o AURA Consumo e entenda para onde seu dinheiro está indo.",
       },
     ],
   }),
@@ -124,7 +124,7 @@ function AuthPage() {
           <div className="inline-grid place-items-center size-14 rounded-2xl bg-primary shadow-[var(--shadow-elevated)] mb-5">
             <span className="text-primary-foreground font-display font-bold text-2xl">A</span>
           </div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">AURA Finance</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight">AURA Consumo</h1>
           <p className="text-sm text-muted-foreground mt-1.5 text-balance">
             Entenda para onde seu dinheiro está indo.
           </p>

@@ -6,11 +6,11 @@ export const Route = createFileRoute("/legal/exclusao-conta")({
   component: ExclusaoContaPage,
   head: () => ({
     meta: [
-      { title: "Exclusão de conta — AURA Finance" },
+      { title: "Exclusão de conta — AURA Consumo" },
       {
         name: "description",
         content:
-          "Como solicitar a exclusão da sua conta AURA Finance e dos dados pessoais associados.",
+          "Como solicitar a exclusão da sua conta AURA Consumo e dos dados pessoais associados.",
       },
     ],
   }),

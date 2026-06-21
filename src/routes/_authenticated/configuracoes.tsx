@@ -13,7 +13,7 @@ import { LEGAL } from "@/lib/legal-info";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: Configuracoes,
-  head: () => ({ meta: [{ title: "Configurações — AURA Finance" }] }),
+  head: () => ({ meta: [{ title: "Configurações — AURA Consumo" }] }),
 });
 
 const AVATAR_MAX = 5 * 1024 * 1024;

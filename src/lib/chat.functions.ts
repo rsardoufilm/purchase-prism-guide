@@ -6,7 +6,7 @@ const Input = z.object({
   question: z.string().trim().min(2).max(500),
 });
 
-const SYSTEM_PROMPT = `Você é o assistente da AURA Finance. Responda APENAS com base nos dados do usuário fornecidos no contexto.
+const SYSTEM_PROMPT = `Você é o assistente da AURA Consumo. Responda APENAS com base nos dados do usuário fornecidos no contexto.
 
 REGRAS OBRIGATÓRIAS:
 - NUNCA invente informações.

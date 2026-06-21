@@ -7,7 +7,7 @@ import { Sparkles, TrendingUp, TrendingDown, Store } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/insights")({
   component: Insights,
-  head: () => ({ meta: [{ title: "Insights — AURA Finance" }] }),
+  head: () => ({ meta: [{ title: "Insights — AURA Consumo" }] }),
 });
 
 interface E { merchant_name: string; total_amount: number; category: string | null; expense_date: string }
