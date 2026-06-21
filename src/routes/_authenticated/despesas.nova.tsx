@@ -340,7 +340,7 @@ function NovaDespesa() {
         });
       }
 
-      toast.success("Despesa salva!");
+      toast.success(editId ? "Despesa atualizada!" : "Despesa salva!");
       navigate({ to: "/despesas" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao salvar");
