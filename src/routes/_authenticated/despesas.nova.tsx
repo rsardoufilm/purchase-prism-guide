@@ -10,10 +10,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, ScanLine, Upload, Trash2, Check, Circle, Camera, FileText, Plus } from "lucide-react";
+import { Loader2, ScanLine, Upload, Trash2, Check, Circle, Camera, FileText, Plus, AlertTriangle, Eraser } from "lucide-react";
 import { ocrReceipt, type OcrResult } from "@/lib/ocr.functions";
 import { brl } from "@/lib/format";
 import { classifyItem, normalizeName, classifyMerchant } from "@/lib/classifier";
+import { requestCameraPermission } from "@/lib/camera-permission";
+import { logFailure, readFailures, clearFailures, type FailureEntry } from "@/lib/failure-log";
+import { useEffect } from "react";
+
 
 export const Route = createFileRoute("/_authenticated/despesas/nova")({
   component: NovaDespesa,
@@ -63,17 +67,42 @@ function NovaDespesa() {
   const [storagePath, setStoragePath] = useState<string | null>(null);
   const [steps, setSteps] = useState<Step[]>(STEP_TEMPLATE);
   const [itemsCount, setItemsCount] = useState<number>(0);
+  const [failures, setFailures] = useState<FailureEntry[]>(() => readFailures());
+
+  useEffect(() => {
+    const refresh = () => setFailures(readFailures());
+    window.addEventListener("aura:failures-changed", refresh);
+    return () => window.removeEventListener("aura:failures-changed", refresh);
+  }, []);
+
 
   const setStep = (key: string, state: StepState) =>
     setSteps((prev) => prev.map((s) => (s.key === key ? { ...s, state } : s)));
 
+  const openCamera = async () => {
+    console.log("[CAMERA_OPEN] solicitando permissão");
+    const res = await requestCameraPermission();
+    if (!res.ok) {
+      toast.error(res.message);
+      return;
+    }
+    console.log("[CAMERA_OPEN] permissão concedida, abrindo input");
+    cameraRef.current?.click();
+  };
+
+
   const handleFile = async (file: File) => {
     if (!ACCEPTED.has(file.type)) {
-      toast.error("Formato inválido. Use JPG, PNG ou PDF."); return;
+      const msg = `Formato inválido (${file.type || "desconhecido"}). Use JPG, PNG ou PDF.`;
+      logFailure("validate_type", msg, { name: file.name, type: file.type, size: file.size });
+      toast.error(msg); return;
     }
     if (file.size > MAX_BYTES) {
-      toast.error("Arquivo muito grande (máximo 10MB)."); return;
+      const msg = "Arquivo muito grande (máximo 10MB).";
+      logFailure("validate_size", msg, { name: file.name, size: file.size });
+      toast.error(msg); return;
     }
+
     setScanning(true);
     setSteps(STEP_TEMPLATE.map((s) => ({ ...s })));
     setStep("receive", "done");
@@ -125,9 +154,12 @@ function NovaDespesa() {
       toast.success(`Nota lida! ${enriched.items.length} ${enriched.items.length === 1 ? "item" : "itens"} encontrados.`);
     } catch (e) {
       setSteps((prev) => prev.map((s) => (s.state === "running" ? { ...s, state: "error" } : s)));
-      toast.error(e instanceof Error ? e.message : "Falha no OCR");
+      const msg = e instanceof Error ? e.message : "Falha no OCR";
+      logFailure("ocr_pipeline", msg, { name: file.name, type: file.type, size: file.size });
+      toast.error(msg);
     } finally { setScanning(false); }
   };
+
 
   const startManual = () => {
     setSource("manual");
@@ -247,10 +279,8 @@ function NovaDespesa() {
           {/* 1. OCR — foto pela câmera */}
           <button
             type="button"
-            onClick={() => {
-              console.log("[CAMERA_OPEN] abrindo câmera");
-              cameraRef.current?.click();
-            }}
+            onClick={openCamera}
+
             className="w-full bg-card border border-border rounded-3xl p-5 text-left hover:bg-muted transition-colors flex items-center gap-4"
           >
             <div className="size-12 shrink-0 rounded-2xl bg-primary-soft grid place-items-center text-primary">
@@ -338,8 +368,11 @@ function NovaDespesa() {
           {steps.some((s) => s.state !== "pending") && (
             <AuditLog steps={steps} itemsCount={itemsCount} />
           )}
+
+          <FailureDiary entries={failures} onClear={() => { clearFailures(); setFailures([]); }} />
         </div>
       )}
+
 
       {draft && (
         <div className="space-y-4">
@@ -513,6 +546,39 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div className="space-y-1.5">
       <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</Label>
       {children}
+    </div>
+  );
+}
+
+function FailureDiary({ entries, onClear }: { entries: FailureEntry[]; onClear: () => void }) {
+  if (entries.length === 0) return null;
+  return (
+    <div className="bg-card border border-border rounded-2xl p-4 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="size-4 text-destructive" />
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Diário de falhas ({entries.length})
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClear}
+          className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1"
+        >
+          <Eraser className="size-3" /> Limpar
+        </button>
+      </div>
+      <ol className="space-y-1.5 max-h-56 overflow-y-auto">
+        {entries.slice(0, 10).map((f) => (
+          <li key={f.id} className="text-xs border-l-2 border-destructive/40 pl-2">
+            <p className="font-medium text-foreground truncate">{f.message}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {new Date(f.at).toLocaleString("pt-BR")} • {f.stage}
+            </p>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
