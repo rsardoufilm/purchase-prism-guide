@@ -349,13 +349,23 @@ function NovaDespesa() {
 
   return (
     <>
-      <PageHeader eyebrow="Nova despesa" title="Adicionar nota" />
+      <PageHeader
+        eyebrow={editId ? "Editar despesa" : "Nova despesa"}
+        title={editId ? "Editar nota" : "Adicionar nota"}
+      />
 
-      {!draft && (
+      {loadingEdit && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" /> Carregando despesa…
+        </div>
+      )}
+
+      {!draft && !loadingEdit && !editId && (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground px-1">
             Escolha como adicionar sua despesa:
           </p>
+
 
           {/* 1. OCR — foto pela câmera */}
           <button
