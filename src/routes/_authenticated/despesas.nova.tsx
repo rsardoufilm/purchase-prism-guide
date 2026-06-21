@@ -21,6 +21,9 @@ import { useEffect } from "react";
 
 export const Route = createFileRoute("/_authenticated/despesas/nova")({
   component: NovaDespesa,
+  validateSearch: (search: Record<string, unknown>) => ({
+    id: typeof search.id === "string" ? search.id : undefined,
+  }),
   head: () => ({ meta: [{ title: "Nova despesa — AURA Finance" }] }),
 });
 
