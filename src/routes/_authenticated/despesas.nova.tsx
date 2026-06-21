@@ -279,10 +279,8 @@ function NovaDespesa() {
           {/* 1. OCR — foto pela câmera */}
           <button
             type="button"
-            onClick={() => {
-              console.log("[CAMERA_OPEN] abrindo câmera");
-              cameraRef.current?.click();
-            }}
+            onClick={openCamera}
+
             className="w-full bg-card border border-border rounded-3xl p-5 text-left hover:bg-muted transition-colors flex items-center gap-4"
           >
             <div className="size-12 shrink-0 rounded-2xl bg-primary-soft grid place-items-center text-primary">
