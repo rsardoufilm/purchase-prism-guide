@@ -21,6 +21,9 @@ import { useEffect } from "react";
 
 export const Route = createFileRoute("/_authenticated/despesas/nova")({
   component: NovaDespesa,
+  validateSearch: (search: Record<string, unknown>) => ({
+    id: typeof search.id === "string" ? search.id : undefined,
+  }),
   head: () => ({ meta: [{ title: "Nova despesa — AURA Finance" }] }),
 });
 
@@ -57,6 +60,7 @@ function todayISO() { return new Date().toISOString().slice(0, 10); }
 
 function NovaDespesa() {
   const navigate = useNavigate();
+  const { id: editId } = Route.useSearch();
   const runOcr = useServerFn(ocrReceipt);
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -68,6 +72,7 @@ function NovaDespesa() {
   const [steps, setSteps] = useState<Step[]>(STEP_TEMPLATE);
   const [itemsCount, setItemsCount] = useState<number>(0);
   const [failures, setFailures] = useState<FailureEntry[]>(() => readFailures());
+  const [loadingEdit, setLoadingEdit] = useState<boolean>(!!editId);
 
   useEffect(() => {
     const refresh = () => setFailures(readFailures());
@@ -75,20 +80,73 @@ function NovaDespesa() {
     return () => window.removeEventListener("aura:failures-changed", refresh);
   }, []);
 
+  // Modo edição: carrega despesa + itens
+  useEffect(() => {
+    if (!editId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [{ data: exp, error: e1 }, { data: items, error: e2 }] = await Promise.all([
+          supabase
+            .from("expenses")
+            .select("merchant_name,merchant_document,category,expense_date,expense_time,total_amount,payment_method,source,storage_path")
+            .eq("id", editId)
+            .maybeSingle(),
+          supabase
+            .from("expense_items")
+            .select("raw_name,normalized_name,category,quantity,unit,unit_price,total_price")
+            .eq("expense_id", editId),
+        ]);
+        if (cancelled) return;
+        if (e1 || !exp) throw e1 ?? new Error("Despesa não encontrada");
+        if (e2) throw e2;
+        setSource((exp.source as Source) ?? "manual");
+        setStoragePath(exp.storage_path ?? null);
+        setDraft({
+          merchant_name: exp.merchant_name ?? "",
+          merchant_document: exp.merchant_document ?? null,
+          category: exp.category ?? null,
+          expense_date: exp.expense_date ?? todayISO(),
+          expense_time: exp.expense_time ?? null,
+          total_amount: Number(exp.total_amount ?? 0),
+          payment_method: exp.payment_method as OcrResult["payment_method"],
+          items: (items ?? []).map((it) => ({
+            raw_name: it.raw_name,
+            normalized_name: it.normalized_name,
+            category: it.category,
+            quantity: Number(it.quantity ?? 1),
+            unit: it.unit,
+            unit_price: Number(it.unit_price ?? 0),
+            total_price: Number(it.total_price ?? 0),
+          })),
+        });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Falha ao carregar despesa");
+        navigate({ to: "/despesas" });
+      } finally {
+        if (!cancelled) setLoadingEdit(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [editId, navigate]);
+
+
 
   const setStep = (key: string, state: StepState) =>
     setSteps((prev) => prev.map((s) => (s.key === key ? { ...s, state } : s)));
 
-  const openCamera = async () => {
-    console.log("[CAMERA_OPEN] solicitando permissão");
-    const res = await requestCameraPermission();
-    if (!res.ok) {
-      toast.error(res.message);
-      return;
-    }
-    console.log("[CAMERA_OPEN] permissão concedida, abrindo input");
+  const openCamera = () => {
+    console.log("[CAMERA_OPEN] abrindo câmera traseira via input capture");
+    // Importante: clicar SÍNCRONO no input preserva o gesto do usuário
+    // (iOS Safari exige isso para abrir a câmera). A permissão é pedida
+    // pelo próprio navegador no momento da captura.
     cameraRef.current?.click();
+    // Em paralelo, pré-aquecemos a permissão para futuras capturas (sem await).
+    requestCameraPermission().catch(() => {});
   };
+
 
 
   const handleFile = async (file: File) => {
@@ -191,27 +249,50 @@ function NovaDespesa() {
       const userId = userData.user?.id;
       if (!userId) throw new Error("Sessão expirada");
 
-      const { data: exp, error: e1 } = await supabase
-        .from("expenses")
-        .insert({
-          user_id: userId,
-          merchant_name: draft.merchant_name.trim(),
-          merchant_document: draft.merchant_document ?? null,
-          category: draft.category ?? null,
-          expense_date: draft.expense_date ?? todayISO(),
-          expense_time: draft.expense_time ?? null,
-          total_amount: draft.total_amount,
-          payment_method: draft.payment_method,
-          source,
-          storage_path: storagePath,
-        })
-        .select("id")
-        .single();
-      if (e1) throw e1;
+      let expenseId: string;
+      if (editId) {
+        const { error: eu } = await supabase
+          .from("expenses")
+          .update({
+            merchant_name: draft.merchant_name.trim(),
+            merchant_document: draft.merchant_document ?? null,
+            category: draft.category ?? null,
+            expense_date: draft.expense_date ?? todayISO(),
+            expense_time: draft.expense_time ?? null,
+            total_amount: draft.total_amount,
+            payment_method: draft.payment_method,
+          })
+          .eq("id", editId);
+        if (eu) throw eu;
+        // Itens: substitui todos (mais simples e consistente para edição)
+        const { error: edi } = await supabase.from("expense_items").delete().eq("expense_id", editId);
+        if (edi) throw edi;
+        expenseId = editId;
+      } else {
+        const { data: exp, error: e1 } = await supabase
+          .from("expenses")
+          .insert({
+            user_id: userId,
+            merchant_name: draft.merchant_name.trim(),
+            merchant_document: draft.merchant_document ?? null,
+            category: draft.category ?? null,
+            expense_date: draft.expense_date ?? todayISO(),
+            expense_time: draft.expense_time ?? null,
+            total_amount: draft.total_amount,
+            payment_method: draft.payment_method,
+            source,
+            storage_path: storagePath,
+          })
+          .select("id")
+          .single();
+        if (e1) throw e1;
+        expenseId = exp.id;
+      }
+
 
       if (draft.items.length > 0) {
         const itemsPayload = draft.items.map((it) => ({
-          expense_id: exp.id,
+          expense_id: expenseId,
           user_id: userId,
           raw_name: it.raw_name,
           normalized_name: it.normalized_name ?? null,
@@ -259,7 +340,7 @@ function NovaDespesa() {
         });
       }
 
-      toast.success("Despesa salva!");
+      toast.success(editId ? "Despesa atualizada!" : "Despesa salva!");
       navigate({ to: "/despesas" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao salvar");
@@ -268,13 +349,23 @@ function NovaDespesa() {
 
   return (
     <>
-      <PageHeader eyebrow="Nova despesa" title="Adicionar nota" />
+      <PageHeader
+        eyebrow={editId ? "Editar despesa" : "Nova despesa"}
+        title={editId ? "Editar nota" : "Adicionar nota"}
+      />
 
-      {!draft && (
+      {loadingEdit && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" /> Carregando despesa…
+        </div>
+      )}
+
+      {!draft && !loadingEdit && !editId && (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground px-1">
             Escolha como adicionar sua despesa:
           </p>
+
 
           {/* 1. OCR — foto pela câmera */}
           <button
@@ -508,7 +599,7 @@ function NovaDespesa() {
               className="flex-1 h-12 rounded-2xl bg-primary text-primary-foreground font-semibold"
             >
               {saving && <Loader2 className="size-4 mr-2 animate-spin" />}
-              Confirmar importação
+              {editId ? "Salvar alterações" : "Confirmar importação"}
             </Button>
           </div>
         </div>
