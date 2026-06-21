@@ -22,6 +22,7 @@ import { Route as AuthenticatedConsumoRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenticated/assinaturas'
+import { Route as AuthenticatedDespesasIndexRouteImport } from './routes/_authenticated/despesas.index'
 import { Route as AuthenticatedDespesasNovaRouteImport } from './routes/_authenticated/despesas.nova'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -91,6 +92,12 @@ const AuthenticatedAssinaturasRoute =
     path: '/assinaturas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDespesasIndexRoute =
+  AuthenticatedDespesasIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedDespesasRoute,
+  } as any)
 const AuthenticatedDespesasNovaRoute =
   AuthenticatedDespesasNovaRouteImport.update({
     id: '/nova',
@@ -112,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/produtos': typeof AuthenticatedProdutosRoute
   '/recorrentes': typeof AuthenticatedRecorrentesRoute
   '/despesas/nova': typeof AuthenticatedDespesasNovaRoute
+  '/despesas/': typeof AuthenticatedDespesasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -122,11 +130,11 @@ export interface FileRoutesByTo {
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/consumo': typeof AuthenticatedConsumoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/despesas': typeof AuthenticatedDespesasRouteWithChildren
   '/insights': typeof AuthenticatedInsightsRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/recorrentes': typeof AuthenticatedRecorrentesRoute
   '/despesas/nova': typeof AuthenticatedDespesasNovaRoute
+  '/despesas': typeof AuthenticatedDespesasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/recorrentes': typeof AuthenticatedRecorrentesRoute
   '/_authenticated/despesas/nova': typeof AuthenticatedDespesasNovaRoute
+  '/_authenticated/despesas/': typeof AuthenticatedDespesasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/produtos'
     | '/recorrentes'
     | '/despesas/nova'
+    | '/despesas/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -171,11 +181,11 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/consumo'
     | '/dashboard'
-    | '/despesas'
     | '/insights'
     | '/produtos'
     | '/recorrentes'
     | '/despesas/nova'
+    | '/despesas'
   id:
     | '__root__'
     | '/'
@@ -192,6 +202,7 @@ export interface FileRouteTypes {
     | '/_authenticated/produtos'
     | '/_authenticated/recorrentes'
     | '/_authenticated/despesas/nova'
+    | '/_authenticated/despesas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -294,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAssinaturasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/despesas/': {
+      id: '/_authenticated/despesas/'
+      path: '/'
+      fullPath: '/despesas/'
+      preLoaderRoute: typeof AuthenticatedDespesasIndexRouteImport
+      parentRoute: typeof AuthenticatedDespesasRoute
+    }
     '/_authenticated/despesas/nova': {
       id: '/_authenticated/despesas/nova'
       path: '/nova'
@@ -306,10 +324,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedDespesasRouteChildren {
   AuthenticatedDespesasNovaRoute: typeof AuthenticatedDespesasNovaRoute
+  AuthenticatedDespesasIndexRoute: typeof AuthenticatedDespesasIndexRoute
 }
 
 const AuthenticatedDespesasRouteChildren: AuthenticatedDespesasRouteChildren = {
   AuthenticatedDespesasNovaRoute: AuthenticatedDespesasNovaRoute,
+  AuthenticatedDespesasIndexRoute: AuthenticatedDespesasIndexRoute,
 }
 
 const AuthenticatedDespesasRouteWithChildren =
