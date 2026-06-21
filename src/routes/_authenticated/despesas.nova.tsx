@@ -60,6 +60,7 @@ function todayISO() { return new Date().toISOString().slice(0, 10); }
 
 function NovaDespesa() {
   const navigate = useNavigate();
+  const { id: editId } = Route.useSearch();
   const runOcr = useServerFn(ocrReceipt);
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -71,6 +72,7 @@ function NovaDespesa() {
   const [steps, setSteps] = useState<Step[]>(STEP_TEMPLATE);
   const [itemsCount, setItemsCount] = useState<number>(0);
   const [failures, setFailures] = useState<FailureEntry[]>(() => readFailures());
+  const [loadingEdit, setLoadingEdit] = useState<boolean>(!!editId);
 
   useEffect(() => {
     const refresh = () => setFailures(readFailures());
