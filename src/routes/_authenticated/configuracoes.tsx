@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTheme } from "@/lib/theme";
-import { Camera, Loader2, LogOut, Moon, Sun, User } from "lucide-react";
+import { Camera, ChevronRight, FileText, Loader2, LogOut, Moon, ShieldCheck, Sun, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
+import { LEGAL } from "@/lib/legal-info";
+
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: Configuracoes,
