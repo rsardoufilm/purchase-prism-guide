@@ -67,9 +67,25 @@ function NovaDespesa() {
   const [storagePath, setStoragePath] = useState<string | null>(null);
   const [steps, setSteps] = useState<Step[]>(STEP_TEMPLATE);
   const [itemsCount, setItemsCount] = useState<number>(0);
+  const [failures, setFailures] = useState<FailureEntry[]>(() => readFailures());
 
-  const setStep = (key: string, state: StepState) =>
-    setSteps((prev) => prev.map((s) => (s.key === key ? { ...s, state } : s)));
+  useEffect(() => {
+    const refresh = () => setFailures(readFailures());
+    window.addEventListener("aura:failures-changed", refresh);
+    return () => window.removeEventListener("aura:failures-changed", refresh);
+  }, []);
+
+  const openCamera = async () => {
+    console.log("[CAMERA_OPEN] solicitando permissão");
+    const res = await requestCameraPermission();
+    if (!res.ok) {
+      toast.error(res.message);
+      return;
+    }
+    console.log("[CAMERA_OPEN] permissão concedida, abrindo input");
+    cameraRef.current?.click();
+  };
+
 
   const handleFile = async (file: File) => {
     if (!ACCEPTED.has(file.type)) {
