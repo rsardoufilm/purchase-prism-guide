@@ -93,11 +93,16 @@ function NovaDespesa() {
 
   const handleFile = async (file: File) => {
     if (!ACCEPTED.has(file.type)) {
-      toast.error("Formato inválido. Use JPG, PNG ou PDF."); return;
+      const msg = `Formato inválido (${file.type || "desconhecido"}). Use JPG, PNG ou PDF.`;
+      logFailure("validate_type", msg, { name: file.name, type: file.type, size: file.size });
+      toast.error(msg); return;
     }
     if (file.size > MAX_BYTES) {
-      toast.error("Arquivo muito grande (máximo 10MB)."); return;
+      const msg = "Arquivo muito grande (máximo 10MB).";
+      logFailure("validate_size", msg, { name: file.name, size: file.size });
+      toast.error(msg); return;
     }
+
     setScanning(true);
     setSteps(STEP_TEMPLATE.map((s) => ({ ...s })));
     setStep("receive", "done");
