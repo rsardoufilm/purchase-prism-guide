@@ -249,23 +249,47 @@ function NovaDespesa() {
       const userId = userData.user?.id;
       if (!userId) throw new Error("Sessão expirada");
 
-      const { data: exp, error: e1 } = await supabase
-        .from("expenses")
-        .insert({
-          user_id: userId,
-          merchant_name: draft.merchant_name.trim(),
-          merchant_document: draft.merchant_document ?? null,
-          category: draft.category ?? null,
-          expense_date: draft.expense_date ?? todayISO(),
-          expense_time: draft.expense_time ?? null,
-          total_amount: draft.total_amount,
-          payment_method: draft.payment_method,
-          source,
-          storage_path: storagePath,
-        })
-        .select("id")
-        .single();
-      if (e1) throw e1;
+      let expenseId: string;
+      if (editId) {
+        const { error: eu } = await supabase
+          .from("expenses")
+          .update({
+            merchant_name: draft.merchant_name.trim(),
+            merchant_document: draft.merchant_document ?? null,
+            category: draft.category ?? null,
+            expense_date: draft.expense_date ?? todayISO(),
+            expense_time: draft.expense_time ?? null,
+            total_amount: draft.total_amount,
+            payment_method: draft.payment_method,
+          })
+          .eq("id", editId);
+        if (eu) throw eu;
+        // Itens: substitui todos (mais simples e consistente para edição)
+        const { error: edi } = await supabase.from("expense_items").delete().eq("expense_id", editId);
+        if (edi) throw edi;
+        await supabase.from("product_prices").delete().eq("user_id", userId).in("expense_item_id", []);
+        expenseId = editId;
+      } else {
+        const { data: exp, error: e1 } = await supabase
+          .from("expenses")
+          .insert({
+            user_id: userId,
+            merchant_name: draft.merchant_name.trim(),
+            merchant_document: draft.merchant_document ?? null,
+            category: draft.category ?? null,
+            expense_date: draft.expense_date ?? todayISO(),
+            expense_time: draft.expense_time ?? null,
+            total_amount: draft.total_amount,
+            payment_method: draft.payment_method,
+            source,
+            storage_path: storagePath,
+          })
+          .select("id")
+          .single();
+        if (e1) throw e1;
+        expenseId = exp.id;
+      }
+
 
       if (draft.items.length > 0) {
         const itemsPayload = draft.items.map((it) => ({
