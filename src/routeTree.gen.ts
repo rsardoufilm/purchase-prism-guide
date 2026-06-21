@@ -13,6 +13,9 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LegalTermosRouteImport } from './routes/legal.termos'
+import { Route as LegalPrivacidadeRouteImport } from './routes/legal.privacidade'
+import { Route as LegalExclusaoContaRouteImport } from './routes/legal.exclusao-conta'
 import { Route as AuthenticatedRecorrentesRouteImport } from './routes/_authenticated/recorrentes'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticated/insights'
@@ -42,6 +45,21 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalTermosRoute = LegalTermosRouteImport.update({
+  id: '/legal/termos',
+  path: '/legal/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalPrivacidadeRoute = LegalPrivacidadeRouteImport.update({
+  id: '/legal/privacidade',
+  path: '/legal/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalExclusaoContaRoute = LegalExclusaoContaRouteImport.update({
+  id: '/legal/exclusao-conta',
+  path: '/legal/exclusao-conta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRecorrentesRoute =
@@ -118,6 +136,9 @@ export interface FileRoutesByFullPath {
   '/insights': typeof AuthenticatedInsightsRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/recorrentes': typeof AuthenticatedRecorrentesRoute
+  '/legal/exclusao-conta': typeof LegalExclusaoContaRoute
+  '/legal/privacidade': typeof LegalPrivacidadeRoute
+  '/legal/termos': typeof LegalTermosRoute
   '/despesas/nova': typeof AuthenticatedDespesasNovaRoute
   '/despesas/': typeof AuthenticatedDespesasIndexRoute
 }
@@ -133,6 +154,9 @@ export interface FileRoutesByTo {
   '/insights': typeof AuthenticatedInsightsRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/recorrentes': typeof AuthenticatedRecorrentesRoute
+  '/legal/exclusao-conta': typeof LegalExclusaoContaRoute
+  '/legal/privacidade': typeof LegalPrivacidadeRoute
+  '/legal/termos': typeof LegalTermosRoute
   '/despesas/nova': typeof AuthenticatedDespesasNovaRoute
   '/despesas': typeof AuthenticatedDespesasIndexRoute
 }
@@ -151,6 +175,9 @@ export interface FileRoutesById {
   '/_authenticated/insights': typeof AuthenticatedInsightsRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/recorrentes': typeof AuthenticatedRecorrentesRoute
+  '/legal/exclusao-conta': typeof LegalExclusaoContaRoute
+  '/legal/privacidade': typeof LegalPrivacidadeRoute
+  '/legal/termos': typeof LegalTermosRoute
   '/_authenticated/despesas/nova': typeof AuthenticatedDespesasNovaRoute
   '/_authenticated/despesas/': typeof AuthenticatedDespesasIndexRoute
 }
@@ -169,6 +196,9 @@ export interface FileRouteTypes {
     | '/insights'
     | '/produtos'
     | '/recorrentes'
+    | '/legal/exclusao-conta'
+    | '/legal/privacidade'
+    | '/legal/termos'
     | '/despesas/nova'
     | '/despesas/'
   fileRoutesByTo: FileRoutesByTo
@@ -184,6 +214,9 @@ export interface FileRouteTypes {
     | '/insights'
     | '/produtos'
     | '/recorrentes'
+    | '/legal/exclusao-conta'
+    | '/legal/privacidade'
+    | '/legal/termos'
     | '/despesas/nova'
     | '/despesas'
   id:
@@ -201,6 +234,9 @@ export interface FileRouteTypes {
     | '/_authenticated/insights'
     | '/_authenticated/produtos'
     | '/_authenticated/recorrentes'
+    | '/legal/exclusao-conta'
+    | '/legal/privacidade'
+    | '/legal/termos'
     | '/_authenticated/despesas/nova'
     | '/_authenticated/despesas/'
   fileRoutesById: FileRoutesById
@@ -210,6 +246,9 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  LegalExclusaoContaRoute: typeof LegalExclusaoContaRoute
+  LegalPrivacidadeRoute: typeof LegalPrivacidadeRoute
+  LegalTermosRoute: typeof LegalTermosRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -240,6 +279,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/termos': {
+      id: '/legal/termos'
+      path: '/legal/termos'
+      fullPath: '/legal/termos'
+      preLoaderRoute: typeof LegalTermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/privacidade': {
+      id: '/legal/privacidade'
+      path: '/legal/privacidade'
+      fullPath: '/legal/privacidade'
+      preLoaderRoute: typeof LegalPrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/exclusao-conta': {
+      id: '/legal/exclusao-conta'
+      path: '/legal/exclusao-conta'
+      fullPath: '/legal/exclusao-conta'
+      preLoaderRoute: typeof LegalExclusaoContaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/recorrentes': {
@@ -369,6 +429,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  LegalExclusaoContaRoute: LegalExclusaoContaRoute,
+  LegalPrivacidadeRoute: LegalPrivacidadeRoute,
+  LegalTermosRoute: LegalTermosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
