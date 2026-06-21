@@ -15,6 +15,7 @@ import {
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -37,6 +38,21 @@ export function AppShell({ children }: { children: ReactNode }) {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
+  };
+
+  const handleNewExpenseTouch = () => {
+    console.log("[PLUS_TOUCH] toque recebido no botão +");
+    toast.message("Abrindo nova despesa…");
+  };
+
+  const handleNewExpenseClick = () => {
+    console.log("[PLUS_CLICK] navegando para /despesas/nova");
+    window.setTimeout(() => {
+      if (window.location.pathname !== "/despesas/nova") {
+        console.warn("[PLUS_FALLBACK] navegação por Link não completou, usando fallback");
+        navigate({ to: "/despesas/nova" });
+      }
+    }, 350);
   };
 
   return (
@@ -92,9 +108,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           ))}
           <Link
             to="/despesas/nova"
-            onClick={() => console.log("[PLUS_CLICK] navegando para /despesas/nova")}
+            onPointerDown={handleNewExpenseTouch}
+            onClick={handleNewExpenseClick}
             aria-label="Nova despesa"
-            className="mx-auto grid size-16 place-items-center rounded-3xl bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] ring-4 ring-background border-0 p-0 cursor-pointer"
+            className="mx-auto grid size-16 place-items-center rounded-3xl bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] ring-4 ring-background border-0 p-0 cursor-pointer transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
           >
             <ScanLine className="size-6" strokeWidth={2.2} />
