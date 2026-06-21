@@ -267,7 +267,6 @@ function NovaDespesa() {
         // Itens: substitui todos (mais simples e consistente para edição)
         const { error: edi } = await supabase.from("expense_items").delete().eq("expense_id", editId);
         if (edi) throw edi;
-        await supabase.from("product_prices").delete().eq("user_id", userId).in("expense_item_id", []);
         expenseId = editId;
       } else {
         const { data: exp, error: e1 } = await supabase
