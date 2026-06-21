@@ -154,9 +154,12 @@ function NovaDespesa() {
       toast.success(`Nota lida! ${enriched.items.length} ${enriched.items.length === 1 ? "item" : "itens"} encontrados.`);
     } catch (e) {
       setSteps((prev) => prev.map((s) => (s.state === "running" ? { ...s, state: "error" } : s)));
-      toast.error(e instanceof Error ? e.message : "Falha no OCR");
+      const msg = e instanceof Error ? e.message : "Falha no OCR";
+      logFailure("ocr_pipeline", msg, { name: file.name, type: file.type, size: file.size });
+      toast.error(msg);
     } finally { setScanning(false); }
   };
+
 
   const startManual = () => {
     setSource("manual");
