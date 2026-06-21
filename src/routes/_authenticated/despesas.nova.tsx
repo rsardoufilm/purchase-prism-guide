@@ -549,3 +549,36 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
+
+function FailureDiary({ entries, onClear }: { entries: FailureEntry[]; onClear: () => void }) {
+  if (entries.length === 0) return null;
+  return (
+    <div className="bg-card border border-border rounded-2xl p-4 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="size-4 text-destructive" />
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Diário de falhas ({entries.length})
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClear}
+          className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1"
+        >
+          <Eraser className="size-3" /> Limpar
+        </button>
+      </div>
+      <ol className="space-y-1.5 max-h-56 overflow-y-auto">
+        {entries.slice(0, 10).map((f) => (
+          <li key={f.id} className="text-xs border-l-2 border-destructive/40 pl-2">
+            <p className="font-medium text-foreground truncate">{f.message}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {new Date(f.at).toLocaleString("pt-BR")} • {f.stage}
+            </p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
