@@ -227,6 +227,23 @@ function Configuracoes() {
         </Button>
       </section>
 
+      {/* Legal e Privacidade */}
+      <section className="bg-card border border-border rounded-3xl p-2 mb-4">
+        <h2 className="text-sm font-semibold px-3 pt-3 pb-2">Legal e privacidade</h2>
+        <LegalLink to="/legal/privacidade" icon={<ShieldCheck className="size-4" />}>
+          Política de Privacidade
+        </LegalLink>
+        <LegalLink to="/legal/termos" icon={<FileText className="size-4" />}>
+          Termos de Uso
+        </LegalLink>
+        <LegalLink to="/legal/exclusao-conta" icon={<Trash2 className="size-4" />}>
+          Exclusão de conta
+        </LegalLink>
+        <p className="text-[11px] text-muted-foreground px-3 py-3">
+          Mantido por {LEGAL.owner} ({LEGAL.ownerCity}). Conformidade com a LGPD.
+        </p>
+      </section>
+
       {/* Sair */}
       <Button
         onClick={signOut}
@@ -238,3 +255,29 @@ function Configuracoes() {
     </>
   );
 }
+
+function LegalLink({
+  to,
+  icon,
+  children,
+}: {
+  to: "/legal/privacidade" | "/legal/termos" | "/legal/exclusao-conta";
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      to={to}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-muted transition-colors text-sm"
+    >
+      <span className="size-8 grid place-items-center rounded-xl bg-muted text-muted-foreground">
+        {icon}
+      </span>
+      <span className="flex-1 font-medium">{children}</span>
+      <ChevronRight className="size-4 text-muted-foreground" />
+    </Link>
+  );
+}
+
