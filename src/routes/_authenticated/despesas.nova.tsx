@@ -293,7 +293,7 @@ function NovaDespesa() {
 
       if (draft.items.length > 0) {
         const itemsPayload = draft.items.map((it) => ({
-          expense_id: exp.id,
+          expense_id: expenseId,
           user_id: userId,
           raw_name: it.raw_name,
           normalized_name: it.normalized_name ?? null,
