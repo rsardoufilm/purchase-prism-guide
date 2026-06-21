@@ -599,7 +599,7 @@ function NovaDespesa() {
               className="flex-1 h-12 rounded-2xl bg-primary text-primary-foreground font-semibold"
             >
               {saving && <Loader2 className="size-4 mr-2 animate-spin" />}
-              Confirmar importação
+              {editId ? "Salvar alterações" : "Confirmar importação"}
             </Button>
           </div>
         </div>
