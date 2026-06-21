@@ -6,10 +6,10 @@ export const Route = createFileRoute("/legal/termos")({
   component: TermosPage,
   head: () => ({
     meta: [
-      { title: "Termos de Uso — AURA Finance" },
+      { title: "Termos de Uso — AURA Consumo" },
       {
         name: "description",
-        content: "Regras de uso do aplicativo AURA Finance, oferecido por Aura R Sistemas.",
+        content: "Regras de uso do aplicativo AURA Consumo, oferecido por Aura R Sistemas.",
       },
     ],
   }),

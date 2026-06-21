@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_authenticated/despesas/nova")({
   validateSearch: (search: Record<string, unknown>) => ({
     id: typeof search.id === "string" ? search.id : undefined,
   }),
-  head: () => ({ meta: [{ title: "Nova despesa — AURA Finance" }] }),
+  head: () => ({ meta: [{ title: "Nova despesa — AURA Consumo" }] }),
 });
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB

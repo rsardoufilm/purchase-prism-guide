@@ -13,7 +13,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/recorrentes")({
   component: Recorrentes,
-  head: () => ({ meta: [{ title: "Recorrentes — AURA Finance" }] }),
+  head: () => ({ meta: [{ title: "Recorrentes — AURA Consumo" }] }),
 });
 
 interface Bill { id: string; name: string; category: string | null; amount: number; due_day: number | null; frequency: string }

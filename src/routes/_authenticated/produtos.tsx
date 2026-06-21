@@ -6,7 +6,7 @@ import { brl } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/produtos")({
   component: Produtos,
-  head: () => ({ meta: [{ title: "Produtos — AURA Finance" }] }),
+  head: () => ({ meta: [{ title: "Produtos — AURA Consumo" }] }),
 });
 
 interface Price {

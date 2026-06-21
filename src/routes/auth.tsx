@@ -8,16 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import logoAura from "@/assets/logo-aura.png";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
   component: AuthPage,
   head: () => ({
     meta: [
-      { title: "Entrar — AURA Finance" },
+      { title: "Entrar — AURA Consumo" },
       {
         name: "description",
-        content: "Acesse o AURA Finance e entenda para onde seu dinheiro está indo.",
+        content: "Acesse o AURA Consumo e entenda para onde seu dinheiro está indo.",
       },
     ],
   }),
@@ -121,10 +122,14 @@ function AuthPage() {
     <div className="min-h-screen flex flex-col items-center justify-center px-5 py-12 bg-background">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-grid place-items-center size-14 rounded-2xl bg-primary shadow-[var(--shadow-elevated)] mb-5">
-            <span className="text-primary-foreground font-display font-bold text-2xl">A</span>
-          </div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">AURA Finance</h1>
+          <img
+            src={logoAura}
+            alt="AURA Consumo"
+            width={64}
+            height={64}
+            className="mx-auto mb-5 size-16"
+          />
+          <h1 className="font-display text-3xl font-bold tracking-tight">AURA Consumo</h1>
           <p className="text-sm text-muted-foreground mt-1.5 text-balance">
             Entenda para onde seu dinheiro está indo.
           </p>

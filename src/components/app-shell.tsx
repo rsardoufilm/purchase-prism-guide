@@ -16,6 +16,7 @@ import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import logoAura from "@/assets/logo-aura.png";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -59,9 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background text-foreground pb-28 md:pb-0 md:pl-20">
       {/* Desktop sidebar */}
       <nav className="hidden md:flex fixed left-0 top-0 h-screen w-20 flex-col items-center py-8 border-r border-border bg-card z-40">
-        <div className="size-10 rounded-2xl bg-primary grid place-items-center mb-12 shadow-[var(--shadow-elevated)]">
-          <span className="text-primary-foreground font-display font-bold text-base">A</span>
-        </div>
+        <img src={logoAura} alt="AURA Consumo" width={40} height={40} className="size-10 mb-12" />
         <div className="flex flex-col gap-2 flex-1">
           {NAV.map(({ to, label, icon: Icon }) => (
             <Link
