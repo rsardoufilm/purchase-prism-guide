@@ -80,6 +80,59 @@ function NovaDespesa() {
     return () => window.removeEventListener("aura:failures-changed", refresh);
   }, []);
 
+  // Modo edição: carrega despesa + itens
+  useEffect(() => {
+    if (!editId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [{ data: exp, error: e1 }, { data: items, error: e2 }] = await Promise.all([
+          supabase
+            .from("expenses")
+            .select("merchant_name,merchant_document,category,expense_date,expense_time,total_amount,payment_method,source,storage_path")
+            .eq("id", editId)
+            .maybeSingle(),
+          supabase
+            .from("expense_items")
+            .select("raw_name,normalized_name,category,quantity,unit,unit_price,total_price")
+            .eq("expense_id", editId),
+        ]);
+        if (cancelled) return;
+        if (e1 || !exp) throw e1 ?? new Error("Despesa não encontrada");
+        if (e2) throw e2;
+        setSource((exp.source as Source) ?? "manual");
+        setStoragePath(exp.storage_path ?? null);
+        setDraft({
+          merchant_name: exp.merchant_name ?? "",
+          merchant_document: exp.merchant_document ?? null,
+          category: exp.category ?? null,
+          expense_date: exp.expense_date ?? todayISO(),
+          expense_time: exp.expense_time ?? null,
+          total_amount: Number(exp.total_amount ?? 0),
+          payment_method: exp.payment_method as OcrResult["payment_method"],
+          items: (items ?? []).map((it) => ({
+            raw_name: it.raw_name,
+            normalized_name: it.normalized_name,
+            category: it.category,
+            quantity: Number(it.quantity ?? 1),
+            unit: it.unit,
+            unit_price: Number(it.unit_price ?? 0),
+            total_price: Number(it.total_price ?? 0),
+          })),
+        });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Falha ao carregar despesa");
+        navigate({ to: "/despesas" });
+      } finally {
+        if (!cancelled) setLoadingEdit(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [editId, navigate]);
+
+
 
   const setStep = (key: string, state: StepState) =>
     setSteps((prev) => prev.map((s) => (s.key === key ? { ...s, state } : s)));
