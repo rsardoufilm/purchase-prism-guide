@@ -75,6 +75,10 @@ function NovaDespesa() {
     return () => window.removeEventListener("aura:failures-changed", refresh);
   }, []);
 
+
+  const setStep = (key: string, state: StepState) =>
+    setSteps((prev) => prev.map((s) => (s.key === key ? { ...s, state } : s)));
+
   const openCamera = async () => {
     console.log("[CAMERA_OPEN] solicitando permissão");
     const res = await requestCameraPermission();
