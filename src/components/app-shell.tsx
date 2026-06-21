@@ -90,18 +90,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="text-[9px] font-semibold tracking-tight">{label}</span>
             </Link>
           ))}
-          <button
-            type="button"
-            onClick={() => {
-              console.log("[PLUS_CLICK] navegando para /despesas/nova");
-              navigate({ to: "/despesas/nova" });
-            }}
+          <Link
+            to="/despesas/nova"
+            onClick={() => console.log("[PLUS_CLICK] navegando para /despesas/nova")}
             aria-label="Nova despesa"
             className="mx-auto grid size-16 place-items-center rounded-3xl bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] ring-4 ring-background border-0 p-0 cursor-pointer"
             style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
           >
             <ScanLine className="size-6" strokeWidth={2.2} />
-          </button>
+          </Link>
           {[NAV[5], NAV[8]].map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
