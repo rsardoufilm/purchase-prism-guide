@@ -121,9 +121,13 @@ function AuthPage() {
     <div className="min-h-screen flex flex-col items-center justify-center px-5 py-12 bg-background">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-grid place-items-center size-14 rounded-2xl bg-primary shadow-[var(--shadow-elevated)] mb-5">
-            <span className="text-primary-foreground font-display font-bold text-2xl">A</span>
-          </div>
+          <img
+            src={logoAura}
+            alt="AURA Consumo"
+            width={64}
+            height={64}
+            className="mx-auto mb-5 size-16"
+          />
           <h1 className="font-display text-3xl font-bold tracking-tight">AURA Consumo</h1>
           <p className="text-sm text-muted-foreground mt-1.5 text-balance">
             Entenda para onde seu dinheiro está indo.
