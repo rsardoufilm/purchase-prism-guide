@@ -368,8 +368,11 @@ function NovaDespesa() {
           {steps.some((s) => s.state !== "pending") && (
             <AuditLog steps={steps} itemsCount={itemsCount} />
           )}
+
+          <FailureDiary entries={failures} onClear={() => { clearFailures(); setFailures([]); }} />
         </div>
       )}
+
 
       {draft && (
         <div className="space-y-4">
