@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import logoAura from "@/assets/logo-aura.png";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
