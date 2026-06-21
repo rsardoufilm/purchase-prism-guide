@@ -1,10 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { brl, fmtDate, paymentLabel } from "@/lib/format";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/despesas/")({
   component: DespesasIndex,
@@ -21,8 +22,24 @@ interface Row {
 }
 
 function DespesasIndex() {
+  const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleNewExpenseTouch = () => {
+    console.log("[NEW_EXPENSE_TOUCH] toque recebido no botão Nova despesa");
+    toast.message("Abrindo nova despesa…");
+  };
+
+  const handleNewExpenseClick = () => {
+    console.log("[NEW_EXPENSE_CLICK] navegando para /despesas/nova");
+    window.setTimeout(() => {
+      if (window.location.pathname !== "/despesas/nova") {
+        console.warn("[NEW_EXPENSE_FALLBACK] navegação por Link não completou, usando fallback");
+        navigate({ to: "/despesas/nova" });
+      }
+    }, 350);
+  };
 
   useEffect(() => {
     supabase
@@ -39,7 +56,7 @@ function DespesasIndex() {
     <>
       <PageHeader eyebrow="Despesas" title="Suas despesas" />
       <Button asChild className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-semibold gap-2 mb-5">
-        <Link to="/despesas/nova" onClick={() => console.log("[PLUS_CLICK] navegando para /despesas/nova")}>
+        <Link to="/despesas/nova" onPointerDown={handleNewExpenseTouch} onClick={handleNewExpenseClick}>
           <Plus className="size-4" /> Nova despesa
         </Link>
       </Button>
