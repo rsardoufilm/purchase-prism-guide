@@ -79,16 +79,16 @@ function NovaDespesa() {
   const setStep = (key: string, state: StepState) =>
     setSteps((prev) => prev.map((s) => (s.key === key ? { ...s, state } : s)));
 
-  const openCamera = async () => {
-    console.log("[CAMERA_OPEN] solicitando permissão");
-    const res = await requestCameraPermission();
-    if (!res.ok) {
-      toast.error(res.message);
-      return;
-    }
-    console.log("[CAMERA_OPEN] permissão concedida, abrindo input");
+  const openCamera = () => {
+    console.log("[CAMERA_OPEN] abrindo câmera traseira via input capture");
+    // Importante: clicar SÍNCRONO no input preserva o gesto do usuário
+    // (iOS Safari exige isso para abrir a câmera). A permissão é pedida
+    // pelo próprio navegador no momento da captura.
     cameraRef.current?.click();
+    // Em paralelo, pré-aquecemos a permissão para futuras capturas (sem await).
+    requestCameraPermission().catch(() => {});
   };
+
 
 
   const handleFile = async (file: File) => {
