@@ -39,8 +39,6 @@ interface Row {
   payment_method: string;
 }
 
-const FILTER_KEY = "aura:despesas:filter-category";
-
 function isoDate(d: Date | null) { return d ? d.toISOString().slice(0, 10) : null; }
 
 function DespesasIndex() {
@@ -50,17 +48,10 @@ function DespesasIndex() {
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [filter, setFilter] = useState<string>(() => {
-    if (typeof window === "undefined") return "all";
-    return window.localStorage.getItem(FILTER_KEY) ?? "all";
-  });
+  const [filter, setFilter] = useSharedCategory();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkCat, setBulkCat] = useState<string>("");
   const [bulkSaving, setBulkSaving] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") window.localStorage.setItem(FILTER_KEY, filter);
-  }, [filter]);
 
   const load = () => {
     setLoading(true);
