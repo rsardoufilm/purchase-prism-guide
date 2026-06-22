@@ -152,8 +152,55 @@ function Dashboard() {
       if (Number(it.unit_price) < avg) savings += (avg - Number(it.unit_price)) * 1;
     }
 
-    return { total, topCat, topProd, topStore, topPay, savings, catList };
+    // Acúmulo por produto: soma das quantidades agrupadas por produto + unidade canônica
+    type Acc = { qty: number; display: string; baseUnit: string };
+    const accMap = new Map<string, Acc>();
+    for (const it of items) {
+      const name = (it.normalized_name || it.raw_name || "").trim();
+      if (!name) continue;
+      const q = Number(it.quantity) || 0;
+      if (q <= 0) continue;
+      const rawUnit = (it.unit || "").toLowerCase().trim();
+      let baseUnit = "un";
+      let qtyBase = q;
+      if (["kg", "kgr", "kgs", "quilo", "quilos"].includes(rawUnit)) {
+        baseUnit = "kg";
+      } else if (["g", "gr", "grama", "gramas"].includes(rawUnit)) {
+        baseUnit = "kg";
+        qtyBase = q / 1000;
+      } else if (["l", "lt", "litro", "litros"].includes(rawUnit)) {
+        baseUnit = "L";
+      } else if (["ml"].includes(rawUnit)) {
+        baseUnit = "L";
+        qtyBase = q / 1000;
+      } else if (["un", "und", "unid", "unidade", "pc", "pç", ""].includes(rawUnit)) {
+        baseUnit = "un";
+      } else {
+        baseUnit = rawUnit;
+      }
+      const key = `${name}__${baseUnit}`;
+      const cur = accMap.get(key) ?? { qty: 0, display: name, baseUnit };
+      cur.qty += qtyBase;
+      accMap.set(key, cur);
+    }
+    const productAccum = [...accMap.values()]
+      .filter((a) => a.qty > 0)
+      .sort((a, b) => b.qty - a.qty);
+
+    return { total, topCat, topProd, topStore, topPay, savings, catList, productAccum };
   }, [expenses, items]);
+
+  const periodLabel = useMemo(() => {
+    switch (period) {
+      case "this_month": return "este mês";
+      case "last_month": return "no mês passado";
+      case "last_7": return "nos últimos 7 dias";
+      case "last_30": return "nos últimos 30 dias";
+      case "this_year": return "este ano";
+      case "all": return "no total";
+      default: return "no período";
+    }
+  }, [period]);
 
   return (
     <>
