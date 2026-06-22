@@ -397,6 +397,18 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
     }
   };
 
+  const toggleTorch = async () => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    const next = !torchOn;
+    try {
+      await track.applyConstraints({ advanced: [{ torch: next } as never] });
+      setTorchOn(next);
+    } catch {
+      setTorchAvailable(false);
+    }
+  };
+
   if (!open) return null;
 
   const borderColor = STATUS_COLOR[frameStatus];
