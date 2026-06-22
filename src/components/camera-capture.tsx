@@ -48,9 +48,7 @@ async function tuneTrack(track: MediaStreamTrack, lowLight: boolean) {
   }
   if (caps.exposureCompensation) {
     // Padrão: neutro (0). Low-light: +1.3 stops (sem estourar).
-    const target = lowLight
-      ? Math.min(caps.exposureCompensation.max, 1.3)
-      : 0;
+    const target = lowLight ? Math.min(caps.exposureCompensation.max, 1.3) : 0;
     await tryApply({ advanced: [{ exposureCompensation: target } as never] });
   }
   if (caps.brightness) {
@@ -468,7 +466,9 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
               type="button"
               onClick={toggleTorch}
               className={`size-9 grid place-items-center rounded-full border ${
-                torchOn ? "bg-amber-300 text-black border-amber-200" : "border-white/30 text-white/80"
+                torchOn
+                  ? "bg-amber-300 text-black border-amber-200"
+                  : "border-white/30 text-white/80"
               }`}
               aria-pressed={torchOn}
               aria-label="Alternar lanterna"
@@ -480,7 +480,9 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
             type="button"
             onClick={() => setLowLight((v) => !v)}
             className={`size-9 grid place-items-center rounded-full border ${
-              lowLight ? "bg-indigo-400 text-black border-indigo-200" : "border-white/30 text-white/80"
+              lowLight
+                ? "bg-indigo-400 text-black border-indigo-200"
+                : "border-white/30 text-white/80"
             }`}
             aria-pressed={lowLight}
             aria-label="Modo baixa luz"
@@ -492,7 +494,9 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
             type="button"
             onClick={() => setAutoCapture((v) => !v)}
             className={`text-[11px] px-2.5 py-1 rounded-full border ${
-              autoCapture ? "border-emerald-400/70 text-emerald-300" : "border-white/30 text-white/70"
+              autoCapture
+                ? "border-emerald-400/70 text-emerald-300"
+                : "border-white/30 text-white/70"
             }`}
             aria-pressed={autoCapture}
             aria-label="Alternar captura automática"
@@ -517,10 +521,18 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
             <div
               className={`absolute left-[6%] right-[6%] top-[12%] bottom-[12%] rounded-2xl border-2 transition-colors duration-200 ${borderColor}`}
             >
-              <span className={`absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 rounded-tl-2xl ${borderColor}`} />
-              <span className={`absolute -top-0.5 -right-0.5 w-6 h-6 border-t-4 border-r-4 rounded-tr-2xl ${borderColor}`} />
-              <span className={`absolute -bottom-0.5 -left-0.5 w-6 h-6 border-b-4 border-l-4 rounded-bl-2xl ${borderColor}`} />
-              <span className={`absolute -bottom-0.5 -right-0.5 w-6 h-6 border-b-4 border-r-4 rounded-br-2xl ${borderColor}`} />
+              <span
+                className={`absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 rounded-tl-2xl ${borderColor}`}
+              />
+              <span
+                className={`absolute -top-0.5 -right-0.5 w-6 h-6 border-t-4 border-r-4 rounded-tr-2xl ${borderColor}`}
+              />
+              <span
+                className={`absolute -bottom-0.5 -left-0.5 w-6 h-6 border-b-4 border-l-4 rounded-bl-2xl ${borderColor}`}
+              />
+              <span
+                className={`absolute -bottom-0.5 -right-0.5 w-6 h-6 border-b-4 border-r-4 rounded-br-2xl ${borderColor}`}
+              />
             </div>
 
             <div className="absolute left-1/2 -translate-x-1/2 top-[6%] flex flex-col items-center gap-1.5">
