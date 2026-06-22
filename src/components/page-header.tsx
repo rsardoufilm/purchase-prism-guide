@@ -25,7 +25,7 @@ interface ProfileData {
 
 const NOTIF_KEY = "aura:notifications-enabled";
 
-export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
+export function PageHeader({ eyebrow, title, tourKey }: { eyebrow: string; title: string; tourKey?: string }) {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileData>({
     displayName: "",
