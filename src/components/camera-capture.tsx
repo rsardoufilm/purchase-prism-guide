@@ -24,7 +24,7 @@ type FrameStatus = "searching" | "adjust" | "hold" | "ready";
 
 const STATUS_LABEL: Record<FrameStatus, string> = {
   searching: "Posicione a nota dentro do quadro",
-  adjust: "Aproxime ou centralize a nota",
+  adjust: "Imagem borrada — segure firme e aguarde o foco",
   hold: "Segure firme…",
   ready: "Pronto! Capturando…",
 };
@@ -188,34 +188,47 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
 
         let sum = 0;
         let sumSq = 0;
-        let edge = 0;
+        let edgeAbs = 0;
+        let edgeSq = 0;
         let count = 0;
+        let edgeCount = 0;
         for (let y = y0; y < y1; y++) {
           for (let x = x0; x < x1; x++) {
             const i = (y * SAMPLE_W + x) * 4;
             const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
             sum += lum;
             sumSq += lum * lum;
-            // gradiente horizontal simples (Sobel reduzido)
+            // gradiente H + V (proxy de Laplaciano para medir foco/desfoque)
             if (x + 1 < x1) {
               const j = (y * SAMPLE_W + (x + 1)) * 4;
-              const lum2 = 0.299 * data[j] + 0.587 * data[j + 1] + 0.114 * data[j + 2];
-              edge += Math.abs(lum - lum2);
+              const l2 = 0.299 * data[j] + 0.587 * data[j + 1] + 0.114 * data[j + 2];
+              const d = lum - l2;
+              edgeAbs += Math.abs(d);
+              edgeSq += d * d;
+              edgeCount++;
+            }
+            if (y + 1 < y1) {
+              const k = ((y + 1) * SAMPLE_W + x) * 4;
+              const l3 = 0.299 * data[k] + 0.587 * data[k + 1] + 0.114 * data[k + 2];
+              const d = lum - l3;
+              edgeAbs += Math.abs(d);
+              edgeSq += d * d;
+              edgeCount++;
             }
             count++;
           }
         }
         const mean = sum / count;
         const variance = sumSq / count - mean * mean;
-        const edgeDensity = edge / count;
+        const edgeDensity = edgeAbs / Math.max(1, edgeCount);
+        // Variância dos gradientes ≈ Laplacian variance → clássico para desfoque.
+        // Quanto maior, mais nítida a imagem. < ~80 = borrada.
+        const focusScore = edgeSq / Math.max(1, edgeCount);
 
-        // Heurísticas calibradas para nota fiscal (papel claro com texto):
-        // - variance alta = há conteúdo (não é parede vazia)
-        // - edgeDensity moderada/alta = bordas nítidas (foco ok)
-        // - mean entre 60-220 = exposição razoável
-        const hasContent = variance > 350 && edgeDensity > 6;
-        const wellExposed = mean > 55 && mean < 225;
-        const sharp = edgeDensity > 10;
+        // Heurísticas recalibradas (mais tolerantes a ambiente escuro):
+        const hasContent = variance > 220 && edgeDensity > 3.5;
+        const wellExposed = mean > 40 && mean < 235;
+        const sharp = focusScore > 95 && edgeDensity > 7;
 
         let next: FrameStatus;
         if (!hasContent || !wellExposed) {
@@ -322,11 +335,10 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
         {/* Guia de enquadramento: máscara escura + retângulo central com cantos */}
         {status === "ready" && (
           <div className="pointer-events-none absolute inset-0">
-            {/* máscara escurecida ao redor do quadro (80% x 70%) */}
-            <div className="absolute inset-0 bg-black/45" />
+            {/* máscara MUITO leve ao redor — preserva a luz da câmera */}
             <div
-              className={`absolute left-[10%] right-[10%] top-[15%] bottom-[15%] rounded-2xl border-2 transition-colors duration-200 ${borderColor}`}
-              style={{ boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)" }}
+              className={`absolute left-[6%] right-[6%] top-[12%] bottom-[12%] rounded-2xl border-2 transition-colors duration-200 ${borderColor}`}
+              style={{ boxShadow: "0 0 0 9999px rgba(0,0,0,0.22)" }}
             >
               {/* cantos destacados */}
               <span className={`absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 rounded-tl-2xl ${borderColor}`} />
