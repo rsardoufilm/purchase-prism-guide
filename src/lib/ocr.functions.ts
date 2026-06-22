@@ -17,6 +17,8 @@ const ItemSchema = z.object({
   quantity: z.number().nullable().optional(),
   unit: z.string().nullable().optional(),
   unit_price: z.number().nullable().optional(),
+  gross_price: z.number().nullable().optional(),
+  discount: z.number().nullable().optional(),
   total_price: z.number().nullable().optional(),
 });
 
@@ -26,6 +28,8 @@ const ResultSchema = z.object({
   category: z.string().nullable().optional(),
   expense_date: z.string().nullable().optional(), // YYYY-MM-DD
   expense_time: z.string().nullable().optional(), // HH:MM or HH:MM:SS
+  subtotal_amount: z.number().nullable().optional(),
+  discount_total: z.number().nullable().optional(),
   total_amount: z.number(),
   payment_method: z
     .enum(["pix", "credito", "debito", "dinheiro", "vale_alimentacao", "vale_refeicao", "outros"])
