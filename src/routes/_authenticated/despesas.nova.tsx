@@ -681,6 +681,7 @@ function NovaDespesa() {
               items={draft.items}
               total={Number(draft.total_amount) || 0}
               onChange={(items) => setDraft({ ...draft, items })}
+              userCatMap={userCatMap}
             />
           )}
 
