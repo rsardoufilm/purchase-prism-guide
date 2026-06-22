@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
+import { PeriodFilter } from "@/components/period-filter";
+import { periodRange, type PeriodKey } from "@/lib/period";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/format";
@@ -15,7 +17,9 @@ export const Route = createFileRoute("/_authenticated/insights")({
   head: () => ({ meta: [{ title: "Insights — AURA Consumo" }] }),
 });
 
-interface E { merchant_name: string; total_amount: number; category: string | null; expense_date: string }
+const PERIOD_KEY = "aura:insights:period";
+
+interface E { id: string; merchant_name: string; total_amount: number; category: string | null; expense_date: string }
 interface I { normalized_name: string | null; raw_name: string; total_price: number; category: string | null; expense_id: string }
 interface P { normalized_name: string; merchant_name: string; unit_price: number; purchase_date: string }
 interface Msg { role: "user" | "aura"; text: string }
@@ -26,6 +30,8 @@ const SUGGESTIONS = [
   "Onde eu pago mais caro pelo arroz?",
   "Onde posso economizar?",
 ];
+
+function isoDate(d: Date | null) { return d ? d.toISOString().slice(0, 10) : null; }
 
 function Insights() {
   const [expenses, setExpenses] = useState<E[]>([]);
