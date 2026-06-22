@@ -784,13 +784,15 @@ function ItemsEditor({
       const u = Number(merged.unit_price ?? 0);
       merged.total_price = Math.round(q * u * 100) / 100;
     }
-    // Se o usuário editou a descrição manualmente, re-normaliza o nome
-    // e reclassifica a categoria para manter coerência com a nota.
+    // Edição manual da descrição PREVALECE: o normalized_name passa a refletir
+    // o texto digitado pelo usuário (não re-classificamos para evitar
+    // sobrescrever a intenção com heurísticas/OCR). A categoria só é sugerida
+    // se ainda estiver vazia.
     if (patch.raw_name !== undefined) {
       const raw = String(patch.raw_name ?? "").trim();
-      merged.normalized_name = raw ? normalizeName(raw) : null;
-      if (patch.category === undefined) {
-        merged.category = classifyItem(raw);
+      merged.normalized_name = raw || null;
+      if (!merged.category) {
+        merged.category = classifyItem(raw) ?? "Outros";
       }
     }
     next[i] = merged;
