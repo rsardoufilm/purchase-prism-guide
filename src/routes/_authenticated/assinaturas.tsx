@@ -47,7 +47,7 @@ function Assinaturas() {
     return () => window.removeEventListener("aura:data-changed", onChange);
   }, []);
 
-  const occurrences = useMemo(() => projectOccurrences(rows), [rows]);
+  const occurrences = useMemo(() => projectSubscriptionOccurrences(rows), [rows]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, { label: string; total: number; items: Occurrence[] }>();
