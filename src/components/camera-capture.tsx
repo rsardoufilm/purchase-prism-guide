@@ -652,19 +652,50 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
       </div>
 
       <div className="pb-8 pt-4 grid place-items-center bg-black">
-        <button
-          type="button"
-          onClick={handleShoot}
-          disabled={status !== "ready" || shooting}
-          aria-label="Capturar foto"
-          className="size-16 rounded-full bg-white grid place-items-center disabled:opacity-40 active:scale-95 transition-transform ring-4 ring-white/30"
-        >
-          {shooting ? (
-            <Loader2 className="size-6 animate-spin text-black" />
-          ) : (
-            <Camera className="size-7 text-black" />
+        <div className="relative size-20 grid place-items-center">
+          {/* Anel de progresso de auto-captura */}
+          {autoCapture && status === "ready" && (
+            <svg
+              className="absolute inset-0 -rotate-90 pointer-events-none"
+              viewBox="0 0 80 80"
+              aria-hidden
+            >
+              <circle
+                cx="40"
+                cy="40"
+                r="36"
+                fill="none"
+                stroke="rgba(255,255,255,0.18)"
+                strokeWidth="3"
+              />
+              <circle
+                cx="40"
+                cy="40"
+                r="36"
+                fill="none"
+                stroke={holdProgress >= 1 ? "rgb(52,211,153)" : "rgb(56,189,248)"}
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 36}
+                strokeDashoffset={2 * Math.PI * 36 * (1 - holdProgress)}
+                style={{ transition: "stroke-dashoffset 120ms linear" }}
+              />
+            </svg>
           )}
-        </button>
+          <button
+            type="button"
+            onClick={handleShoot}
+            disabled={status !== "ready" || shooting}
+            aria-label="Capturar foto"
+            className="size-16 rounded-full bg-white grid place-items-center disabled:opacity-40 active:scale-95 transition-transform"
+          >
+            {shooting ? (
+              <Loader2 className="size-6 animate-spin text-black" />
+            ) : (
+              <Camera className="size-7 text-black" />
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
