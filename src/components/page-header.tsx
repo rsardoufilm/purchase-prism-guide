@@ -13,8 +13,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
-import { LogOut, Settings, Bell, HelpCircle } from "lucide-react";
+import { LogOut, Settings, Bell, HelpCircle, CircleHelp } from "lucide-react";
 import { toast } from "sonner";
+import { replayTour } from "@/components/tour-guide";
 
 interface ProfileData {
   displayName: string;
