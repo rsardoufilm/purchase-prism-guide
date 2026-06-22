@@ -371,8 +371,7 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
         // "adjust" e "hold" enquanto o usuário segura a câmera.
         const sharpHard = focusScore > 80 && edgeDensity > 6.5;
         const sharpSoft = focusScore > 55 && edgeDensity > 5;
-        const sharp =
-          sharpHard || (sharpStreakRef.current >= 2 && sharpSoft);
+        const sharp = sharpHard || (sharpStreakRef.current >= 2 && sharpSoft);
         if (sharpHard) sharpStreakRef.current = Math.min(5, sharpStreakRef.current + 1);
         else if (!sharpSoft) sharpStreakRef.current = 0;
 
