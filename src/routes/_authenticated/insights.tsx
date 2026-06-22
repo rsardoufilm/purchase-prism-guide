@@ -140,13 +140,6 @@ function Insights() {
       expByCat.set(k, v);
     }
 
-    const expensesById = new Map(expenses.map((e, idx) => [String(idx), e]));
-    void expensesById;
-    const expCatById = new Map<string, string>();
-    expenses.forEach((e) => {
-      // expense_id is needed; we'll re-fetch via items below
-    });
-
     // Top produto por categoria de produto
     const itemsByCat = new Map<string, Map<string, number>>();
     for (const it of items) {
