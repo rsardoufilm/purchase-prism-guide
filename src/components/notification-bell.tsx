@@ -46,11 +46,12 @@ export function NotificationBell() {
   const [items, setItems] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
   const generate = useServerFn(generateNotifications);
+  const navigate = useNavigate();
 
   const load = useCallback(async () => {
     const { data } = await supabase
       .from("user_notifications")
-      .select("id,type,title,message,read,created_at")
+      .select("id,type,title,message,read,created_at,related_id")
       .order("created_at", { ascending: false })
       .limit(30);
     setItems((data ?? []) as Notif[]);
@@ -95,6 +96,13 @@ export function NotificationBell() {
   const markOne = async (id: string) => {
     await supabase.from("user_notifications").update({ read: true }).eq("id", id);
     setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  };
+
+  const handleClick = async (n: Notif) => {
+    if (!n.read) await markOne(n.id);
+    const to = ROUTES[n.type];
+    setOpen(false);
+    if (to) navigate({ to });
   };
 
   return (
