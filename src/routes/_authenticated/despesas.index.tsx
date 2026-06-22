@@ -38,6 +38,8 @@ import { MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
 import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
 import { useSharedCategory } from "@/hooks/use-shared-category";
+import { SubscriptionDialog } from "@/components/subscription-dialog";
+import { Repeat } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/despesas/")({
   component: DespesasIndex,
@@ -197,19 +199,31 @@ function DespesasIndex() {
         <PeriodFilter value={period} onChange={setPeriod} />
       </div>
 
-      <Button
-        asChild
-        className="w-full h-11 rounded-2xl bg-primary text-primary-foreground font-semibold gap-2 mb-3"
-      >
-        <Link
-          to="/despesas/nova"
-          search={{ id: undefined }}
-          onPointerDown={handleNewExpenseTouch}
-          onClick={handleNewExpenseClick}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+        <Button
+          asChild
+          className="w-full h-11 rounded-2xl bg-primary text-primary-foreground font-semibold gap-2"
         >
-          <Plus className="size-4" /> Nova despesa
-        </Link>
-      </Button>
+          <Link
+            to="/despesas/nova"
+            search={{ id: undefined }}
+            onPointerDown={handleNewExpenseTouch}
+            onClick={handleNewExpenseClick}
+          >
+            <Plus className="size-4" /> Nova despesa
+          </Link>
+        </Button>
+        <SubscriptionDialog
+          trigger={
+            <Button
+              variant="outline"
+              className="w-full h-11 rounded-2xl font-semibold gap-2"
+            >
+              <Repeat className="size-4" /> Nova assinatura
+            </Button>
+          }
+        />
+      </div>
 
       {uncategorizedCount > 0 && filter !== "__uncat__" && (
         <button
