@@ -277,7 +277,8 @@ function Insights() {
 
   return (
     <>
-      <PageHeader eyebrow="Insights" title="Sua inteligência" />
+      <PageHeader eyebrow="Insights" title="Sua inteligência" tourKey="chat" />
+      <TourGuide tourKey="chat" steps={TOURS.chat} />
 
       <div className="mb-4">
         <PeriodFilter value={period} onChange={setPeriod} />
