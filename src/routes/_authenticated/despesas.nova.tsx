@@ -793,10 +793,12 @@ function ItemsEditor({
   items,
   total,
   onChange,
+  userCatMap,
 }: {
   items: EditableItem[];
   total: number;
   onChange: (items: EditableItem[]) => void;
+  userCatMap: UserCategoryMap;
 }) {
   const sum = items.reduce((acc, it) => acc + (Number(it.total_price) || 0), 0);
   const diff = Math.abs(sum - total);
@@ -806,26 +808,25 @@ function ItemsEditor({
   const update = (i: number, patch: Partial<EditableItem>) => {
     const next = [...items];
     const merged = { ...next[i], ...patch };
-    // Se mexeu em quantidade ou unit_price, recalcula total_price.
     if (patch.quantity !== undefined || patch.unit_price !== undefined) {
       const q = Number(merged.quantity ?? 1);
       const u = Number(merged.unit_price ?? 0);
       merged.total_price = Math.round(q * u * 100) / 100;
     }
     // Edição manual da descrição PREVALECE: o normalized_name passa a refletir
-    // o texto digitado pelo usuário (não re-classificamos para evitar
-    // sobrescrever a intenção com heurísticas/OCR). A categoria só é sugerida
-    // se ainda estiver vazia.
+    // o texto digitado. A categoria é sugerida apenas se ainda estiver vazia,
+    // priorizando o histórico do usuário antes das regras determinísticas.
     if (patch.raw_name !== undefined) {
       const raw = String(patch.raw_name ?? "").trim();
       merged.normalized_name = raw || null;
       if (!merged.category) {
-        merged.category = classifyItem(raw) ?? "Outros";
+        merged.category = suggestCategory(raw, userCatMap) ?? classifyItem(raw) ?? "Outros";
       }
     }
     next[i] = merged;
     onChange(next);
   };
+
 
   return (
     <div className="space-y-2">
