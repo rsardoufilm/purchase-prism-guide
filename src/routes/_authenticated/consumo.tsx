@@ -45,10 +45,36 @@ function Consumo() {
     if (typeof window === "undefined") return "all";
     return window.localStorage.getItem(CONSUMO_FILTER_KEY) ?? "all";
   });
+  const [bulkTarget, setBulkTarget] = useState<{ from: string; count: number } | null>(null);
+  const [bulkNewCat, setBulkNewCat] = useState<string>("");
+  const [bulkSaving, setBulkSaving] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") window.localStorage.setItem(CONSUMO_FILTER_KEY, filter);
   }, [filter]);
+
+  const reclassifyCategory = async () => {
+    if (!bulkTarget || !bulkNewCat) return;
+    setBulkSaving(true);
+    const fromCat = bulkTarget.from;
+    const isUncat = fromCat === "Sem categoria";
+    const query = supabase.from("expenses").update({ category: bulkNewCat });
+    const { error } = isUncat
+      ? await query.is("category", null)
+      : await query.eq("category", fromCat);
+    if (error) {
+      toast.error("Falha ao reclassificar.");
+    } else {
+      toast.success(`${bulkTarget.count} ${bulkTarget.count === 1 ? "despesa movida" : "despesas movidas"} para ${bulkNewCat}.`);
+      setExpenses((prev) =>
+        prev.map((e) => ((isUncat ? !e.category : e.category === fromCat) ? { ...e, category: bulkNewCat } : e)),
+      );
+      window.dispatchEvent(new CustomEvent("aura:data-changed"));
+    }
+    setBulkSaving(false);
+    setBulkTarget(null);
+    setBulkNewCat("");
+  };
 
   useEffect(() => {
     const load = () => {
