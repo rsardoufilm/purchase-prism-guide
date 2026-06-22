@@ -11,13 +11,12 @@ import { brl } from "@/lib/format";
 import { askAura } from "@/lib/chat.functions";
 import { Sparkles, TrendingUp, TrendingDown, Store, Loader2, Send, Tag } from "lucide-react";
 import { toast } from "sonner";
+import { useSharedPeriod } from "@/hooks/use-shared-period";
 
 export const Route = createFileRoute("/_authenticated/insights")({
   component: Insights,
   head: () => ({ meta: [{ title: "Insights — AURA Consumo" }] }),
 });
-
-const PERIOD_KEY = "aura:insights:period";
 
 interface E { id: string; merchant_name: string; total_amount: number; category: string | null; expense_date: string }
 interface I { normalized_name: string | null; raw_name: string; total_price: number; category: string | null; expense_id: string }
@@ -34,13 +33,7 @@ const SUGGESTIONS = [
 function isoDate(d: Date | null) { return d ? d.toISOString().slice(0, 10) : null; }
 
 function Insights() {
-  const [period, setPeriod] = useState<PeriodKey>(() => {
-    if (typeof window === "undefined") return "este_mes";
-    return (window.localStorage.getItem(PERIOD_KEY) as PeriodKey) || "este_mes";
-  });
-  useEffect(() => {
-    if (typeof window !== "undefined") window.localStorage.setItem(PERIOD_KEY, period);
-  }, [period]);
+  const [period, setPeriod] = useSharedPeriod();
 
   const [allExpenses, setAllExpenses] = useState<E[]>([]);
   const [allItems, setAllItems] = useState<I[]>([]);
