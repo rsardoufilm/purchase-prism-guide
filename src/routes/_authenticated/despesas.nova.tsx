@@ -751,6 +751,140 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+type EditableItem = OcrResult["items"][number];
+
+function ItemsEditor({
+  items,
+  total,
+  onChange,
+}: {
+  items: EditableItem[];
+  total: number;
+  onChange: (items: EditableItem[]) => void;
+}) {
+  const sum = items.reduce((acc, it) => acc + (Number(it.total_price) || 0), 0);
+  const diff = Math.abs(sum - total);
+  const tolerance = Math.max(0.05, total * 0.02);
+  const mismatch = total > 0 && diff > tolerance;
+
+  const update = (i: number, patch: Partial<EditableItem>) => {
+    const next = [...items];
+    const merged = { ...next[i], ...patch };
+    // Se mexeu em quantidade ou unit_price, recalcula total_price.
+    if (patch.quantity !== undefined || patch.unit_price !== undefined) {
+      const q = Number(merged.quantity ?? 1);
+      const u = Number(merged.unit_price ?? 0);
+      merged.total_price = Math.round(q * u * 100) / 100;
+    }
+    next[i] = merged;
+    onChange(next);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Itens ({items.length})
+        </p>
+        <p className="text-[10px] text-muted-foreground">
+          Soma: <span className="font-semibold text-foreground">{brl(sum)}</span>
+        </p>
+      </div>
+
+      {mismatch && (
+        <div className="bg-destructive/10 border border-destructive/30 text-destructive rounded-xl p-2.5 text-[11px] flex items-start gap-2">
+          <AlertTriangle className="size-3.5 mt-0.5 shrink-0" />
+          <span>
+            A soma dos itens ({brl(sum)}) difere do total ({brl(total)}) em {brl(diff)}. Revise
+            quantidades e preços antes de salvar.
+          </span>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {items.map((it, i) => (
+          <div key={i} className="bg-card border border-border rounded-xl p-3 space-y-2">
+            <div className="flex items-start gap-2">
+              <Input
+                value={it.raw_name}
+                onChange={(e) => update(i, { raw_name: e.target.value })}
+                className="rounded-lg h-9 text-sm flex-1"
+                placeholder="Descrição do item"
+              />
+              <button
+                onClick={() => onChange(items.filter((_, j) => j !== i))}
+                className="text-muted-foreground hover:text-destructive p-2 shrink-0"
+                aria-label="Remover item"
+                type="button"
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-[1fr_70px_1fr_1fr] gap-1.5">
+              <div>
+                <Label className="text-[9px] uppercase text-muted-foreground">Qtd</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={it.quantity ?? 1}
+                  onChange={(e) => update(i, { quantity: Number(e.target.value) })}
+                  className="rounded-lg h-8 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-[9px] uppercase text-muted-foreground">Un</Label>
+                <Input
+                  value={it.unit ?? ""}
+                  onChange={(e) => update(i, { unit: e.target.value || null })}
+                  className="rounded-lg h-8 text-xs"
+                  placeholder="un"
+                />
+              </div>
+              <div>
+                <Label className="text-[9px] uppercase text-muted-foreground">Vl. Unit.</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={it.unit_price ?? 0}
+                  onChange={(e) => update(i, { unit_price: Number(e.target.value) })}
+                  className="rounded-lg h-8 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-[9px] uppercase text-muted-foreground">Total</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={it.total_price ?? 0}
+                  onChange={(e) => update(i, { total_price: Number(e.target.value) })}
+                  className="rounded-lg h-8 text-xs font-semibold"
+                />
+              </div>
+            </div>
+
+            <Select
+              value={it.category ?? "Outros"}
+              onValueChange={(v) => update(i, { category: v })}
+            >
+              <SelectTrigger className="rounded-lg h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORY_OPTIONS.map((c) => (
+                  <SelectItem key={c} value={c} className="text-xs">
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function FailureDiary({ entries, onClear }: { entries: FailureEntry[]; onClear: () => void }) {
   if (entries.length === 0) return null;
   return (
