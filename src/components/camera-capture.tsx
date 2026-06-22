@@ -366,7 +366,33 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
         const hasContent = variance > 220 && edgeDensity > 3.5;
         const tooDark = mean < minLum;
         const tooBright = mean > maxLum || blownRatio > 0.18;
-        const sharp = focusScore > 95 && edgeDensity > 7;
+        // Limiares mais permissivos + histerese: depois de 2 frames nítidos,
+        // basta um foco "razoável" para manter — evita oscilar entre
+        // "adjust" e "hold" enquanto o usuário segura a câmera.
+        const sharpHard = focusScore > 80 && edgeDensity > 6.5;
+        const sharpSoft = focusScore > 55 && edgeDensity > 5;
+        const sharp =
+          sharpHard || (sharpStreakRef.current >= 2 && sharpSoft);
+        if (sharpHard) sharpStreakRef.current = Math.min(5, sharpStreakRef.current + 1);
+        else if (!sharpSoft) sharpStreakRef.current = 0;
+
+        // Calibração automática: monitora luz média dos últimos ~3s e
+        // alterna modo noturno automaticamente (com cooldown de 4s).
+        const hist = lumHistoryRef.current;
+        hist.push(mean);
+        if (hist.length > 15) hist.shift();
+        if (hist.length >= 10 && now - lastAutoToggleRef.current > 4000) {
+          const avg = hist.reduce((a, b) => a + b, 0) / hist.length;
+          if (!lowLightRef.current && avg < 60) {
+            lastAutoToggleRef.current = now;
+            setLowLight(true);
+            setAutoCalibrated(true);
+          } else if (lowLightRef.current && avg > 175) {
+            lastAutoToggleRef.current = now;
+            setLowLight(false);
+            setAutoCalibrated(true);
+          }
+        }
 
         let next: FrameStatus;
         if (tooBright) next = "bright";
@@ -379,15 +405,19 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
 
         if (next === "hold") {
           if (stableSinceRef.current == null) stableSinceRef.current = now;
-          else if (autoCapture && now - stableSinceRef.current > 1200 && !capturedRef.current) {
+          const elapsed = now - stableSinceRef.current;
+          setHoldProgress(Math.min(1, elapsed / HOLD_MS));
+          if (autoCapture && elapsed > HOLD_MS && !capturedRef.current) {
             capturedRef.current = true;
             setFrameStatus("ready");
+            setHoldProgress(1);
             setTimeout(() => {
               void handleShoot();
-            }, 150);
+            }, 120);
           }
         } else {
           stableSinceRef.current = null;
+          if (holdProgress !== 0) setHoldProgress(0);
         }
       } catch {
         /* getImageData pode falhar até o vídeo decodificar */
