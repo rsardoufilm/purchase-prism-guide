@@ -92,7 +92,7 @@ function DespesasIndex() {
   const handleNewExpenseClick = () => {
     window.setTimeout(() => {
       if (window.location.pathname !== "/despesas/nova")
-        navigate({ to: "/despesas/nova", search: {} });
+        navigate({ to: "/despesas/nova", search: { id: undefined } });
     }, 350);
   };
 
@@ -203,7 +203,7 @@ function DespesasIndex() {
       >
         <Link
           to="/despesas/nova"
-          search={{}}
+          search={{ id: undefined }}
           onPointerDown={handleNewExpenseTouch}
           onClick={handleNewExpenseClick}
         >
