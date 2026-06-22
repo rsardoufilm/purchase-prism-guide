@@ -88,7 +88,7 @@ function Dashboard() {
       if (ids.length) {
         const { data: it } = await supabase
           .from("expense_items")
-          .select("normalized_name,raw_name,total_price,unit_price,category")
+          .select("normalized_name,raw_name,total_price,unit_price,category,quantity,unit")
           .in("expense_id", ids);
         itRows = (it ?? []) as ItemRow[];
       }
