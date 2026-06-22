@@ -170,8 +170,16 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
         return;
       }
 
+      // Pedimos resolução alta para aproveitar o sensor + modos contínuos
+      // (foco/exposição/WB) que ajudam o ISP a clarear a cena.
+      const hiRes = {
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30 },
+      };
       const constraintsAttempts: MediaStreamConstraints[] = [
-        { video: { facingMode: { exact: "environment" } }, audio: false },
+        { video: { facingMode: { exact: "environment" }, ...hiRes }, audio: false },
+        { video: { facingMode: { ideal: "environment" }, ...hiRes }, audio: false },
         { video: { facingMode: { ideal: "environment" } }, audio: false },
         { video: true, audio: false },
       ];
@@ -208,6 +216,17 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
       }
 
       streamRef.current = stream;
+
+      // Ajusta exposição/WB/foco contínuos para clarear a cena.
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        await tuneTrackForBrightness(videoTrack);
+        const caps = (videoTrack.getCapabilities?.() ?? {}) as MediaTrackCapabilities & {
+          torch?: boolean;
+        };
+        setTorchAvailable(Boolean(caps.torch));
+      }
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         try {
