@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Loader2, ScanLine, Upload, Trash2, Check, Circle, Camera, FileText, Plus, AlertTriangle, Eraser } from "lucide-react";
 import { ocrReceipt, type OcrResult } from "@/lib/ocr.functions";
 import { brl } from "@/lib/format";
-import { classifyItem, normalizeName, classifyMerchant } from "@/lib/classifier";
+import { classifyItem, normalizeName, classifyMerchant, inferExpenseCategory } from "@/lib/classifier";
 import { requestCameraPermission } from "@/lib/camera-permission";
 import { logFailure, readFailures, clearFailures, type FailureEntry } from "@/lib/failure-log";
 import { useEffect } from "react";
@@ -192,14 +192,16 @@ function NovaDespesa() {
       setStep("ocr", "done");
 
       // Classificação determinística pós-OCR
+      const processedItems = result.items.map((it) => {
+        const cat = it.category ?? classifyItem(it.raw_name);
+        const norm = it.normalized_name ?? normalizeName(it.raw_name);
+        return { ...it, category: cat, normalized_name: norm };
+      });
+      const inferredCategory = inferExpenseCategory(processedItems, result.merchant_name);
       const enriched: OcrResult = {
         ...result,
-        category: result.category ?? classifyMerchant(result.merchant_name) ?? null,
-        items: result.items.map((it) => {
-          const cat = it.category ?? classifyItem(it.raw_name);
-          const norm = it.normalized_name ?? normalizeName(it.raw_name);
-          return { ...it, category: cat, normalized_name: norm };
-        }),
+        category: result.category ?? inferredCategory ?? null,
+        items: processedItems,
       };
 
       setItemsCount(enriched.items.length);
