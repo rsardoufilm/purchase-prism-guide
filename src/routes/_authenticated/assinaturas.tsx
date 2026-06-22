@@ -34,6 +34,7 @@ function monthLabel(d: Date) {
 
 function Assinaturas() {
   const [rows, setRows] = useState<Sub[]>([]);
+  const [deleting, setDeleting] = useState<Set<string>>(new Set());
 
   const load = () =>
     supabase
@@ -48,6 +49,25 @@ function Assinaturas() {
     window.addEventListener("aura:data-changed", onChange);
     return () => window.removeEventListener("aura:data-changed", onChange);
   }, []);
+
+  const handleDelete = async (id: string, name: string) => {
+    const ok = window.confirm(`Deseja excluir a assinatura "${name}"?`);
+    if (!ok) return;
+    setDeleting((prev) => new Set(prev).add(id));
+    const { error } = await supabase.from("subscriptions").delete().eq("id", id);
+    setDeleting((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Assinatura excluída.");
+    window.dispatchEvent(new CustomEvent("aura:data-changed"));
+    load();
+  };
 
   const occurrences = useMemo(() => projectSubscriptionOccurrences(rows), [rows]);
 
