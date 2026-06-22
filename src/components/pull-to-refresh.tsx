@@ -30,6 +30,9 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       if (p >= THRESHOLD && !refreshing) {
         setRefreshing(true);
         setPull(THRESHOLD);
+        try {
+          (navigator as Navigator & { vibrate?: (p: number | number[]) => boolean }).vibrate?.(15);
+        } catch { /* no-op */ }
         window.dispatchEvent(new CustomEvent("aura:data-changed"));
         await new Promise((r) => setTimeout(r, 600));
         setRefreshing(false);
