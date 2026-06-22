@@ -167,7 +167,8 @@ function Consumo() {
 
   return (
     <>
-      <PageHeader eyebrow="Consumo" title="O que você compra" />
+      <PageHeader eyebrow="Consumo" title="O que você compra" tourKey="consumo" />
+      <TourGuide tourKey="consumo" steps={TOURS.consumo} />
 
       <div className="mb-3 animate-aura-in">
         <PeriodFilter value={period} onChange={setPeriod} />
