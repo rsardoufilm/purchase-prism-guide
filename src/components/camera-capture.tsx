@@ -137,6 +137,8 @@ const STATUS_COLOR: Record<FrameStatus, string> = {
   ready: "border-emerald-400",
 };
 
+const HOLD_MS = 1100;
+
 export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -145,6 +147,11 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
   const stableSinceRef = useRef<number | null>(null);
   const capturedRef = useRef(false);
   const lowLightRef = useRef(false);
+  // Janela móvel de luminância para calibração automática (≈3s a 5fps).
+  const lumHistoryRef = useRef<number[]>([]);
+  const lastAutoToggleRef = useRef<number>(0);
+  // Hysteresis do foco: depois de sharp, aceita um pequeno declínio.
+  const sharpStreakRef = useRef<number>(0);
 
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string>("");
@@ -155,7 +162,9 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
   const [torchAvailable, setTorchAvailable] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [lowLight, setLowLight] = useState(false);
+  const [autoCalibrated, setAutoCalibrated] = useState(false);
   const [exposure, setExposure] = useState<number>(128); // luminância média 0-255
+  const [holdProgress, setHoldProgress] = useState<number>(0); // 0..1
   const ios = useRef(isIOS());
 
   lowLightRef.current = lowLight;
