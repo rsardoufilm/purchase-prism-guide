@@ -468,6 +468,10 @@ function NovaDespesa() {
                 <AlertTriangle className="size-3" />
                 Nota amassada ou ilegível? A leitura pode falhar.
               </p>
+              <p className="text-[10px] text-blue-500 flex items-center gap-1">
+                <Info className="size-3" />
+                Leitura mais precisa pelo "Enviar arquivo".
+              </p>
             </div>
             <Camera className="size-5 text-muted-foreground shrink-0" />
           </button>
