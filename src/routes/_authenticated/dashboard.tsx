@@ -123,6 +123,13 @@ function Dashboard() {
     for (const r of expenses) byStore.set(r.merchant_name, (byStore.get(r.merchant_name) ?? 0) + 1);
     const topStore = [...byStore.entries()].sort((a, b) => b[1] - a[1])[0];
 
+    const byPay = new Map<string, number>();
+    for (const r of expenses) {
+      const k = r.payment_method || "outros";
+      byPay.set(k, (byPay.get(k) ?? 0) + 1);
+    }
+    const topPay = [...byPay.entries()].sort((a, b) => b[1] - a[1])[0];
+
     // Economia: itens com preço unitário abaixo da média do produto normalizado
     const prodAvg = new Map<string, { sum: number; count: number }>();
     for (const it of items) {
@@ -143,7 +150,7 @@ function Dashboard() {
       if (Number(it.unit_price) < avg) savings += (avg - Number(it.unit_price)) * 1;
     }
 
-    return { total, topCat, topProd, topStore, savings, catList };
+    return { total, topCat, topProd, topStore, topPay, savings, catList };
   }, [expenses, items]);
 
   return (
