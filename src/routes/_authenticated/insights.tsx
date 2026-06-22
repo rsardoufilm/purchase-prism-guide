@@ -216,6 +216,10 @@ function Insights() {
     <>
       <PageHeader eyebrow="Insights" title="Sua inteligência" />
 
+      <div className="mb-4">
+        <PeriodFilter value={period} onChange={setPeriod} />
+      </div>
+
       <section className="mb-5 space-y-3">
         {generalInsights.map((ins, i) => (
           <div key={i} className="bg-card border border-border rounded-3xl p-4 sm:p-5 grid grid-cols-[auto_minmax(0,1fr)] gap-3 sm:gap-4">
