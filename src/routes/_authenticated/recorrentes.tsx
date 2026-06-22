@@ -92,7 +92,8 @@ function Recorrentes() {
 
   return (
     <>
-      <PageHeader eyebrow="Recorrentes" title="Contas fixas" />
+      <PageHeader eyebrow="Recorrentes" title="Contas fixas" tourKey="recorrentes" />
+      <TourGuide tourKey="recorrentes" steps={TOURS.recorrentes} />
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-semibold mb-5 gap-2">
