@@ -100,7 +100,8 @@ function Consumo() {
     if (s) list = list.filter((x) => x.expense_date >= s);
     if (e) list = list.filter((x) => x.expense_date <= e);
     if (filter === "all") return list;
-    return list.filter((e) => (e.category || "Sem categoria") === filter);
+    if (filter === "__uncat__") return list.filter((x) => !x.category);
+    return list.filter((x) => x.category === filter);
   }, [expenses, s, e, filter]);
 
   const filteredItems = useMemo(() => {
