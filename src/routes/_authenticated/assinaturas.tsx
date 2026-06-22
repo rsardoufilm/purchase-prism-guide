@@ -92,7 +92,8 @@ function Assinaturas() {
 
   return (
     <>
-      <PageHeader eyebrow="Assinaturas" title="Recorrências fixas" />
+      <PageHeader eyebrow="Assinaturas" title="Recorrências fixas" tourKey="assinaturas" />
+      <TourGuide tourKey="assinaturas" steps={TOURS.assinaturas} />
       <SubscriptionDialog onCreated={load} />
 
       {rows.length === 0 ? (
