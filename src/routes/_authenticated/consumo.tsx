@@ -37,6 +37,7 @@ interface ExpenseRow {
   merchant_name: string;
   category: string | null;
   total_amount: number;
+  expense_date: string;
 }
 
 const CONSUMO_FILTER_KEY = "aura:consumo:filter-category";
