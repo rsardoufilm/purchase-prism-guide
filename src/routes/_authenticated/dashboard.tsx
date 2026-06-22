@@ -74,7 +74,7 @@ function Dashboard() {
     (async () => {
       let q = supabase
         .from("expenses")
-        .select("id,merchant_name,category,expense_date,total_amount")
+        .select("id,merchant_name,category,expense_date,total_amount,payment_method")
         .order("expense_date", { ascending: false });
       if (s) q = q.gte("expense_date", s);
       if (e) q = q.lte("expense_date", e);
