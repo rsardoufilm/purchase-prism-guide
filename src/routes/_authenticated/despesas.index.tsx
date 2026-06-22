@@ -225,7 +225,8 @@ function DespesasIndex() {
 
   return (
     <>
-      <PageHeader eyebrow="Despesas" title="Suas despesas" />
+      <PageHeader eyebrow="Despesas" title="Suas despesas" tourKey="despesas" />
+      <TourGuide tourKey="despesas" steps={TOURS.despesas} />
 
       <div className="mb-3 animate-aura-in">
         <PeriodFilter value={period} onChange={setPeriod} />
