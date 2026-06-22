@@ -181,6 +181,8 @@ function Configuracoes() {
         </Button>
       </section>
 
+      <NotificationPreferences />
+
       {/* Aparência */}
       <section className="bg-card border border-border rounded-3xl p-5 space-y-3 mb-4">
         <h2 className="text-sm font-semibold">Aparência</h2>
