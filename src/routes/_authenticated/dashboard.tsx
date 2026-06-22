@@ -28,6 +28,7 @@ interface ExpenseRow {
   category: string | null;
   expense_date: string;
   total_amount: number;
+  payment_method: string | null;
 }
 interface ItemRow {
   normalized_name: string | null;
@@ -36,6 +37,16 @@ interface ItemRow {
   unit_price: number;
   category: string | null;
 }
+
+const PAYMENT_LABELS: Record<string, string> = {
+  pix: "PIX",
+  credito: "Crédito",
+  debito: "Débito",
+  dinheiro: "Dinheiro",
+  vale_alimentacao: "Vale Alim.",
+  vale_refeicao: "Vale Refei.",
+  outros: "Outros",
+};
 
 function isoDate(d: Date | null) {
   return d ? d.toISOString().slice(0, 10) : null;
