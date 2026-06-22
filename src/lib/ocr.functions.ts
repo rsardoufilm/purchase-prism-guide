@@ -46,21 +46,21 @@ const CATEGORIES = [
   "Outros",
 ] as const;
 
-const SYSTEM_PROMPT = `Você é um extrator OCR especialista em notas fiscais brasileiras (NFC-e/NF-e/cupons fiscais).
+const SYSTEM_PROMPT = `Você é um extrator OCR especialista em notas fiscais brasileiras (NFC-e/NF-e/cupons em papel térmico).
 Extraia os dados em JSON ESTRITO com este schema:
 {
   "merchant_name": string,
-  "merchant_document": string|null,        // CNPJ se identificável (apenas dígitos com pontuação ou só dígitos)
+  "merchant_document": string|null,
   "category": string|null,                 // uma de: ${CATEGORIES.join(", ")}
-  "expense_date": string|null,             // formato YYYY-MM-DD
-  "expense_time": string|null,             // formato HH:MM:SS
-  "total_amount": number,                  // valor total (numérico, ponto decimal)
+  "expense_date": string|null,             // YYYY-MM-DD
+  "expense_time": string|null,             // HH:MM:SS
+  "total_amount": number,
   "payment_method": "pix"|"credito"|"debito"|"dinheiro"|"vale_alimentacao"|"vale_refeicao"|"outros",
   "items": [
     {
-      "raw_name": string,                  // descrição original do cupom
-      "normalized_name": string|null,      // forma normalizada agrupando equivalentes (ex: "ARROZ TIPO 1 5KG" → "Arroz", "COCA COLA 2L" → "Refrigerante", "PÃO FRANCÊS" → "Pães")
-      "category": string|null,             // uma das categorias acima
+      "raw_name": string,
+      "normalized_name": string|null,
+      "category": string|null,
       "quantity": number|null,
       "unit": string|null,                 // "kg","g","l","ml","un","cx","pct","dz"
       "unit_price": number|null,
@@ -69,11 +69,16 @@ Extraia os dados em JSON ESTRITO com este schema:
   ]
 }
 
-Regras críticas:
-- Todos os valores numéricos com ponto decimal (12.90), NUNCA strings.
-- normalized_name agrupa variações do mesmo produto.
-- Se um campo não estiver claro, use null.
-- Responda APENAS o objeto JSON, sem markdown.`;
+Regras CRÍTICAS para ITENS (papel térmico costuma estar borrado — siga à risca):
+1. raw_name = texto EXATAMENTE como aparece, PRESERVANDO espaços entre palavras. Se vir "COCACOLA2L" reconstrua para "COCA COLA 2L". NUNCA grude palavras nem invente caracteres.
+2. Remova códigos numéricos longos (EAN/SKU com 8+ dígitos seguidos) do raw_name — não fazem parte do nome do produto.
+3. Cada linha de item geralmente tem "Qtd X UN Vl.Unit Y Vl.Total Z". Extraia quantity, unit_price e total_price desses números. Valide: quantity * unit_price ≈ total_price (tolerância R$ 0,02). Se não bater, releia a linha antes de responder.
+4. normalized_name agrupa equivalentes: "ARROZ TIPO 1 5KG TIO JOÃO" → "Arroz"; "COCA COLA 2L" → "Refrigerante"; "PÃO FRANCÊS UN" → "Pães"; "LEITE INTEGRAL UHT 1L" → "Leite"; "FEIJÃO CARIOCA 1KG" → "Feijão".
+5. unit infira pelo sufixo: "5KG"→kg, "500G"→g, "2L"→l, "350ML"→ml; sem sufixo → "un".
+6. NUNCA invente itens. Se a linha está ilegível, OMITA — é melhor faltar do que alucinar.
+7. RECONCILIAÇÃO: a soma dos total_price dos itens deve ficar a ≤2% do total_amount. Se a diferença for maior, releia antes de responder (provavelmente confundiu quantidade ou preço).
+
+Valores numéricos com ponto decimal (12.90), NUNCA strings. Campos não identificáveis: null. Responda APENAS o objeto JSON, sem markdown.`;
 
 export const ocrReceipt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
