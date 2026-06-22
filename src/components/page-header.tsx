@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { BrandLogo } from "@/components/brand-logo";
 
 export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   const [initials, setInitials] = useState("AU");
@@ -16,7 +17,10 @@ export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string 
     });
   }, []);
   return (
-    <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 mb-6 animate-aura-in">
+    <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 mb-6 animate-aura-in">
+      <Link to="/dashboard" aria-label="AURA Consumo" className="md:hidden">
+        <BrandLogo size="sm" />
+      </Link>
       <div className="min-w-0">
         <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-widest mb-0.5">
           {eyebrow}
@@ -24,9 +28,9 @@ export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string 
         <h1 className="font-display text-2xl sm:text-3xl font-bold truncate">{title}</h1>
       </div>
       <Link
-        to="/dashboard"
-        className="size-10 shrink-0 rounded-full bg-muted border border-border grid place-items-center text-xs font-bold text-foreground"
-        aria-label="Perfil"
+        to="/configuracoes"
+        className="size-10 shrink-0 rounded-full bg-muted border border-border grid place-items-center text-xs font-bold text-foreground hover:bg-primary-soft hover:text-primary transition-colors"
+        aria-label="Ajustes"
       >
         {initials}
       </Link>
