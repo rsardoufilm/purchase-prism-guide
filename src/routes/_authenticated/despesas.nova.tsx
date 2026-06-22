@@ -513,7 +513,7 @@ function NovaDespesa() {
             onCapture={(file) => {
               console.log("[CAMERA_OPEN] foto capturada:", file.name, file.type, file.size);
               setCameraOpen(false);
-              handleFile(file);
+              handleFile(file, "camera");
             }}
           />
           <input
