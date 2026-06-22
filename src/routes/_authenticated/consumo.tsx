@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { brl } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/consumo")({
@@ -25,9 +29,20 @@ interface ExpenseRow {
   total_amount: number;
 }
 
+const CONSUMO_FILTER_KEY = "aura:consumo:filter-category";
+
 function Consumo() {
   const [items, setItems] = useState<ItemRow[]>([]);
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
+  const [filter, setFilter] = useState<string>(() => {
+    if (typeof window === "undefined") return "all";
+    return window.localStorage.getItem(CONSUMO_FILTER_KEY) ?? "all";
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") window.localStorage.setItem(CONSUMO_FILTER_KEY, filter);
+  }, [filter]);
+
   useEffect(() => {
     const load = () => {
       supabase
@@ -44,9 +59,32 @@ function Consumo() {
     return () => window.removeEventListener("aura:data-changed", load);
   }, []);
 
+  // Mapa expense_id → categoria de estabelecimento (para filtrar itens)
+  const expCategoryById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const e of expenses) m.set(e.id, e.category || "Sem categoria");
+    return m;
+  }, [expenses]);
+
+  const allCategories = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of expenses) set.add(e.category || "Sem categoria");
+    return Array.from(set).sort();
+  }, [expenses]);
+
+  const filteredExpenses = useMemo(() => {
+    if (filter === "all") return expenses;
+    return expenses.filter((e) => (e.category || "Sem categoria") === filter);
+  }, [expenses, filter]);
+
+  const filteredItems = useMemo(() => {
+    if (filter === "all") return items;
+    return items.filter((it) => expCategoryById.get(it.expense_id) === filter);
+  }, [items, expCategoryById, filter]);
+
   const byProduct = useMemo(() => {
     const m = new Map<string, { total: number; qty: number; unit: string | null }>();
-    for (const it of items) {
+    for (const it of filteredItems) {
       const k = it.normalized_name || it.raw_name;
       const v = m.get(k) ?? { total: 0, qty: 0, unit: it.unit };
       v.total += Number(it.total_price);
@@ -54,29 +92,45 @@ function Consumo() {
       m.set(k, v);
     }
     return [...m.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 8);
-  }, [items]);
+  }, [filteredItems]);
 
   const byExpenseCategory = useMemo(() => {
     const m = new Map<string, number>();
-    for (const r of expenses) {
+    for (const r of filteredExpenses) {
       const k = r.category || "Sem categoria";
       m.set(k, (m.get(k) ?? 0) + Number(r.total_amount));
     }
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
-  }, [expenses]);
+  }, [filteredExpenses]);
 
   const byItemCategory = useMemo(() => {
     const m = new Map<string, number>();
-    for (const it of items) {
+    for (const it of filteredItems) {
       const k = it.category || it.normalized_name || "Outros";
       m.set(k, (m.get(k) ?? 0) + Number(it.total_price));
     }
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
-  }, [items]);
+  }, [filteredItems]);
 
   return (
     <>
       <PageHeader eyebrow="Consumo" title="O que você compra" />
+
+      <div className="flex items-center gap-2 mb-4">
+        <Filter className="size-4 text-muted-foreground shrink-0" />
+        <Select value={filter} onValueChange={setFilter}>
+          <SelectTrigger className="rounded-xl h-9 text-xs flex-1">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os tipos</SelectItem>
+            {allCategories.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
 
       <section className="mb-4">
         <h2 className="font-display font-semibold mb-2 text-sm">Por tipo de estabelecimento</h2>

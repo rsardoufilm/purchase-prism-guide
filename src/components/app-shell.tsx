@@ -7,7 +7,6 @@ import {
   Sparkles,
   CreditCard,
   Repeat,
-  MessageCircle,
   LogOut,
   ScanLine,
   Settings,
@@ -25,7 +24,6 @@ const NAV = [
   { to: "/consumo", label: "Consumo", icon: ShoppingBasket },
   { to: "/produtos", label: "Produtos", icon: Package },
   { to: "/insights", label: "Insights", icon: Sparkles },
-  { to: "/chat", label: "Pergunte", icon: MessageCircle },
   { to: "/assinaturas", label: "Assinaturas", icon: CreditCard },
   { to: "/recorrentes", label: "Recorrentes", icon: Repeat },
   { to: "/configuracoes", label: "Ajustes", icon: Settings },
@@ -129,7 +127,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <ScanLine className="size-6" strokeWidth={2.2} />
           </Link>
-          {[NAV[5], NAV[8]].map(({ to, label, icon: Icon }) => {
+          {[NAV[4], NAV[7]].map(({ to, label, icon: Icon }) => {
             const active = isActive(to);
             return (
               <Link

@@ -245,6 +245,13 @@ function NovaDespesa() {
   const save = async () => {
     if (!draft) return;
     if (!draft.merchant_name.trim()) { toast.error("Informe o estabelecimento."); return; }
+    if (!draft.category) {
+      const ok = window.confirm("Esta despesa está sem categoria. Deseja salvar mesmo assim? (Você pode classificar depois pela lista de despesas)");
+      if (!ok) {
+        toast.message("Selecione uma categoria antes de salvar.");
+        return;
+      }
+    }
     setSaving(true);
     try {
       const { data: userData } = await supabase.auth.getUser();

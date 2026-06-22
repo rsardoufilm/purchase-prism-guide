@@ -93,7 +93,8 @@ function Dashboard() {
       const k = r.category || "Sem categoria";
       byCat.set(k, (byCat.get(k) ?? 0) + Number(r.total_amount));
     }
-    const topCat = [...byCat.entries()].sort((a, b) => b[1] - a[1])[0];
+    const catList = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
+    const topCat = catList[0];
 
     const byProd = new Map<string, number>();
     for (const it of items) {
@@ -126,7 +127,7 @@ function Dashboard() {
       if (Number(it.unit_price) < avg) savings += (avg - Number(it.unit_price)) * 1;
     }
 
-    return { total, topCat, topProd, topStore, savings };
+    return { total, topCat, topProd, topStore, savings, catList };
   }, [expenses, items]);
 
   return (
@@ -170,6 +171,37 @@ function Dashboard() {
         </section>
       )}
 
+
+      {!loading && kpis.catList.length > 0 && (
+        <section className="mb-3 animate-aura-in">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-display font-semibold text-sm">Gastos por categoria</h3>
+            <span className="text-[10px] text-muted-foreground">{kpis.catList.length} categorias</span>
+          </div>
+          <div className="space-y-1.5">
+            {kpis.catList.slice(0, 6).map(([cat, total]) => {
+              const pct = kpis.total > 0 ? (total / kpis.total) * 100 : 0;
+              const uncategorized = cat === "Sem categoria";
+              return (
+                <div key={cat} className="bg-card border border-border rounded-2xl p-3">
+                  <div className="flex items-baseline justify-between gap-2 mb-1.5">
+                    <p className={`text-xs font-semibold truncate ${uncategorized ? "text-amber-600 dark:text-amber-500" : ""}`}>
+                      {cat}
+                    </p>
+                    <p className="text-xs font-bold whitespace-nowrap">{brl(total)} <span className="text-muted-foreground font-normal">· {pct.toFixed(0)}%</span></p>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${uncategorized ? "bg-amber-500/70" : "bg-primary"}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="mb-3 animate-aura-in">
         <div className="bg-secondary text-secondary-foreground p-4 rounded-3xl relative overflow-hidden">
