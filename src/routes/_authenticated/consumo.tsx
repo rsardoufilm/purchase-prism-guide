@@ -116,6 +116,12 @@ function Consumo() {
     return items.filter((it) => ids.has(it.expense_id));
   }, [items, filteredExpenses]);
 
+  const allCategories = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of expenses) set.add(e.category || "Sem categoria");
+    return Array.from(set).sort();
+  }, [expenses]);
+
   const byProduct = useMemo(() => {
     const m = new Map<string, { total: number; qty: number; unit: string | null }>();
     for (const it of filteredItems) {
@@ -149,6 +155,10 @@ function Consumo() {
   return (
     <>
       <PageHeader eyebrow="Consumo" title="O que você compra" />
+
+      <div className="mb-3 animate-aura-in">
+        <PeriodFilter value={period} onChange={setPeriod} />
+      </div>
 
       <div className="flex items-center gap-2 mb-4">
         <Filter className="size-4 text-muted-foreground shrink-0" />
