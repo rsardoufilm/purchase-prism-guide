@@ -16,7 +16,7 @@ import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import logoAura from "@/assets/logo-aura.png";
+import logoAlpha from "@/assets/logo-alpha.png";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -63,7 +63,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="relative mb-12">
           <div className="absolute -inset-1.5 rounded-2xl bg-gradient-to-br from-primary/25 to-primary/5 dark:from-primary/40 dark:to-primary/15 blur-[3px]" />
           <div className="relative rounded-2xl bg-card/90 dark:bg-card/70 ring-1 ring-primary/20 dark:ring-primary/40 p-2 shadow-sm dark:shadow-[0_0_24px_hsla(24,95%,58%,0.28)]">
-            <img src={logoAura} alt="AURA Consumo" width={40} height={40} className="size-10" />
+            <img src={logoAlpha} alt="AURA Consumo" width={40} height={40} className="size-10" />
           </div>
         </div>
         <div className="flex flex-col gap-2 flex-1">

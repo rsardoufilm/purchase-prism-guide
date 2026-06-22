@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import logoAura from "@/assets/logo-aura.png";
+import logoAlpha from "@/assets/logo-alpha.png";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -126,7 +126,7 @@ function AuthPage() {
             <div className="absolute -inset-2 rounded-2xl bg-gradient-to-br from-primary/25 to-primary/5 dark:from-primary/45 dark:to-primary/15 blur-[4px]" />
             <div className="relative rounded-2xl bg-card/90 dark:bg-card/70 ring-1 ring-primary/20 dark:ring-primary/40 p-2.5 shadow-sm dark:shadow-[0_0_32px_hsla(24,95%,58%,0.30)]">
               <img
-                src={logoAura}
+                src={logoAlpha}
                 alt="AURA Consumo"
                 width={64}
                 height={64}
