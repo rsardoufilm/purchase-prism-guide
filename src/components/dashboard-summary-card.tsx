@@ -41,28 +41,29 @@ export function DashboardSummaryCard() {
   return (
     <section
       aria-label="Resumo rápido"
-      className="mb-5 grid grid-cols-2 gap-3 animate-aura-in"
+      className="mb-3 grid grid-cols-2 gap-2.5 animate-aura-in"
     >
-      <div className="bg-card border border-border rounded-2xl p-4">
-        <div className="flex items-center gap-1.5 mb-1.5 text-muted-foreground">
-          <CalendarDays className="size-3.5" aria-hidden />
-          <p className="text-[10px] font-semibold uppercase tracking-wider">Hoje</p>
+      <div className="bg-card border border-border rounded-2xl p-3 sm:p-4 min-w-0">
+        <div className="flex items-center gap-1.5 mb-1 text-muted-foreground">
+          <CalendarDays className="size-3.5 shrink-0" aria-hidden />
+          <p className="text-[10px] font-semibold uppercase tracking-wider truncate">Hoje</p>
         </div>
-        <p className="font-display text-xl font-bold tracking-tight">{brl(today)}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">
+        <p className="font-display text-lg sm:text-xl font-bold tracking-tight truncate">{brl(today)}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
           {todayCount} {todayCount === 1 ? "despesa" : "despesas"}
         </p>
       </div>
-      <div className="bg-card border border-border rounded-2xl p-4">
-        <div className="flex items-center gap-1.5 mb-1.5 text-muted-foreground">
-          <TrendingUp className="size-3.5" aria-hidden />
-          <p className="text-[10px] font-semibold uppercase tracking-wider">Últimos 7 dias</p>
+      <div className="bg-card border border-border rounded-2xl p-3 sm:p-4 min-w-0">
+        <div className="flex items-center gap-1.5 mb-1 text-muted-foreground">
+          <TrendingUp className="size-3.5 shrink-0" aria-hidden />
+          <p className="text-[10px] font-semibold uppercase tracking-wider truncate">Últimos 7 dias</p>
         </div>
-        <p className="font-display text-xl font-bold tracking-tight">{brl(week)}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">
+        <p className="font-display text-lg sm:text-xl font-bold tracking-tight truncate">{brl(week)}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
           {weekCount} {weekCount === 1 ? "despesa" : "despesas"}
         </p>
       </div>
     </section>
   );
 }
+

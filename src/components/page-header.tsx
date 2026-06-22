@@ -113,16 +113,17 @@ export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string 
   };
 
   return (
-    <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:gap-3 mb-6 animate-aura-in">
-      <Link to="/dashboard" aria-label="AURA Consumo — início" className="md:hidden">
+    <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:gap-3 mb-3 sm:mb-5 animate-aura-in">
+      <Link to="/dashboard" aria-label="AURA Consumo — início" className="md:hidden shrink-0">
         <BrandLogo size="sm" />
       </Link>
       <div className="min-w-0">
-        <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-widest mb-0.5">
+        <p className="text-muted-foreground text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest mb-0.5">
           {eyebrow}
         </p>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold truncate">{title}</h1>
+        <h1 className="font-display text-xl sm:text-3xl font-bold truncate leading-tight">{title}</h1>
       </div>
+
 
       <div className="flex items-center gap-2 justify-self-end">
         <NotificationBell />
