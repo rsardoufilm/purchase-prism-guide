@@ -52,6 +52,7 @@ type Filter = "all" | "unread" | string; // string = tipo específico
 
 const LAST_CHECK_KEY = "aura:notif-last-check";
 const PUSH_ENABLED_KEY = "aura:notifications-enabled";
+const FILTER_KEY = "aura:notif-filter";
 
 /** Dispara notificação nativa do navegador (in-browser push, sem servidor). */
 function firePush(title: string, body: string) {
@@ -68,10 +69,18 @@ function firePush(title: string, body: string) {
 export function NotificationBell() {
   const [items, setItems] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>(() => {
+    if (typeof window === "undefined") return "all";
+    return (localStorage.getItem(FILTER_KEY) as Filter) || "all";
+  });
   const generate = useServerFn(generateNotifications);
   const navigate = useNavigate();
   const seenIdsRef = useRef<Set<string> | null>(null);
+
+  // Persiste o filtro escolhido
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem(FILTER_KEY, filter);
+  }, [filter]);
 
   const load = useCallback(async () => {
     const { data } = await supabase
