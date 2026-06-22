@@ -742,7 +742,11 @@ function NovaDespesa() {
             <ItemsEditor
               items={draft.items}
               total={Number(draft.total_amount) || 0}
-              onChange={(items) => setDraft({ ...draft, items })}
+              sources={itemSources}
+              onChange={(items, nextSources) => {
+                setDraft({ ...draft, items });
+                if (nextSources) setItemSources(nextSources);
+              }}
               userCatMap={userCatMap}
             />
           )}
@@ -750,7 +754,7 @@ function NovaDespesa() {
           {draft && (
             <button
               type="button"
-              onClick={() =>
+              onClick={() => {
                 setDraft({
                   ...draft,
                   items: [
@@ -765,8 +769,9 @@ function NovaDespesa() {
                       total_price: 0,
                     },
                   ],
-                })
-              }
+                });
+                setItemSources([...itemSources, "user"]);
+              }}
               className="w-full text-xs text-primary border border-dashed border-primary/40 rounded-xl py-2 hover:bg-primary-soft"
             >
               + Adicionar item manualmente
