@@ -171,6 +171,11 @@ function DespesasIndex() {
   return (
     <>
       <PageHeader eyebrow="Despesas" title="Suas despesas" />
+
+      <div className="mb-3 animate-aura-in">
+        <PeriodFilter value={period} onChange={setPeriod} />
+      </div>
+
       <Button asChild className="w-full h-11 rounded-2xl bg-primary text-primary-foreground font-semibold gap-2 mb-3">
         <Link to="/despesas/nova" onPointerDown={handleNewExpenseTouch} onClick={handleNewExpenseClick}>
           <Plus className="size-4" /> Nova despesa
