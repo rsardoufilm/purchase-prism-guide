@@ -31,10 +31,7 @@ function walk(dir, out = []) {
 function findRefs(file) {
   const src = readFileSync(file, "utf8");
   const refs = [];
-  const patterns = [
-    /\bto=["'](\/[^"'\s]*)["']/g,
-    /\bto:\s*["'](\/[^"'\s]*)["']/g,
-  ];
+  const patterns = [/\bto=["'](\/[^"'\s]*)["']/g, /\bto:\s*["'](\/[^"'\s]*)["']/g];
   for (const re of patterns) {
     for (const m of src.matchAll(re)) {
       const path = m[1].replace(/\/$/, "") || "/";
