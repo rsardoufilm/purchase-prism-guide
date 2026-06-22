@@ -186,5 +186,27 @@ export const ocrReceipt = createServerFn({ method: "POST" })
       }
     }
 
+    // Normaliza descontos: garante que total_price seja líquido (gross - discount).
+    parsed.items = parsed.items.map((it) => {
+      const qty = it.quantity ?? null;
+      const unit = it.unit_price ?? null;
+      const gross = it.gross_price ?? (qty != null && unit != null ? qty * unit : null);
+      const disc = Math.abs(it.discount ?? 0);
+      let total = it.total_price ?? null;
+      if (gross != null) {
+        const expectedNet = +(gross - disc).toFixed(2);
+        // Se total_price ausente, ou bater com gross (modelo esqueceu de subtrair), corrige.
+        if (total == null || (disc > 0 && Math.abs(total - gross) < 0.02)) {
+          total = expectedNet;
+        }
+      }
+      return {
+        ...it,
+        gross_price: gross,
+        discount: disc > 0 ? disc : null,
+        total_price: total,
+      };
+    });
+
     return parsed;
   });
