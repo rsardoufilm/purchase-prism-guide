@@ -48,9 +48,7 @@ async function tuneTrack(track: MediaStreamTrack, lowLight: boolean) {
   }
   if (caps.exposureCompensation) {
     // Padrão: neutro (0). Low-light: +1.3 stops (sem estourar).
-    const target = lowLight
-      ? Math.min(caps.exposureCompensation.max, 1.3)
-      : 0;
+    const target = lowLight ? Math.min(caps.exposureCompensation.max, 1.3) : 0;
     await tryApply({ advanced: [{ exposureCompensation: target } as never] });
   }
   if (caps.brightness) {
@@ -139,6 +137,8 @@ const STATUS_COLOR: Record<FrameStatus, string> = {
   ready: "border-emerald-400",
 };
 
+const HOLD_MS = 1100;
+
 export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -147,6 +147,11 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
   const stableSinceRef = useRef<number | null>(null);
   const capturedRef = useRef(false);
   const lowLightRef = useRef(false);
+  // Janela móvel de luminância para calibração automática (≈3s a 5fps).
+  const lumHistoryRef = useRef<number[]>([]);
+  const lastAutoToggleRef = useRef<number>(0);
+  // Hysteresis do foco: depois de sharp, aceita um pequeno declínio.
+  const sharpStreakRef = useRef<number>(0);
 
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string>("");
@@ -157,7 +162,9 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
   const [torchAvailable, setTorchAvailable] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [lowLight, setLowLight] = useState(false);
+  const [autoCalibrated, setAutoCalibrated] = useState(false);
   const [exposure, setExposure] = useState<number>(128); // luminância média 0-255
+  const [holdProgress, setHoldProgress] = useState<number>(0); // 0..1
   const ios = useRef(isIOS());
 
   lowLightRef.current = lowLight;
@@ -359,7 +366,32 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
         const hasContent = variance > 220 && edgeDensity > 3.5;
         const tooDark = mean < minLum;
         const tooBright = mean > maxLum || blownRatio > 0.18;
-        const sharp = focusScore > 95 && edgeDensity > 7;
+        // Limiares mais permissivos + histerese: depois de 2 frames nítidos,
+        // basta um foco "razoável" para manter — evita oscilar entre
+        // "adjust" e "hold" enquanto o usuário segura a câmera.
+        const sharpHard = focusScore > 80 && edgeDensity > 6.5;
+        const sharpSoft = focusScore > 55 && edgeDensity > 5;
+        const sharp = sharpHard || (sharpStreakRef.current >= 2 && sharpSoft);
+        if (sharpHard) sharpStreakRef.current = Math.min(5, sharpStreakRef.current + 1);
+        else if (!sharpSoft) sharpStreakRef.current = 0;
+
+        // Calibração automática: monitora luz média dos últimos ~3s e
+        // alterna modo noturno automaticamente (com cooldown de 4s).
+        const hist = lumHistoryRef.current;
+        hist.push(mean);
+        if (hist.length > 15) hist.shift();
+        if (hist.length >= 10 && now - lastAutoToggleRef.current > 4000) {
+          const avg = hist.reduce((a, b) => a + b, 0) / hist.length;
+          if (!lowLightRef.current && avg < 60) {
+            lastAutoToggleRef.current = now;
+            setLowLight(true);
+            setAutoCalibrated(true);
+          } else if (lowLightRef.current && avg > 175) {
+            lastAutoToggleRef.current = now;
+            setLowLight(false);
+            setAutoCalibrated(true);
+          }
+        }
 
         let next: FrameStatus;
         if (tooBright) next = "bright";
@@ -372,15 +404,19 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
 
         if (next === "hold") {
           if (stableSinceRef.current == null) stableSinceRef.current = now;
-          else if (autoCapture && now - stableSinceRef.current > 1200 && !capturedRef.current) {
+          const elapsed = now - stableSinceRef.current;
+          setHoldProgress(Math.min(1, elapsed / HOLD_MS));
+          if (autoCapture && elapsed > HOLD_MS && !capturedRef.current) {
             capturedRef.current = true;
             setFrameStatus("ready");
+            setHoldProgress(1);
             setTimeout(() => {
               void handleShoot();
-            }, 150);
+            }, 120);
           }
         } else {
           stableSinceRef.current = null;
+          if (holdProgress !== 0) setHoldProgress(0);
         }
       } catch {
         /* getImageData pode falhar até o vídeo decodificar */
@@ -468,7 +504,9 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
               type="button"
               onClick={toggleTorch}
               className={`size-9 grid place-items-center rounded-full border ${
-                torchOn ? "bg-amber-300 text-black border-amber-200" : "border-white/30 text-white/80"
+                torchOn
+                  ? "bg-amber-300 text-black border-amber-200"
+                  : "border-white/30 text-white/80"
               }`}
               aria-pressed={torchOn}
               aria-label="Alternar lanterna"
@@ -480,7 +518,9 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
             type="button"
             onClick={() => setLowLight((v) => !v)}
             className={`size-9 grid place-items-center rounded-full border ${
-              lowLight ? "bg-indigo-400 text-black border-indigo-200" : "border-white/30 text-white/80"
+              lowLight
+                ? "bg-indigo-400 text-black border-indigo-200"
+                : "border-white/30 text-white/80"
             }`}
             aria-pressed={lowLight}
             aria-label="Modo baixa luz"
@@ -492,7 +532,9 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
             type="button"
             onClick={() => setAutoCapture((v) => !v)}
             className={`text-[11px] px-2.5 py-1 rounded-full border ${
-              autoCapture ? "border-emerald-400/70 text-emerald-300" : "border-white/30 text-white/70"
+              autoCapture
+                ? "border-emerald-400/70 text-emerald-300"
+                : "border-white/30 text-white/70"
             }`}
             aria-pressed={autoCapture}
             aria-label="Alternar captura automática"
@@ -517,10 +559,18 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
             <div
               className={`absolute left-[6%] right-[6%] top-[12%] bottom-[12%] rounded-2xl border-2 transition-colors duration-200 ${borderColor}`}
             >
-              <span className={`absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 rounded-tl-2xl ${borderColor}`} />
-              <span className={`absolute -top-0.5 -right-0.5 w-6 h-6 border-t-4 border-r-4 rounded-tr-2xl ${borderColor}`} />
-              <span className={`absolute -bottom-0.5 -left-0.5 w-6 h-6 border-b-4 border-l-4 rounded-bl-2xl ${borderColor}`} />
-              <span className={`absolute -bottom-0.5 -right-0.5 w-6 h-6 border-b-4 border-r-4 rounded-br-2xl ${borderColor}`} />
+              <span
+                className={`absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 rounded-tl-2xl ${borderColor}`}
+              />
+              <span
+                className={`absolute -top-0.5 -right-0.5 w-6 h-6 border-t-4 border-r-4 rounded-tr-2xl ${borderColor}`}
+              />
+              <span
+                className={`absolute -bottom-0.5 -left-0.5 w-6 h-6 border-b-4 border-l-4 rounded-bl-2xl ${borderColor}`}
+              />
+              <span
+                className={`absolute -bottom-0.5 -right-0.5 w-6 h-6 border-b-4 border-r-4 rounded-br-2xl ${borderColor}`}
+              />
             </div>
 
             <div className="absolute left-1/2 -translate-x-1/2 top-[6%] flex flex-col items-center gap-1.5">
@@ -552,6 +602,12 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
                   style={{ width: `${exposureRatio * 100}%` }}
                 />
               </div>
+
+              {autoCalibrated && (
+                <span className="text-[10px] text-indigo-200/90 bg-indigo-500/20 border border-indigo-300/30 rounded-full px-2 py-0.5">
+                  Calibração automática aplicada
+                </span>
+              )}
             </div>
 
             <div className="absolute left-1/2 -translate-x-1/2 bottom-[6%] max-w-[80%]">
@@ -595,19 +651,50 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
       </div>
 
       <div className="pb-8 pt-4 grid place-items-center bg-black">
-        <button
-          type="button"
-          onClick={handleShoot}
-          disabled={status !== "ready" || shooting}
-          aria-label="Capturar foto"
-          className="size-16 rounded-full bg-white grid place-items-center disabled:opacity-40 active:scale-95 transition-transform ring-4 ring-white/30"
-        >
-          {shooting ? (
-            <Loader2 className="size-6 animate-spin text-black" />
-          ) : (
-            <Camera className="size-7 text-black" />
+        <div className="relative size-20 grid place-items-center">
+          {/* Anel de progresso de auto-captura */}
+          {autoCapture && status === "ready" && (
+            <svg
+              className="absolute inset-0 -rotate-90 pointer-events-none"
+              viewBox="0 0 80 80"
+              aria-hidden
+            >
+              <circle
+                cx="40"
+                cy="40"
+                r="36"
+                fill="none"
+                stroke="rgba(255,255,255,0.18)"
+                strokeWidth="3"
+              />
+              <circle
+                cx="40"
+                cy="40"
+                r="36"
+                fill="none"
+                stroke={holdProgress >= 1 ? "rgb(52,211,153)" : "rgb(56,189,248)"}
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 36}
+                strokeDashoffset={2 * Math.PI * 36 * (1 - holdProgress)}
+                style={{ transition: "stroke-dashoffset 120ms linear" }}
+              />
+            </svg>
           )}
-        </button>
+          <button
+            type="button"
+            onClick={handleShoot}
+            disabled={status !== "ready" || shooting}
+            aria-label="Capturar foto"
+            className="size-16 rounded-full bg-white grid place-items-center disabled:opacity-40 active:scale-95 transition-transform"
+          >
+            {shooting ? (
+              <Loader2 className="size-6 animate-spin text-black" />
+            ) : (
+              <Camera className="size-7 text-black" />
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
