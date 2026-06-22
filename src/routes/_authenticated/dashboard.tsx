@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { PeriodFilter } from "@/components/period-filter";
-import { periodRange } from "@/lib/period";
+import { periodRange, type PeriodKey } from "@/lib/period";
 import { brl, brlCompact, fmtDate } from "@/lib/format";
 import { Sparkles, TrendingDown, Store, Package as PackageIcon } from "lucide-react";
 import { DashboardSummaryCard } from "@/components/dashboard-summary-card";
