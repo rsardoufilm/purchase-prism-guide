@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useNavigate } from "@tanstack/react-router";
 import { Bell, BellRing, CreditCard, Repeat, Receipt, Apple, CheckCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { generateNotifications } from "@/lib/notifications.functions";
@@ -18,6 +19,7 @@ interface Notif {
   message: string;
   read: boolean;
   created_at: string;
+  related_id: string | null;
 }
 
 const ICONS: Record<string, typeof Bell> = {
@@ -26,6 +28,16 @@ const ICONS: Record<string, typeof Bell> = {
   daily_summary: Receipt,
   weekly_summary: Receipt,
   health_alert: Apple,
+};
+
+type AppRoute = "/assinaturas" | "/recorrentes" | "/dashboard" | "/consumo";
+
+const ROUTES: Record<string, AppRoute> = {
+  subscription_due: "/assinaturas",
+  recurring_due: "/recorrentes",
+  daily_summary: "/dashboard",
+  weekly_summary: "/dashboard",
+  health_alert: "/consumo",
 };
 
 const LAST_CHECK_KEY = "aura:notif-last-check";
