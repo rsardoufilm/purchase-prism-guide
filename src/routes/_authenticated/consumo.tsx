@@ -111,9 +111,11 @@ function Consumo() {
 
   const allCategories = useMemo(() => {
     const set = new Set<string>();
-    for (const e of expenses) set.add(e.category || "Sem categoria");
+    for (const e of expenses) if (e.category) set.add(e.category);
     return Array.from(set).sort();
   }, [expenses]);
+
+  const hasUncategorized = useMemo(() => expenses.some((e) => !e.category), [expenses]);
 
   const byProduct = useMemo(() => {
     const m = new Map<string, { total: number; qty: number; unit: string | null }>();
