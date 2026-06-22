@@ -245,7 +245,7 @@ function NovaDespesa() {
         supabase.storage
           .from("receipts")
           .upload(path, file, { contentType: file.type, upsert: false }),
-        runOcr({ data: { fileDataUrl: dataUrl, mimeType: file.type } }),
+        runOcr({ data: { fileDataUrl: dataUrl, mimeType: file.type, source: origin } }),
       ]);
       if (upErr) {
         setStep("upload", "error");
