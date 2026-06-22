@@ -191,7 +191,7 @@ function Dashboard() {
           />
           <KpiCard
             icon={<Sparkles className="size-4" />}
-            label="Produto mais comprado"
+            label="Prod. mais Comprado"
             value={kpis.topProd?.[0] ?? "—"}
             sub={kpis.topProd ? `${kpis.topProd[1]} ${kpis.topProd[1] > 1 ? "compras" : "compra"}` : ""}
           />
