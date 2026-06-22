@@ -84,7 +84,7 @@ function Consumo() {
 
   const byProduct = useMemo(() => {
     const m = new Map<string, { total: number; qty: number; unit: string | null }>();
-    for (const it of items) {
+    for (const it of filteredItems) {
       const k = it.normalized_name || it.raw_name;
       const v = m.get(k) ?? { total: 0, qty: 0, unit: it.unit };
       v.total += Number(it.total_price);
@@ -92,29 +92,45 @@ function Consumo() {
       m.set(k, v);
     }
     return [...m.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 8);
-  }, [items]);
+  }, [filteredItems]);
 
   const byExpenseCategory = useMemo(() => {
     const m = new Map<string, number>();
-    for (const r of expenses) {
+    for (const r of filteredExpenses) {
       const k = r.category || "Sem categoria";
       m.set(k, (m.get(k) ?? 0) + Number(r.total_amount));
     }
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
-  }, [expenses]);
+  }, [filteredExpenses]);
 
   const byItemCategory = useMemo(() => {
     const m = new Map<string, number>();
-    for (const it of items) {
+    for (const it of filteredItems) {
       const k = it.category || it.normalized_name || "Outros";
       m.set(k, (m.get(k) ?? 0) + Number(it.total_price));
     }
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
-  }, [items]);
+  }, [filteredItems]);
 
   return (
     <>
       <PageHeader eyebrow="Consumo" title="O que você compra" />
+
+      <div className="flex items-center gap-2 mb-4">
+        <Filter className="size-4 text-muted-foreground shrink-0" />
+        <Select value={filter} onValueChange={setFilter}>
+          <SelectTrigger className="rounded-xl h-9 text-xs flex-1">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os tipos</SelectItem>
+            {allCategories.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
 
       <section className="mb-4">
         <h2 className="font-display font-semibold mb-2 text-sm">Por tipo de estabelecimento</h2>
