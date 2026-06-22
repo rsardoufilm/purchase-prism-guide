@@ -162,7 +162,8 @@ function Consumo() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos os tipos</SelectItem>
+            <SelectItem value="all">Todas as categorias</SelectItem>
+            {hasUncategorized && <SelectItem value="__uncat__">Sem categoria</SelectItem>}
             {allCategories.map((c) => (
               <SelectItem key={c} value={c}>{c}</SelectItem>
             ))}
