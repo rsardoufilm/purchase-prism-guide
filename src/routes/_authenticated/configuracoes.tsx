@@ -9,6 +9,7 @@ import { useTheme } from "@/lib/theme";
 import { Camera, ChevronRight, FileText, Loader2, LogOut, Moon, ShieldCheck, Sun, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
 import { LEGAL } from "@/lib/legal-info";
+import { NotificationPreferences } from "@/components/notification-preferences";
 
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({

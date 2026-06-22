@@ -6,6 +6,7 @@ import { PeriodFilter } from "@/components/period-filter";
 import { periodRange, type PeriodKey } from "@/lib/period";
 import { brl, brlCompact, fmtDate } from "@/lib/format";
 import { Sparkles, TrendingDown, Store, Package as PackageIcon } from "lucide-react";
+import { DashboardSummaryCard } from "@/components/dashboard-summary-card";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -130,6 +131,8 @@ function Dashboard() {
   return (
     <>
       <PageHeader eyebrow="Dashboard" title="AURA Consumo" />
+
+      <DashboardSummaryCard />
 
       <div className="mb-6 animate-aura-in">
         <PeriodFilter value={period} onChange={setPeriod} />
