@@ -130,7 +130,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <ScanLine className="size-6" strokeWidth={2.2} />
           </Link>
-          {[NAV[4], NAV[7]].map(({ to, label, icon: Icon }) => {
+          {[NAV[4], NAV[8]].map(({ to, label, icon: Icon }) => {
             const active = isActive(to);
             return (
               <Link
