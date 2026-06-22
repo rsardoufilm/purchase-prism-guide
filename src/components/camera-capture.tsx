@@ -603,6 +603,12 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
                   style={{ width: `${exposureRatio * 100}%` }}
                 />
               </div>
+
+              {autoCalibrated && (
+                <span className="text-[10px] text-indigo-200/90 bg-indigo-500/20 border border-indigo-300/30 rounded-full px-2 py-0.5">
+                  Calibração automática aplicada
+                </span>
+              )}
             </div>
 
             <div className="absolute left-1/2 -translate-x-1/2 bottom-[6%] max-w-[80%]">
