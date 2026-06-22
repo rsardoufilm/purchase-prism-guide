@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { SubscriptionDialog } from "@/components/subscription-dialog";
 import { brl } from "@/lib/format";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, Loader2, Trash2 } from "lucide-react";
 import {
   parseDateLocal,
   projectSubscriptionOccurrences,
@@ -12,6 +12,8 @@ import {
   type SubscriptionOccurrence as Occurrence,
   type SubscriptionRow as Sub,
 } from "@/lib/subscriptions";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/assinaturas")({
   component: Assinaturas,
