@@ -75,7 +75,7 @@ function DespesasIndex() {
   const handleNewExpenseTouch = () => toast.message("Abrindo nova despesa…");
   const handleNewExpenseClick = () => {
     window.setTimeout(() => {
-      if (window.location.pathname !== "/despesas/nova") navigate({ to: "/despesas/nova" });
+      if (window.location.pathname !== "/despesas/nova") navigate({ to: "/despesas/nova", search: {} });
     }, 350);
   };
 
@@ -169,7 +169,7 @@ function DespesasIndex() {
       </div>
 
       <Button asChild className="w-full h-11 rounded-2xl bg-primary text-primary-foreground font-semibold gap-2 mb-3">
-        <Link to="/despesas/nova" onPointerDown={handleNewExpenseTouch} onClick={handleNewExpenseClick}>
+        <Link to="/despesas/nova" search={{}} onPointerDown={handleNewExpenseTouch} onClick={handleNewExpenseClick}>
           <Plus className="size-4" /> Nova despesa
         </Link>
       </Button>

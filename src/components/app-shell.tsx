@@ -50,7 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     window.setTimeout(() => {
       if (window.location.pathname !== "/despesas/nova") {
         console.warn("[PLUS_FALLBACK] navegação por Link não completou, usando fallback");
-        navigate({ to: "/despesas/nova" });
+        navigate({ to: "/despesas/nova", search: {} });
       }
     }, 350);
   };
@@ -119,6 +119,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
           <Link
             to="/despesas/nova"
+            search={{}}
             onPointerDown={handleNewExpenseTouch}
             onClick={handleNewExpenseClick}
             aria-label="Nova despesa"
