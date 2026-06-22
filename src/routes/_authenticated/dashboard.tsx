@@ -39,27 +39,12 @@ function isoDate(d: Date | null) {
   return d ? d.toISOString().slice(0, 10) : null;
 }
 
-const DASH_PERIOD_KEY = "aura:dashboard:period";
-
-function readStoredPeriod(): PeriodKey {
-  try {
-    const raw = localStorage.getItem(DASH_PERIOD_KEY);
-    if (raw) return raw as PeriodKey;
-  } catch { /* noop */ }
-  return "este_mes";
-}
-
 function Dashboard() {
-  const [period, setPeriod] = useState<PeriodKey>(readStoredPeriod);
+  const [period, setPeriod] = useSharedPeriod();
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [items, setItems] = useState<ItemRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [reloadTick, setReloadTick] = useState(0);
-
-  const handlePeriodChange = (p: PeriodKey) => {
-    setPeriod(p);
-    try { localStorage.setItem(DASH_PERIOD_KEY, p); } catch { /* noop */ }
-  };
 
   useEffect(() => {
     const onChange = () => setReloadTick((t) => t + 1);
