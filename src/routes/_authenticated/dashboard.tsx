@@ -36,6 +36,8 @@ interface ItemRow {
   total_price: number;
   unit_price: number;
   category: string | null;
+  quantity: number;
+  unit: string | null;
 }
 
 const PAYMENT_LABELS: Record<string, string> = {
