@@ -17,6 +17,7 @@ import { brl } from "@/lib/format";
 import { MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
 import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
+import { useSharedCategory } from "@/hooks/use-shared-category";
 
 export const Route = createFileRoute("/_authenticated/consumo")({
   component: Consumo,
