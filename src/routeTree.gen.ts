@@ -28,6 +28,7 @@ import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAjudaRouteImport } from './routes/_authenticated/ajuda'
 import { Route as AuthenticatedDespesasIndexRouteImport } from './routes/_authenticated/despesas.index'
 import { Route as AuthenticatedDespesasNovaRouteImport } from './routes/_authenticated/despesas.nova'
+import { Route as ApiPublicHooksGenerateNotificationsRouteImport } from './routes/api/public/hooks/generate-notifications'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -128,6 +129,12 @@ const AuthenticatedDespesasNovaRoute =
     path: '/nova',
     getParentRoute: () => AuthenticatedDespesasRoute,
   } as any)
+const ApiPublicHooksGenerateNotificationsRoute =
+  ApiPublicHooksGenerateNotificationsRouteImport.update({
+    id: '/api/public/hooks/generate-notifications',
+    path: '/api/public/hooks/generate-notifications',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/legal/termos': typeof LegalTermosRoute
   '/despesas/nova': typeof AuthenticatedDespesasNovaRoute
   '/despesas/': typeof AuthenticatedDespesasIndexRoute
+  '/api/public/hooks/generate-notifications': typeof ApiPublicHooksGenerateNotificationsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -167,6 +175,7 @@ export interface FileRoutesByTo {
   '/legal/termos': typeof LegalTermosRoute
   '/despesas/nova': typeof AuthenticatedDespesasNovaRoute
   '/despesas': typeof AuthenticatedDespesasIndexRoute
+  '/api/public/hooks/generate-notifications': typeof ApiPublicHooksGenerateNotificationsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -189,6 +198,7 @@ export interface FileRoutesById {
   '/legal/termos': typeof LegalTermosRoute
   '/_authenticated/despesas/nova': typeof AuthenticatedDespesasNovaRoute
   '/_authenticated/despesas/': typeof AuthenticatedDespesasIndexRoute
+  '/api/public/hooks/generate-notifications': typeof ApiPublicHooksGenerateNotificationsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -211,6 +221,7 @@ export interface FileRouteTypes {
     | '/legal/termos'
     | '/despesas/nova'
     | '/despesas/'
+    | '/api/public/hooks/generate-notifications'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/legal/termos'
     | '/despesas/nova'
     | '/despesas'
+    | '/api/public/hooks/generate-notifications'
   id:
     | '__root__'
     | '/'
@@ -251,6 +263,7 @@ export interface FileRouteTypes {
     | '/legal/termos'
     | '/_authenticated/despesas/nova'
     | '/_authenticated/despesas/'
+    | '/api/public/hooks/generate-notifications'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -261,6 +274,7 @@ export interface RootRouteChildren {
   LegalExclusaoContaRoute: typeof LegalExclusaoContaRoute
   LegalPrivacidadeRoute: typeof LegalPrivacidadeRoute
   LegalTermosRoute: typeof LegalTermosRoute
+  ApiPublicHooksGenerateNotificationsRoute: typeof ApiPublicHooksGenerateNotificationsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -398,6 +412,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDespesasNovaRouteImport
       parentRoute: typeof AuthenticatedDespesasRoute
     }
+    '/api/public/hooks/generate-notifications': {
+      id: '/api/public/hooks/generate-notifications'
+      path: '/api/public/hooks/generate-notifications'
+      fullPath: '/api/public/hooks/generate-notifications'
+      preLoaderRoute: typeof ApiPublicHooksGenerateNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -453,17 +474,9 @@ const rootRouteChildren: RootRouteChildren = {
   LegalExclusaoContaRoute: LegalExclusaoContaRoute,
   LegalPrivacidadeRoute: LegalPrivacidadeRoute,
   LegalTermosRoute: LegalTermosRoute,
+  ApiPublicHooksGenerateNotificationsRoute:
+    ApiPublicHooksGenerateNotificationsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

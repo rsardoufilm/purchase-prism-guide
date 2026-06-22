@@ -9,6 +9,7 @@ import { useTheme } from "@/lib/theme";
 import { Camera, ChevronRight, FileText, Loader2, LogOut, Moon, ShieldCheck, Sun, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
 import { LEGAL } from "@/lib/legal-info";
+import { NotificationPreferences } from "@/components/notification-preferences";
 
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
@@ -179,6 +180,8 @@ function Configuracoes() {
           Salvar perfil
         </Button>
       </section>
+
+      <NotificationPreferences />
 
       {/* Aparência */}
       <section className="bg-card border border-border rounded-3xl p-5 space-y-3 mb-4">
