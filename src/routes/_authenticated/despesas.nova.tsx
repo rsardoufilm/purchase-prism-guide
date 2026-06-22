@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Loader2, ScanLine, Upload, Trash2, Check, Circle, Camera, FileText, Plus, AlertTriangle, Eraser } from "lucide-react";
 import { ocrReceipt, type OcrResult } from "@/lib/ocr.functions";
 import { brl } from "@/lib/format";
-import { classifyItem, normalizeName, classifyMerchant, inferExpenseCategory } from "@/lib/classifier";
+import { classifyItem, normalizeName, classifyMerchant, inferExpenseCategory, MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
 import { requestCameraPermission } from "@/lib/camera-permission";
 import { logFailure, readFailures, clearFailures, type FailureEntry } from "@/lib/failure-log";
 import { useEffect } from "react";
@@ -481,6 +481,13 @@ function NovaDespesa() {
             <Input
               value={draft.merchant_name}
               onChange={(e) => setDraft({ ...draft, merchant_name: e.target.value })}
+              onBlur={(e) => {
+                // Auto-classifica categoria ao sair do campo (apenas se ainda vazia)
+                if (!draft.category) {
+                  const inferred = classifyMerchant(e.target.value) ?? inferExpenseCategory(draft.items, e.target.value);
+                  if (inferred) setDraft({ ...draft, category: inferred });
+                }
+              }}
               className="rounded-xl"
             />
           </Field>
@@ -494,12 +501,19 @@ function NovaDespesa() {
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Categoria">
-              <Input
+              <Select
                 value={draft.category ?? ""}
-                onChange={(e) => setDraft({ ...draft, category: e.target.value || null })}
-                className="rounded-xl"
-                placeholder="Supermercado"
-              />
+                onValueChange={(v) => setDraft({ ...draft, category: v || null })}
+              >
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Selecionar…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MERCHANT_CATEGORY_OPTIONS.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
             <Field label="Valor total">
               <Input
