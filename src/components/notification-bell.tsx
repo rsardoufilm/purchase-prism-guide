@@ -1,7 +1,16 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
-import { Bell, BellRing, CreditCard, Repeat, Receipt, Apple, CheckCheck, Trash2 } from "lucide-react";
+import {
+  Bell,
+  BellRing,
+  CreditCard,
+  Repeat,
+  Receipt,
+  Apple,
+  CheckCheck,
+  Trash2,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { generateNotifications } from "@/lib/notifications.functions";
 import {
@@ -111,17 +120,25 @@ export function NotificationBell() {
           const res = await generate();
           localStorage.setItem(LAST_CHECK_KEY, String(now));
           if (active && res.created > 0) {
-            toast(`${res.created} nova${res.created>1?"s":""} notificação${res.created>1?"ões":""}`, {
-              description: res.items[0]?.title,
-            });
+            toast(
+              `${res.created} nova${res.created > 1 ? "s" : ""} notificação${res.created > 1 ? "ões" : ""}`,
+              {
+                description: res.items[0]?.title,
+              },
+            );
           }
         }
-      } catch { /* silencioso */ }
+      } catch {
+        /* silencioso */
+      }
       if (active) await load();
     };
     run();
     const id = window.setInterval(load, 5 * 60_000);
-    return () => { active = false; window.clearInterval(id); };
+    return () => {
+      active = false;
+      window.clearInterval(id);
+    };
   }, [generate, load]);
 
   const unread = items.filter((n) => !n.read).length;
@@ -155,11 +172,11 @@ export function NotificationBell() {
     if (!confirm("Apagar todas as notificações? Esta ação não pode ser desfeita.")) return;
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return;
-    const { error } = await supabase
-      .from("user_notifications")
-      .delete()
-      .eq("user_id", u.user.id);
-    if (error) { toast.error("Falha ao limpar"); return; }
+    const { error } = await supabase.from("user_notifications").delete().eq("user_id", u.user.id);
+    if (error) {
+      toast.error("Falha ao limpar");
+      return;
+    }
     setItems([]);
     seenIdsRef.current = new Set();
     toast.success("Notificações limpas.");
@@ -189,7 +206,11 @@ export function NotificationBell() {
           aria-label={unread > 0 ? `Notificações: ${unread} não lidas` : "Notificações"}
           aria-haspopup="menu"
         >
-          {unread > 0 ? <BellRing className="size-5" aria-hidden /> : <Bell className="size-5" aria-hidden />}
+          {unread > 0 ? (
+            <BellRing className="size-5" aria-hidden />
+          ) : (
+            <Bell className="size-5" aria-hidden />
+          )}
           {unread > 0 && (
             <span
               className="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center border-2 border-background"
@@ -235,9 +256,21 @@ export function NotificationBell() {
             </div>
           </div>
           {items.length > 0 && (
-            <div className="flex gap-1.5 overflow-x-auto no-scrollbar px-3 pb-2" role="tablist" aria-label="Filtrar notificações">
-              <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label={`Todas (${items.length})`} />
-              <FilterChip active={filter === "unread"} onClick={() => setFilter("unread")} label={`Não lidas (${unread})`} />
+            <div
+              className="flex gap-1.5 overflow-x-auto no-scrollbar px-3 pb-2"
+              role="tablist"
+              aria-label="Filtrar notificações"
+            >
+              <FilterChip
+                active={filter === "all"}
+                onClick={() => setFilter("all")}
+                label={`Todas (${items.length})`}
+              />
+              <FilterChip
+                active={filter === "unread"}
+                onClick={() => setFilter("unread")}
+                label={`Não lidas (${unread})`}
+              />
               {presentTypes.map((t) => (
                 <FilterChip
                   key={t}
@@ -252,7 +285,9 @@ export function NotificationBell() {
 
         {filtered.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            {items.length === 0 ? "Nenhuma notificação ainda. Volte mais tarde." : "Nada neste filtro."}
+            {items.length === 0
+              ? "Nenhuma notificação ainda. Volte mais tarde."
+              : "Nada neste filtro."}
           </p>
         ) : (
           <ul className="divide-y divide-border" role="list">
@@ -280,12 +315,20 @@ export function NotificationBell() {
                       <p className="text-sm font-semibold truncate">
                         {n.title}
                         {!n.read && (
-                          <span className="ml-1.5 inline-block size-2 rounded-full bg-primary align-middle" aria-label="Não lida" />
+                          <span
+                            className="ml-1.5 inline-block size-2 rounded-full bg-primary align-middle"
+                            aria-label="Não lida"
+                          />
                         )}
                       </p>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                        {n.message}
+                      </p>
                       <p className="text-[10px] text-muted-foreground mt-1">
-                        {new Date(n.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                        {new Date(n.created_at).toLocaleString("pt-BR", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })}
                       </p>
                     </div>
                   </button>
@@ -299,7 +342,15 @@ export function NotificationBell() {
   );
 }
 
-function FilterChip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+function FilterChip({
+  active,
+  onClick,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
   return (
     <button
       type="button"

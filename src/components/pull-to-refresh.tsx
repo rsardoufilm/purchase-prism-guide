@@ -26,7 +26,9 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
         if (prev < THRESHOLD && next >= THRESHOLD) {
           try {
             (navigator as Navigator & { vibrate?: (p: number | number[]) => boolean }).vibrate?.(8);
-          } catch { /* no-op */ }
+          } catch {
+            /* no-op */
+          }
         }
         return next;
       });
@@ -40,7 +42,9 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
         setPull(THRESHOLD);
         try {
           (navigator as Navigator & { vibrate?: (p: number | number[]) => boolean }).vibrate?.(15);
-        } catch { /* no-op */ }
+        } catch {
+          /* no-op */
+        }
         window.dispatchEvent(new CustomEvent("aura:data-changed"));
         await new Promise((r) => setTimeout(r, 600));
         setRefreshing(false);
@@ -77,7 +81,12 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
           )}
         </div>
       </div>
-      <div style={{ transform: pull ? `translateY(${pull}px)` : undefined, transition: pull ? "none" : "transform 200ms" }}>
+      <div
+        style={{
+          transform: pull ? `translateY(${pull}px)` : undefined,
+          transition: pull ? "none" : "transform 200ms",
+        }}
+      >
         {children}
       </div>
     </>

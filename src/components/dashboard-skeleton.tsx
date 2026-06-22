@@ -21,7 +21,10 @@ export function RecentExpensesSkeleton() {
   return (
     <div aria-hidden className="space-y-2">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 bg-card p-4 rounded-2xl border border-border">
+        <div
+          key={i}
+          className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 bg-card p-4 rounded-2xl border border-border"
+        >
           <div className="size-10 shrink-0 rounded-xl bg-muted animate-pulse" />
           <div className="min-w-0">
             <div className="h-3.5 w-40 rounded bg-muted animate-pulse mb-1.5" />

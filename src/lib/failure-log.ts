@@ -36,7 +36,11 @@ function safeWrite(list: FailureEntry[]) {
 
 export function logFailure(stage: string, error: unknown, meta?: Record<string, unknown>) {
   const message =
-    error instanceof Error ? error.message : typeof error === "string" ? error : "Falha desconhecida";
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : "Falha desconhecida";
   const entry: FailureEntry = {
     id: (typeof crypto !== "undefined" && crypto.randomUUID?.()) || String(Date.now()),
     at: new Date().toISOString(),

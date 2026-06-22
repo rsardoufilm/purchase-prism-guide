@@ -55,7 +55,10 @@ function ResetPassword() {
         ) : (
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="newpw" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Label
+                htmlFor="newpw"
+                className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+              >
                 Nova senha
               </Label>
               <Input
@@ -67,7 +70,11 @@ function ResetPassword() {
                 required
               />
             </div>
-            <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold">
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold"
+            >
               {loading && <Loader2 className="size-4 mr-2 animate-spin" />}
               Salvar senha
             </Button>

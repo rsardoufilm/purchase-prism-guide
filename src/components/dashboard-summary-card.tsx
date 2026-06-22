@@ -22,7 +22,11 @@ export function DashboardSummaryCard() {
 
       const [d, w] = await Promise.all([
         supabase.from("expenses").select("total_amount").eq("expense_date", todayStr),
-        supabase.from("expenses").select("total_amount").gte("expense_date", weekStartStr).lte("expense_date", todayStr),
+        supabase
+          .from("expenses")
+          .select("total_amount")
+          .gte("expense_date", weekStartStr)
+          .lte("expense_date", todayStr),
       ]);
       if (cancel) return;
       const dRows = d.data ?? [];
@@ -33,23 +37,24 @@ export function DashboardSummaryCard() {
       setWeekCount(wRows.length);
       setLoading(false);
     })();
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, []);
 
   if (loading) return <DashboardSummarySkeleton />;
   if (today === 0 && week === 0) return null;
 
   return (
-    <section
-      aria-label="Resumo rápido"
-      className="mb-3 grid grid-cols-2 gap-2.5 animate-aura-in"
-    >
+    <section aria-label="Resumo rápido" className="mb-3 grid grid-cols-2 gap-2.5 animate-aura-in">
       <div className="bg-card border border-border rounded-2xl p-3 sm:p-4 min-w-0">
         <div className="flex items-center gap-1.5 mb-1 text-muted-foreground">
           <CalendarDays className="size-3.5 shrink-0" aria-hidden />
           <p className="text-[10px] font-semibold uppercase tracking-wider truncate">Hoje</p>
         </div>
-        <p className="font-display text-lg sm:text-xl font-bold tracking-tight truncate">{brl(today)}</p>
+        <p className="font-display text-lg sm:text-xl font-bold tracking-tight truncate">
+          {brl(today)}
+        </p>
         <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
           {todayCount} {todayCount === 1 ? "despesa" : "despesas"}
         </p>
@@ -57,9 +62,13 @@ export function DashboardSummaryCard() {
       <div className="bg-card border border-border rounded-2xl p-3 sm:p-4 min-w-0">
         <div className="flex items-center gap-1.5 mb-1 text-muted-foreground">
           <TrendingUp className="size-3.5 shrink-0" aria-hidden />
-          <p className="text-[10px] font-semibold uppercase tracking-wider truncate">Últimos 7 dias</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider truncate">
+            Últimos 7 dias
+          </p>
         </div>
-        <p className="font-display text-lg sm:text-xl font-bold tracking-tight truncate">{brl(week)}</p>
+        <p className="font-display text-lg sm:text-xl font-bold tracking-tight truncate">
+          {brl(week)}
+        </p>
         <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
           {weekCount} {weekCount === 1 ? "despesa" : "despesas"}
         </p>
@@ -67,4 +76,3 @@ export function DashboardSummaryCard() {
     </section>
   );
 }
-

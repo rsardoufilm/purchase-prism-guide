@@ -4,13 +4,47 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Lista de alimentos com alto teor de gordura saturada/trans
 const FATTY_KEYWORDS = [
-  "bacon","linguica","linguiça","salsicha","mortadela","presunto","calabresa",
-  "manteiga","margarina","banha","creme de leite","requeijao","requeijão",
-  "queijo amarelo","queijo cheddar","queijo prato","queijo mussarela","mussarela",
-  "leite integral","nata","hamburguer","hambúrguer","nuggets","empanado",
-  "batata frita","salgadinho","amendoim","chocolate","coxinha","kibe","pastel",
-  "pizza congelada","lasanha congelada","fritura","torresmo","pururuca",
-  "biscoito recheado","sorvete","bolacha recheada","croissant","creme vegetal"
+  "bacon",
+  "linguica",
+  "linguiça",
+  "salsicha",
+  "mortadela",
+  "presunto",
+  "calabresa",
+  "manteiga",
+  "margarina",
+  "banha",
+  "creme de leite",
+  "requeijao",
+  "requeijão",
+  "queijo amarelo",
+  "queijo cheddar",
+  "queijo prato",
+  "queijo mussarela",
+  "mussarela",
+  "leite integral",
+  "nata",
+  "hamburguer",
+  "hambúrguer",
+  "nuggets",
+  "empanado",
+  "batata frita",
+  "salgadinho",
+  "amendoim",
+  "chocolate",
+  "coxinha",
+  "kibe",
+  "pastel",
+  "pizza congelada",
+  "lasanha congelada",
+  "fritura",
+  "torresmo",
+  "pururuca",
+  "biscoito recheado",
+  "sorvete",
+  "bolacha recheada",
+  "croissant",
+  "creme vegetal",
 ];
 
 interface Prefs {
@@ -37,12 +71,18 @@ const DEFAULT_PREFS: Prefs = {
   quiet_end_hour: null,
 };
 
-function addDays(d: Date, n: number) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function addDays(d: Date, n: number) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
 
 /** Hora atual em America/Sao_Paulo (0-23). */
 function localHour(d: Date): number {
   const h = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false,
+    timeZone: "America/Sao_Paulo",
+    hour: "numeric",
+    hour12: false,
   }).format(d);
   // Intl às vezes devolve "24" à meia-noite; normaliza.
   const n = Number(h);
@@ -52,9 +92,10 @@ function localHour(d: Date): number {
 /** Dia da semana 0-6 em America/Sao_Paulo (0=domingo). */
 function localDay(d: Date): number {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Sao_Paulo", weekday: "short",
+    timeZone: "America/Sao_Paulo",
+    weekday: "short",
   }).format(d);
-  const map: Record<string, number> = { Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6 };
+  const map: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
   return map[parts] ?? 0;
 }
 
@@ -80,7 +121,9 @@ export async function runGenerateForUser(
 
   const { data: prefRow } = await supabase
     .from("notification_preferences")
-    .select("enabled_subscription,enabled_recurring,enabled_daily_summary,enabled_weekly_summary,enabled_health_alert,lead_days,daily_summary_hour,quiet_start_hour,quiet_end_hour")
+    .select(
+      "enabled_subscription,enabled_recurring,enabled_daily_summary,enabled_weekly_summary,enabled_health_alert,lead_days,daily_summary_hour,quiet_start_hour,quiet_end_hour",
+    )
     .eq("user_id", userId)
     .maybeSingle();
   const prefs: Prefs = { ...DEFAULT_PREFS, ...(prefRow ?? {}) };
@@ -93,8 +136,11 @@ export async function runGenerateForUser(
   }
 
   const insert = async (row: {
-    type: string; title: string; message: string;
-    related_id?: string | null; dedupe_key: string;
+    type: string;
+    title: string;
+    message: string;
+    related_id?: string | null;
+    dedupe_key: string;
   }) => {
     const { error } = await supabase.from("user_notifications").insert({
       user_id: userId,
@@ -119,13 +165,17 @@ export async function runGenerateForUser(
       .lte("next_due_date", limit)
       .gte("next_due_date", todayStr);
     for (const s of subs ?? []) {
-      const dias = Math.max(0, Math.ceil((new Date(s.next_due_date as string).getTime() - today.getTime()) / 86400000));
+      const dias = Math.max(
+        0,
+        Math.ceil((new Date(s.next_due_date as string).getTime() - today.getTime()) / 86400000),
+      );
       await insert({
         type: "subscription_due",
         title: `Assinatura ${s.name} vence em breve`,
-        message: dias === 0
-          ? `${s.name} vence hoje — R$ ${Number(s.amount).toFixed(2)}.`
-          : `${s.name} vence em ${dias} dia${dias > 1 ? "s" : ""} — R$ ${Number(s.amount).toFixed(2)}.`,
+        message:
+          dias === 0
+            ? `${s.name} vence hoje — R$ ${Number(s.amount).toFixed(2)}.`
+            : `${s.name} vence em ${dias} dia${dias > 1 ? "s" : ""} — R$ ${Number(s.amount).toFixed(2)}.`,
         related_id: s.id,
         dedupe_key: `sub:${s.id}:${s.next_due_date}`,
       });
@@ -148,9 +198,10 @@ export async function runGenerateForUser(
         await insert({
           type: "recurring_due",
           title: `Conta ${b.name} próxima do vencimento`,
-          message: diff === 0
-            ? `Vence hoje — R$ ${Number(b.amount).toFixed(2)}.`
-            : `Vence em ${diff} dia${diff > 1 ? "s" : ""} — R$ ${Number(b.amount).toFixed(2)}.`,
+          message:
+            diff === 0
+              ? `Vence hoje — R$ ${Number(b.amount).toFixed(2)}.`
+              : `Vence em ${diff} dia${diff > 1 ? "s" : ""} — R$ ${Number(b.amount).toFixed(2)}.`,
           related_id: b.id,
           dedupe_key: `bill:${b.id}:${ym}`,
         });

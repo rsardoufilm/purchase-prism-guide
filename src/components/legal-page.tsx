@@ -42,11 +42,15 @@ export function LegalPage({ eyebrow, title, children }: Props) {
 
         <footer className="mt-10 pt-6 border-t border-border text-xs text-muted-foreground space-y-1">
           <p>
-            Este documento é uma declaração do responsável pelo app ({LEGAL.owner}) e
-            não constitui certificação independente.
+            Este documento é uma declaração do responsável pelo app ({LEGAL.owner}) e não constitui
+            certificação independente.
           </p>
           <p>
-            Dúvidas? Fale com <a href={`mailto:${LEGAL.contactEmail}`} className="text-primary underline">{LEGAL.contactEmail}</a>.
+            Dúvidas? Fale com{" "}
+            <a href={`mailto:${LEGAL.contactEmail}`} className="text-primary underline">
+              {LEGAL.contactEmail}
+            </a>
+            .
           </p>
         </footer>
       </main>

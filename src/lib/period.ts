@@ -28,7 +28,16 @@ export const PERIOD_LABELS: Record<StaticPeriodKey, string> = {
 
 export const PRIMARY_PERIODS: StaticPeriodKey[] = ["hoje", "7d", "30d", "este_mes"];
 export const ALL_PERIODS: StaticPeriodKey[] = [
-  "hoje", "ontem", "7d", "15d", "30d", "este_mes", "90d", "este_ano", "ultimo_ano", "tudo",
+  "hoje",
+  "ontem",
+  "7d",
+  "15d",
+  "30d",
+  "este_mes",
+  "90d",
+  "este_ano",
+  "ultimo_ano",
+  "tudo",
 ];
 
 export interface PeriodRange {
@@ -36,12 +45,30 @@ export interface PeriodRange {
   end: Date | null;
 }
 
-const startOfDay = (d: Date) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
-const endOfDay = (d: Date) => { const x = new Date(d); x.setHours(23, 59, 59, 999); return x; };
+const startOfDay = (d: Date) => {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+};
+const endOfDay = (d: Date) => {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+};
 
 const MONTH_NAMES_PT = [
-  "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
-  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro",
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 /** "2025-05" → "Maio 2025" (ou "Maio" se for ano corrente). */
@@ -79,19 +106,26 @@ export function periodRange(key: PeriodKey): PeriodRange {
     case "hoje":
       return { start: startOfDay(now), end: endOfDay(now) };
     case "ontem": {
-      const y = new Date(now); y.setDate(y.getDate() - 1);
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
       return { start: startOfDay(y), end: endOfDay(y) };
     }
     case "7d":
     case "15d":
     case "30d":
     case "90d": {
-      const days = { "7d": 7, "15d": 15, "30d": 30, "90d": 90 }[key as "7d"|"15d"|"30d"|"90d"];
-      const s = new Date(now); s.setDate(s.getDate() - days);
+      const days = { "7d": 7, "15d": 15, "30d": 30, "90d": 90 }[
+        key as "7d" | "15d" | "30d" | "90d"
+      ];
+      const s = new Date(now);
+      s.setDate(s.getDate() - days);
       return { start: startOfDay(s), end: endOfDay(now) };
     }
     case "este_mes":
-      return { start: startOfDay(new Date(now.getFullYear(), now.getMonth(), 1)), end: endOfDay(now) };
+      return {
+        start: startOfDay(new Date(now.getFullYear(), now.getMonth(), 1)),
+        end: endOfDay(now),
+      };
     case "este_ano":
       return { start: startOfDay(new Date(now.getFullYear(), 0, 1)), end: endOfDay(now) };
     case "ultimo_ano": {

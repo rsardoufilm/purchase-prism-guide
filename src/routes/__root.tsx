@@ -50,9 +50,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <h1 className="font-display text-xl font-semibold tracking-tight text-foreground">
           Algo não carregou
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Tente novamente em instantes.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">Tente novamente em instantes.</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
@@ -95,9 +93,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "AURA Consumo — Entenda para onde seu dinheiro está indo" },
-      { name: "twitter:description", content: "Inteligência de consumo premium baseada em OCR de notas fiscais." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c5d7aa33-7ea8-4114-a051-9b9e5dcc6e61/id-preview-ae29b580--efdf7c1f-7283-4cce-8935-c6dee4e4083d.lovable.app-1781342193111.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c5d7aa33-7ea8-4114-a051-9b9e5dcc6e61/id-preview-ae29b580--efdf7c1f-7283-4cce-8935-c6dee4e4083d.lovable.app-1781342193111.png" },
+      {
+        name: "twitter:description",
+        content: "Inteligência de consumo premium baseada em OCR de notas fiscais.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c5d7aa33-7ea8-4114-a051-9b9e5dcc6e61/id-preview-ae29b580--efdf7c1f-7283-4cce-8935-c6dee4e4083d.lovable.app-1781342193111.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c5d7aa33-7ea8-4114-a051-9b9e5dcc6e61/id-preview-ae29b580--efdf7c1f-7283-4cce-8935-c6dee4e4083d.lovable.app-1781342193111.png",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

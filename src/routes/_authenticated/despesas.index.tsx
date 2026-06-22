@@ -1,13 +1,27 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, Loader2, Filter, AlertTriangle, CheckSquare, Square, X } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Loader2,
+  Filter,
+  AlertTriangle,
+  CheckSquare,
+  Square,
+  X,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { PeriodFilter } from "@/components/period-filter";
 import { periodRange } from "@/lib/period";
 import { Button } from "@/components/ui/button";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
   AlertDialog,
@@ -39,7 +53,9 @@ interface Row {
   payment_method: string;
 }
 
-function isoDate(d: Date | null) { return d ? d.toISOString().slice(0, 10) : null; }
+function isoDate(d: Date | null) {
+  return d ? d.toISOString().slice(0, 10) : null;
+}
 
 function DespesasIndex() {
   const navigate = useNavigate();
@@ -75,7 +91,8 @@ function DespesasIndex() {
   const handleNewExpenseTouch = () => toast.message("Abrindo nova despesa…");
   const handleNewExpenseClick = () => {
     window.setTimeout(() => {
-      if (window.location.pathname !== "/despesas/nova") navigate({ to: "/despesas/nova" });
+      if (window.location.pathname !== "/despesas/nova")
+        navigate({ to: "/despesas/nova", search: {} });
     }, 350);
   };
 
@@ -83,7 +100,10 @@ function DespesasIndex() {
     if (!pendingDelete) return;
     setDeleting(true);
     try {
-      const { error: e1 } = await supabase.from("expense_items").delete().eq("expense_id", pendingDelete.id);
+      const { error: e1 } = await supabase
+        .from("expense_items")
+        .delete()
+        .eq("expense_id", pendingDelete.id);
       if (e1) throw e1;
       const { error: e2 } = await supabase.from("expenses").delete().eq("id", pendingDelete.id);
       if (e2) throw e2;
@@ -114,7 +134,8 @@ function DespesasIndex() {
   const toggleSelect = (id: string) => {
     setSelected((s) => {
       const next = new Set(s);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -125,14 +146,22 @@ function DespesasIndex() {
     if (!bulkCat || selected.size === 0) return;
     setBulkSaving(true);
     const ids = Array.from(selected);
-    const prevSnapshot = new Map(rows.filter((r) => selected.has(r.id)).map((r) => [r.id, r.category]));
+    const prevSnapshot = new Map(
+      rows.filter((r) => selected.has(r.id)).map((r) => [r.id, r.category]),
+    );
     setRows((r) => r.map((x) => (selected.has(x.id) ? { ...x, category: bulkCat } : x)));
     const { error } = await supabase.from("expenses").update({ category: bulkCat }).in("id", ids);
     if (error) {
-      setRows((r) => r.map((x) => (prevSnapshot.has(x.id) ? { ...x, category: prevSnapshot.get(x.id) ?? null } : x)));
+      setRows((r) =>
+        r.map((x) =>
+          prevSnapshot.has(x.id) ? { ...x, category: prevSnapshot.get(x.id) ?? null } : x,
+        ),
+      );
       toast.error("Falha na reclassificação em lote.");
     } else {
-      toast.success(`${ids.length} ${ids.length === 1 ? "despesa reclassificada" : "despesas reclassificadas"} como ${bulkCat}.`);
+      toast.success(
+        `${ids.length} ${ids.length === 1 ? "despesa reclassificada" : "despesas reclassificadas"} como ${bulkCat}.`,
+      );
       clearSelection();
       setBulkCat("");
       window.dispatchEvent(new CustomEvent("aura:data-changed"));
@@ -168,8 +197,16 @@ function DespesasIndex() {
         <PeriodFilter value={period} onChange={setPeriod} />
       </div>
 
-      <Button asChild className="w-full h-11 rounded-2xl bg-primary text-primary-foreground font-semibold gap-2 mb-3">
-        <Link to="/despesas/nova" onPointerDown={handleNewExpenseTouch} onClick={handleNewExpenseClick}>
+      <Button
+        asChild
+        className="w-full h-11 rounded-2xl bg-primary text-primary-foreground font-semibold gap-2 mb-3"
+      >
+        <Link
+          to="/despesas/nova"
+          search={{}}
+          onPointerDown={handleNewExpenseTouch}
+          onClick={handleNewExpenseClick}
+        >
           <Plus className="size-4" /> Nova despesa
         </Link>
       </Button>
@@ -182,7 +219,9 @@ function DespesasIndex() {
         >
           <AlertTriangle className="size-4 shrink-0" />
           <p className="text-xs font-medium flex-1">
-            {uncategorizedCount} {uncategorizedCount === 1 ? "despesa sem categoria" : "despesas sem categoria"} — clique para filtrar e organizar.
+            {uncategorizedCount}{" "}
+            {uncategorizedCount === 1 ? "despesa sem categoria" : "despesas sem categoria"} — clique
+            para filtrar e organizar.
           </p>
         </button>
       )}
@@ -195,9 +234,13 @@ function DespesasIndex() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as categorias</SelectItem>
-            <SelectItem value="__uncat__">Sem categoria{uncategorizedCount ? ` (${uncategorizedCount})` : ""}</SelectItem>
+            <SelectItem value="__uncat__">
+              Sem categoria{uncategorizedCount ? ` (${uncategorizedCount})` : ""}
+            </SelectItem>
             {categoriesPresent.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
+              <SelectItem key={c} value={c}>
+                {c}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -228,15 +271,22 @@ function DespesasIndex() {
                     aria-label={isSelected ? "Desmarcar" : "Selecionar"}
                     className="size-7 grid place-items-center rounded-lg text-muted-foreground hover:text-foreground"
                   >
-                    {isSelected ? <CheckSquare className="size-4 text-primary" /> : <Square className="size-4" />}
+                    {isSelected ? (
+                      <CheckSquare className="size-4 text-primary" />
+                    ) : (
+                      <Square className="size-4" />
+                    )}
                   </button>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold truncate">{r.merchant_name}</p>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">
-                      {fmtDate(r.expense_date)} • {paymentLabel[r.payment_method] ?? r.payment_method}
+                      {fmtDate(r.expense_date)} •{" "}
+                      {paymentLabel[r.payment_method] ?? r.payment_method}
                     </p>
                   </div>
-                  <p className="text-sm font-bold whitespace-nowrap">{brl(Number(r.total_amount))}</p>
+                  <p className="text-sm font-bold whitespace-nowrap">
+                    {brl(Number(r.total_amount))}
+                  </p>
                   <Link
                     to="/despesas/nova"
                     search={{ id: r.id }}
@@ -269,7 +319,9 @@ function DespesasIndex() {
                     </SelectTrigger>
                     <SelectContent>
                       {MERCHANT_CATEGORY_OPTIONS.map((c) => (
-                        <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>
+                        <SelectItem key={c} value={c} className="text-xs">
+                          {c}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -299,7 +351,9 @@ function DespesasIndex() {
             </SelectTrigger>
             <SelectContent>
               {MERCHANT_CATEGORY_OPTIONS.map((c) => (
-                <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>
+                <SelectItem key={c} value={c} className="text-xs">
+                  {c}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -328,7 +382,10 @@ function DespesasIndex() {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); confirmDelete(); }}
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >

@@ -9,7 +9,9 @@ function readPeriod(): PeriodKey {
   try {
     const raw = window.localStorage.getItem(SHARED_KEY);
     if (raw) return raw as PeriodKey;
-  } catch { /* noop */ }
+  } catch {
+    /* noop */
+  }
   return "este_mes";
 }
 
@@ -20,7 +22,9 @@ export function useSharedPeriod(): [PeriodKey, (p: PeriodKey) => void] {
     setPeriodState(p);
     try {
       window.localStorage.setItem(SHARED_KEY, p);
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
     window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: p }));
   }, []);
 

@@ -83,7 +83,9 @@ function Dashboard() {
       setItems(itRows);
       setLoading(false);
     })();
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, [period, reloadTick]);
 
   const kpis = useMemo(() => {
@@ -160,24 +162,43 @@ function Dashboard() {
             </p>
           </div>
 
-          <KpiCard icon={<PackageIcon className="size-4" />} label="Categoria top"
-            value={kpis.topCat?.[0] ?? "—"} sub={kpis.topCat ? brlCompact(kpis.topCat[1]) : ""} />
-          <KpiCard icon={<Sparkles className="size-4" />} label="Produto top"
-            value={kpis.topProd?.[0] ?? "—"} sub={kpis.topProd ? brlCompact(kpis.topProd[1]) : ""} />
-          <KpiCard icon={<Store className="size-4" />} label="Estabelecimento"
+          <KpiCard
+            icon={<PackageIcon className="size-4" />}
+            label="Categoria top"
+            value={kpis.topCat?.[0] ?? "—"}
+            sub={kpis.topCat ? brlCompact(kpis.topCat[1]) : ""}
+          />
+          <KpiCard
+            icon={<Sparkles className="size-4" />}
+            label="Produto top"
+            value={kpis.topProd?.[0] ?? "—"}
+            sub={kpis.topProd ? brlCompact(kpis.topProd[1]) : ""}
+          />
+          <KpiCard
+            icon={<Store className="size-4" />}
+            label="Estabelecimento"
             value={kpis.topStore?.[0] ?? "—"}
-            sub={kpis.topStore ? `${kpis.topStore[1]} visita${kpis.topStore[1] > 1 ? "s" : ""}` : ""} />
-          <KpiCard icon={<TrendingDown className="size-4" />} label="Economia"
-            value={brl(kpis.savings)} sub="vs. preço médio" accent />
+            sub={
+              kpis.topStore ? `${kpis.topStore[1]} visita${kpis.topStore[1] > 1 ? "s" : ""}` : ""
+            }
+          />
+          <KpiCard
+            icon={<TrendingDown className="size-4" />}
+            label="Economia"
+            value={brl(kpis.savings)}
+            sub="vs. preço médio"
+            accent
+          />
         </section>
       )}
-
 
       {!loading && kpis.catList.length > 0 && (
         <section className="mb-3 animate-aura-in">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-display font-semibold text-sm">Gastos por categoria</h3>
-            <span className="text-[10px] text-muted-foreground">{kpis.catList.length} categorias</span>
+            <span className="text-[10px] text-muted-foreground">
+              {kpis.catList.length} categorias
+            </span>
           </div>
           <div className="space-y-1.5">
             {kpis.catList.slice(0, 6).map(([cat, total]) => {
@@ -186,10 +207,15 @@ function Dashboard() {
               return (
                 <div key={cat} className="bg-card border border-border rounded-2xl p-3">
                   <div className="flex items-baseline justify-between gap-2 mb-1.5">
-                    <p className={`text-xs font-semibold truncate ${uncategorized ? "text-amber-600 dark:text-amber-500" : ""}`}>
+                    <p
+                      className={`text-xs font-semibold truncate ${uncategorized ? "text-amber-600 dark:text-amber-500" : ""}`}
+                    >
                       {cat}
                     </p>
-                    <p className="text-xs font-bold whitespace-nowrap">{brl(total)} <span className="text-muted-foreground font-normal">· {pct.toFixed(0)}%</span></p>
+                    <p className="text-xs font-bold whitespace-nowrap">
+                      {brl(total)}{" "}
+                      <span className="text-muted-foreground font-normal">· {pct.toFixed(0)}%</span>
+                    </p>
                   </div>
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
@@ -216,7 +242,10 @@ function Dashboard() {
                   : "Continue registrando para descobrir padrões."}
             </p>
           </div>
-          <div className="absolute -right-6 -bottom-6 size-32 bg-primary rounded-full blur-3xl opacity-25" aria-hidden />
+          <div
+            className="absolute -right-6 -bottom-6 size-32 bg-primary rounded-full blur-3xl opacity-25"
+            aria-hidden
+          />
         </div>
       </section>
 
@@ -234,8 +263,13 @@ function Dashboard() {
         ) : (
           <div className="space-y-2">
             {expenses.slice(0, 5).map((r) => (
-              <div key={r.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 bg-card p-4 rounded-2xl border border-border">
-                <div className="size-10 shrink-0 rounded-xl bg-muted grid place-items-center font-mono text-[10px] font-bold text-muted-foreground">NF</div>
+              <div
+                key={r.id}
+                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 bg-card p-4 rounded-2xl border border-border"
+              >
+                <div className="size-10 shrink-0 rounded-xl bg-muted grid place-items-center font-mono text-[10px] font-bold text-muted-foreground">
+                  NF
+                </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{r.merchant_name}</p>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
@@ -252,18 +286,31 @@ function Dashboard() {
   );
 }
 
-function KpiCard({ icon, label, value, sub, accent }: {
-  icon: React.ReactNode; label: string; value: string; sub: string; accent?: boolean;
+function KpiCard({
+  icon,
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  sub: string;
+  accent?: boolean;
 }) {
   return (
     <div className="bg-card p-3 sm:p-4 rounded-3xl border border-border shadow-[var(--shadow-card)] min-w-0">
       <div className="flex items-center gap-1.5 mb-1.5">
         <span className={accent ? "text-primary" : "text-muted-foreground"}>{icon}</span>
-        <p className="text-muted-foreground text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider truncate">{label}</p>
+        <p className="text-muted-foreground text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider truncate">
+          {label}
+        </p>
       </div>
-      <p className={`font-semibold text-xs sm:text-sm truncate ${accent ? "text-primary" : ""}`}>{value}</p>
+      <p className={`font-semibold text-xs sm:text-sm truncate ${accent ? "text-primary" : ""}`}>
+        {value}
+      </p>
       <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{sub}</p>
     </div>
-
   );
 }
