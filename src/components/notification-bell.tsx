@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useNavigate } from "@tanstack/react-router";
 import { Bell, BellRing, CreditCard, Repeat, Receipt, Apple, CheckCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { generateNotifications } from "@/lib/notifications.functions";
@@ -18,6 +19,7 @@ interface Notif {
   message: string;
   read: boolean;
   created_at: string;
+  related_id: string | null;
 }
 
 const ICONS: Record<string, typeof Bell> = {
@@ -28,17 +30,28 @@ const ICONS: Record<string, typeof Bell> = {
   health_alert: Apple,
 };
 
+type AppRoute = "/assinaturas" | "/recorrentes" | "/dashboard" | "/consumo";
+
+const ROUTES: Record<string, AppRoute> = {
+  subscription_due: "/assinaturas",
+  recurring_due: "/recorrentes",
+  daily_summary: "/dashboard",
+  weekly_summary: "/dashboard",
+  health_alert: "/consumo",
+};
+
 const LAST_CHECK_KEY = "aura:notif-last-check";
 
 export function NotificationBell() {
   const [items, setItems] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
   const generate = useServerFn(generateNotifications);
+  const navigate = useNavigate();
 
   const load = useCallback(async () => {
     const { data } = await supabase
       .from("user_notifications")
-      .select("id,type,title,message,read,created_at")
+      .select("id,type,title,message,read,created_at,related_id")
       .order("created_at", { ascending: false })
       .limit(30);
     setItems((data ?? []) as Notif[]);
@@ -83,6 +96,13 @@ export function NotificationBell() {
   const markOne = async (id: string) => {
     await supabase.from("user_notifications").update({ read: true }).eq("id", id);
     setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  };
+
+  const handleClick = async (n: Notif) => {
+    if (!n.read) await markOne(n.id);
+    const to = ROUTES[n.type];
+    setOpen(false);
+    if (to) navigate({ to });
   };
 
   return (
@@ -136,7 +156,7 @@ export function NotificationBell() {
               return (
                 <li key={n.id}>
                   <button
-                    onClick={() => markOne(n.id)}
+                    onClick={() => handleClick(n)}
                     className={cn(
                       "w-full text-left flex gap-3 px-3 py-3 hover:bg-accent transition-colors",
                       !n.read && "bg-primary-soft/30",

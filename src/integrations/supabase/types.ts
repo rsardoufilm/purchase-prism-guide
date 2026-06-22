@@ -118,34 +118,43 @@ export type Database = {
       notification_preferences: {
         Row: {
           created_at: string
+          daily_summary_hour: number
           enabled_daily_summary: boolean
           enabled_health_alert: boolean
           enabled_recurring: boolean
           enabled_subscription: boolean
           enabled_weekly_summary: boolean
           lead_days: number
+          quiet_end_hour: number | null
+          quiet_start_hour: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          daily_summary_hour?: number
           enabled_daily_summary?: boolean
           enabled_health_alert?: boolean
           enabled_recurring?: boolean
           enabled_subscription?: boolean
           enabled_weekly_summary?: boolean
           lead_days?: number
+          quiet_end_hour?: number | null
+          quiet_start_hour?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          daily_summary_hour?: number
           enabled_daily_summary?: boolean
           enabled_health_alert?: boolean
           enabled_recurring?: boolean
           enabled_subscription?: boolean
           enabled_weekly_summary?: boolean
           lead_days?: number
+          quiet_end_hour?: number | null
+          quiet_start_hour?: number | null
           updated_at?: string
           user_id?: string
         }

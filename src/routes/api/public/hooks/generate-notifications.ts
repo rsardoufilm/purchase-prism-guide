@@ -35,7 +35,7 @@ export const Route = createFileRoute("/api/public/hooks/generate-notifications")
 
         for (const p of profiles ?? []) {
           try {
-            const res = await runGenerateForUser(supabaseAdmin, p.id as string);
+            const res = await runGenerateForUser(supabaseAdmin, p.id as string, { respectSchedule: true });
             totalCreated += res.created;
             usersProcessed += 1;
           } catch (e) {

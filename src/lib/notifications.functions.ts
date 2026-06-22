@@ -20,6 +20,9 @@ interface Prefs {
   enabled_weekly_summary: boolean;
   enabled_health_alert: boolean;
   lead_days: number;
+  daily_summary_hour: number;
+  quiet_start_hour: number | null;
+  quiet_end_hour: number | null;
 }
 
 const DEFAULT_PREFS: Prefs = {
@@ -29,29 +32,65 @@ const DEFAULT_PREFS: Prefs = {
   enabled_weekly_summary: true,
   enabled_health_alert: true,
   lead_days: 3,
+  daily_summary_hour: 20,
+  quiet_start_hour: null,
+  quiet_end_hour: null,
 };
 
 function addDays(d: Date, n: number) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
 
+/** Hora atual em America/Sao_Paulo (0-23). */
+function localHour(d: Date): number {
+  const h = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false,
+  }).format(d);
+  // Intl às vezes devolve "24" à meia-noite; normaliza.
+  const n = Number(h);
+  return Number.isFinite(n) ? n % 24 : 0;
+}
+
+/** Dia da semana 0-6 em America/Sao_Paulo (0=domingo). */
+function localDay(d: Date): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo", weekday: "short",
+  }).format(d);
+  const map: Record<string, number> = { Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6 };
+  return map[parts] ?? 0;
+}
+
+/** true se `hour` está dentro de [start, end), tratando wrap (ex.: 22→8). */
+function inQuietWindow(hour: number, start: number | null, end: number | null): boolean {
+  if (start == null || end == null || start === end) return false;
+  if (start < end) return hour >= start && hour < end;
+  return hour >= start || hour < end; // janela atravessa meia-noite
+}
+
 /**
  * Núcleo isomórfico: gera notificações para 1 usuário usando o client passado.
- * Pode ser chamado tanto pelo serverFn autenticado quanto pelo cron (admin client).
+ * Pode ser chamado pelo serverFn autenticado ou pelo cron (admin client).
  */
 export async function runGenerateForUser(
   supabase: SupabaseClient,
   userId: string,
-): Promise<{ created: number; items: Array<{ type: string; title: string }> }> {
+  opts: { respectSchedule?: boolean } = {},
+): Promise<{ created: number; items: Array<{ type: string; title: string }>; skipped?: string }> {
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
   const created: Array<{ type: string; title: string }> = [];
 
-  // Carrega prefs (ou usa default)
   const { data: prefRow } = await supabase
     .from("notification_preferences")
-    .select("enabled_subscription,enabled_recurring,enabled_daily_summary,enabled_weekly_summary,enabled_health_alert,lead_days")
+    .select("enabled_subscription,enabled_recurring,enabled_daily_summary,enabled_weekly_summary,enabled_health_alert,lead_days,daily_summary_hour,quiet_start_hour,quiet_end_hour")
     .eq("user_id", userId)
     .maybeSingle();
   const prefs: Prefs = { ...DEFAULT_PREFS, ...(prefRow ?? {}) };
+
+  // Quiet hours: usadas só pelo cron (respectSchedule). No serverFn (abertura do app)
+  // o usuário pediu o reload — não silenciamos.
+  const hour = localHour(today);
+  if (opts.respectSchedule && inQuietWindow(hour, prefs.quiet_start_hour, prefs.quiet_end_hour)) {
+    return { created: 0, items: [], skipped: "quiet_hours" };
+  }
 
   const insert = async (row: {
     type: string; title: string; message: string;
@@ -68,7 +107,7 @@ export async function runGenerateForUser(
     if (!error) created.push({ type: row.type, title: row.title });
   };
 
-  // 1) Assinaturas a vencer dentro de lead_days
+  // 1) Assinaturas
   if (prefs.enabled_subscription) {
     const limit = addDays(today, prefs.lead_days).toISOString().slice(0, 10);
     const { data: subs } = await supabase
@@ -93,7 +132,7 @@ export async function runGenerateForUser(
     }
   }
 
-  // 2) Contas recorrentes próximas do dia do mês
+  // 2) Contas recorrentes
   if (prefs.enabled_recurring) {
     const { data: bills } = await supabase
       .from("recurring_expenses")
@@ -119,8 +158,10 @@ export async function runGenerateForUser(
     }
   }
 
-  // 3) Resumo diário
-  if (prefs.enabled_daily_summary) {
+  // 3) Resumo diário — no cron, só dispara na hora escolhida pelo usuário.
+  // Quando chamado pelo app (respectSchedule=false), sempre tenta — o dedupe evita duplicatas.
+  const dailyHourMatches = !opts.respectSchedule || hour === prefs.daily_summary_hour;
+  if (prefs.enabled_daily_summary && dailyHourMatches) {
     const { data: todayExp } = await supabase
       .from("expenses")
       .select("total_amount,user_id")
@@ -137,8 +178,9 @@ export async function runGenerateForUser(
     }
   }
 
-  // 4) Resumo semanal (segunda)
-  if (prefs.enabled_weekly_summary && today.getDay() === 1) {
+  // 4) Resumo semanal — segunda-feira na hora escolhida (ou sempre se app)
+  const isMonday = localDay(today) === 1;
+  if (prefs.enabled_weekly_summary && isMonday && dailyHourMatches) {
     const start = addDays(today, -7).toISOString().slice(0, 10);
     const { data: weekExp } = await supabase
       .from("expenses")
@@ -187,5 +229,5 @@ export async function runGenerateForUser(
 export const generateNotifications = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    return runGenerateForUser(context.supabase, context.userId);
+    return runGenerateForUser(context.supabase, context.userId, { respectSchedule: false });
   });
