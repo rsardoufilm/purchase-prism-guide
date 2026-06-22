@@ -4,13 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { PeriodFilter } from "@/components/period-filter";
-import { periodRange, type PeriodKey } from "@/lib/period";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/format";
 import { askAura } from "@/lib/chat.functions";
 import { Sparkles, TrendingUp, TrendingDown, Store, Loader2, Send, Tag } from "lucide-react";
 import { toast } from "sonner";
+import { useSharedPeriod } from "@/hooks/use-shared-period";
 
 export const Route = createFileRoute("/_authenticated/insights")({
   component: Insights,
