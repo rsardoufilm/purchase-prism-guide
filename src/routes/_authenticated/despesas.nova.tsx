@@ -143,6 +143,20 @@ function NovaDespesa() {
   const [itemsCount, setItemsCount] = useState<number>(0);
   const [failures, setFailures] = useState<FailureEntry[]>(() => readFailures());
   const [loadingEdit, setLoadingEdit] = useState<boolean>(!!editId);
+  const [userCatMap, setUserCatMap] = useState<UserCategoryMap>({
+    byRaw: new Map(),
+    byToken: new Map(),
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    loadUserCategoryMap().then((m) => {
+      if (!cancelled) setUserCatMap(m);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const refresh = () => setFailures(readFailures());
