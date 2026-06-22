@@ -42,10 +42,7 @@ import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
 import { useSharedCategories } from "@/hooks/use-shared-categories";
 import { CategoryMultiFilter } from "@/components/category-multi-filter";
-import { useSharedCategory } from "@/hooks/use-shared-category";
-
 import { SubscriptionDialog } from "@/components/subscription-dialog";
-import { Repeat, CalendarClock } from "lucide-react";
 import {
   projectSubscriptionOccurrences,
   type SubscriptionRow,
