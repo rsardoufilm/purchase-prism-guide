@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { SubscriptionDialog } from "@/components/subscription-dialog";
 import { brl } from "@/lib/format";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, Loader2, Trash2 } from "lucide-react";
 import {
   parseDateLocal,
   projectSubscriptionOccurrences,
@@ -12,6 +12,8 @@ import {
   type SubscriptionOccurrence as Occurrence,
   type SubscriptionRow as Sub,
 } from "@/lib/subscriptions";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/assinaturas")({
   component: Assinaturas,
@@ -32,6 +34,7 @@ function monthLabel(d: Date) {
 
 function Assinaturas() {
   const [rows, setRows] = useState<Sub[]>([]);
+  const [deleting, setDeleting] = useState<Set<string>>(new Set());
 
   const load = () =>
     supabase
@@ -46,6 +49,25 @@ function Assinaturas() {
     window.addEventListener("aura:data-changed", onChange);
     return () => window.removeEventListener("aura:data-changed", onChange);
   }, []);
+
+  const handleDelete = async (id: string, name: string) => {
+    const ok = window.confirm(`Deseja excluir a assinatura "${name}"?`);
+    if (!ok) return;
+    setDeleting((prev) => new Set(prev).add(id));
+    const { error } = await supabase.from("subscriptions").delete().eq("id", id);
+    setDeleting((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Assinatura excluída.");
+    window.dispatchEvent(new CustomEvent("aura:data-changed"));
+    load();
+  };
 
   const occurrences = useMemo(() => projectSubscriptionOccurrences(rows), [rows]);
 
@@ -82,7 +104,7 @@ function Assinaturas() {
             {rows.map((r) => (
               <div
                 key={r.id}
-                className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-4"
+                className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center bg-card border border-border rounded-2xl p-4"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{r.name}</p>
@@ -94,6 +116,23 @@ function Assinaturas() {
                   </p>
                 </div>
                 <p className="text-sm font-bold">{brl(Number(r.amount))}</p>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(r.id, r.name)}
+                  disabled={deleting.has(r.id)}
+                  aria-label={`Excluir assinatura ${r.name}`}
+                  className={cn(
+                    "p-2 rounded-xl transition-colors",
+                    "text-muted-foreground hover:text-destructive hover:bg-destructive/10",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  )}
+                >
+                  {deleting.has(r.id) ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="size-4" />
+                  )}
+                </button>
               </div>
             ))}
           </div>
