@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Pencil, Trash2, Loader2, Filter, AlertTriangle, CheckSquare, Square, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
+import { PeriodFilter } from "@/components/period-filter";
+import { periodRange } from "@/lib/period";
 import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -20,6 +22,7 @@ import {
 import { brl, fmtDate, paymentLabel } from "@/lib/format";
 import { MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
 import { toast } from "sonner";
+import { useSharedPeriod } from "@/hooks/use-shared-period";
 
 export const Route = createFileRoute("/_authenticated/despesas/")({
   component: DespesasIndex,
