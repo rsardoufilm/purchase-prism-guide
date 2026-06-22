@@ -640,10 +640,19 @@ function NovaDespesa() {
               onBlur={(e) => {
                 // Auto-classifica categoria ao sair do campo (apenas se ainda vazia)
                 if (!draft.category) {
+                  const name = e.target.value;
+                  const learned = suggestExpenseCategory(name, userExpMap);
+                  if (learned) {
+                    setDraft({ ...draft, category: learned });
+                    setExpenseCategorySource("learned");
+                    return;
+                  }
                   const inferred =
-                    classifyMerchant(e.target.value) ??
-                    inferExpenseCategory(draft.items, e.target.value);
-                  if (inferred) setDraft({ ...draft, category: inferred });
+                    classifyMerchant(name) ?? inferExpenseCategory(draft.items, name);
+                  if (inferred) {
+                    setDraft({ ...draft, category: inferred });
+                    setExpenseCategorySource("rule");
+                  }
                 }
               }}
               className="rounded-xl"
@@ -658,10 +667,16 @@ function NovaDespesa() {
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Categoria">
+            <Field
+              label="Categoria"
+              hint={<CategorySourceBadge source={expenseCategorySource} />}
+            >
               <Select
                 value={draft.category ?? ""}
-                onValueChange={(v) => setDraft({ ...draft, category: v || null })}
+                onValueChange={(v) => {
+                  setDraft({ ...draft, category: v || null });
+                  setExpenseCategorySource("user");
+                }}
               >
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="Selecionar…" />
