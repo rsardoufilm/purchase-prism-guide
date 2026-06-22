@@ -110,6 +110,11 @@ const ITEM_RULES: Rule[] = [
     patterns: /\b(queijo|mussarela|muçarela|prato|minas|parmes[aã]o|provolone|requeij[aã]o)\b/i,
   },
   { cat: "Frios", patterns: /\b(presunto|peito de peru|mortadela|salame|apresuntado)\b/i },
+  {
+    cat: "Laticínios",
+    patterns:
+      /\b(latic[ií]nio|creme de leite|leite condensado|coalhada|creme de ricota|leite em p[oó]|leite fermentado|kefir|manteiga)\b/i,
+  },
   { cat: "Leite", patterns: /\b(leite|itamb[eé]|italac|piracanjuba|parmalat|ninho)\b/i },
   { cat: "Iogurtes", patterns: /\b(iogurte|danone|activia|yopro|petit suisse|danoninho)\b/i },
   { cat: "Pães", patterns: /\b(p[aã]o|broa|bisnaga|baguete|rosca|pão de queijo|croissant)\b/i },
