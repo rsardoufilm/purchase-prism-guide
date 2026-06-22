@@ -12,6 +12,7 @@ export type ConsumoCategory =
   | "Peixes"
   | "Frios"
   | "Queijos"
+  | "Laticínios"
   | "Leite"
   | "Iogurtes"
   | "Pães"
