@@ -5,6 +5,9 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const Input = z.object({
   fileDataUrl: z.string().min(20).max(15_000_000),
   mimeType: z.string().min(3).max(100),
+  // "upload" usa modelo mais preciso (Pro) + passe de reconciliação.
+  // "camera" mantém Flash para resposta rápida no fluxo de captura.
+  source: z.enum(["upload", "camera"]).optional().default("camera"),
 });
 
 const ItemSchema = z.object({
@@ -91,46 +94,83 @@ export const ocrReceipt = createServerFn({ method: "POST" })
     const isPdf = data.mimeType === "application/pdf";
     if (!isImage && !isPdf) throw new Error("Apenas imagens ou PDF são aceitos");
 
-    const userContent: Array<Record<string, unknown>> = [
-      { type: "text", text: "Extraia esta nota fiscal e responda apenas com o JSON." },
-    ];
-    if (isImage) {
-      userContent.push({ type: "image_url", image_url: { url: data.fileDataUrl } });
-    } else {
-      const base64 = data.fileDataUrl.split(",")[1] ?? data.fileDataUrl;
-      userContent.push({
-        type: "file",
-        file: { filename: "nota.pdf", file_data: `data:application/pdf;base64,${base64}` },
+    const buildUserContent = (instruction: string): Array<Record<string, unknown>> => {
+      const content: Array<Record<string, unknown>> = [{ type: "text", text: instruction }];
+      if (isImage) {
+        content.push({ type: "image_url", image_url: { url: data.fileDataUrl } });
+      } else {
+        const base64 = data.fileDataUrl.split(",")[1] ?? data.fileDataUrl;
+        content.push({
+          type: "file",
+          file: { filename: "nota.pdf", file_data: `data:application/pdf;base64,${base64}` },
+        });
+      }
+      return content;
+    };
+
+    // Uploads usam modelo mais preciso; câmera mantém Flash para latência.
+    const primaryModel =
+      data.source === "upload" ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash";
+
+    const callModel = async (model: string, instruction: string) => {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: buildUserContent(instruction) },
+          ],
+          response_format: { type: "json_object" },
+        }),
       });
+      if (!res.ok) {
+        const txt = await res.text();
+        if (res.status === 429) throw new Error("Limite temporário atingido. Tente em instantes.");
+        if (res.status === 402) throw new Error("Créditos de IA esgotados.");
+        throw new Error(`OCR falhou (${res.status}): ${txt.slice(0, 200)}`);
+      }
+      const body = (await res.json()) as { choices: Array<{ message: { content: string } }> };
+      const raw = body.choices?.[0]?.message?.content ?? "{}";
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return JSON.parse(raw.replace(/```json\s*|```/g, "").trim());
+      }
+    };
+
+    const firstPass = await callModel(
+      primaryModel,
+      "Extraia esta nota fiscal e responda apenas com o JSON.",
+    );
+    let parsed = ResultSchema.parse(firstPass);
+
+    // Reconciliação: se a soma dos itens divergir >2% do total, faz um 2º passe pedindo correção.
+    if (data.source === "upload" && parsed.items.length > 0 && parsed.total_amount > 0) {
+      const itemsSum = parsed.items.reduce((acc, it) => acc + (it.total_price ?? 0), 0);
+      const diffPct = Math.abs(itemsSum - parsed.total_amount) / parsed.total_amount;
+      if (diffPct > 0.02) {
+        try {
+          const refined = await callModel(
+            primaryModel,
+            `Releia a nota com atenção redobrada. Na primeira leitura, a soma dos itens (R$ ${itemsSum.toFixed(2)}) ficou ${(diffPct * 100).toFixed(1)}% diferente do total da nota (R$ ${parsed.total_amount.toFixed(2)}). Reveja quantidades, preços unitários e itens omitidos. Responda apenas o JSON corrigido.`,
+          );
+          const refinedParsed = ResultSchema.parse(refined);
+          const refinedSum = refinedParsed.items.reduce(
+            (acc, it) => acc + (it.total_price ?? 0),
+            0,
+          );
+          const refinedDiff =
+            Math.abs(refinedSum - refinedParsed.total_amount) / refinedParsed.total_amount;
+          // Só substitui se o 2º passe melhorou a reconciliação.
+          if (refinedDiff < diffPct) parsed = refinedParsed;
+        } catch (err) {
+          // Reconciliação é best-effort; mantém o 1º passe se o 2º falhar.
+          console.warn("[OCR] passe de reconciliação falhou:", err);
+        }
+      }
     }
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userContent },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
-
-    if (!res.ok) {
-      const txt = await res.text();
-      if (res.status === 429) throw new Error("Limite temporário atingido. Tente em instantes.");
-      if (res.status === 402) throw new Error("Créditos de IA esgotados.");
-      throw new Error(`OCR falhou (${res.status}): ${txt.slice(0, 200)}`);
-    }
-
-    const body = (await res.json()) as { choices: Array<{ message: { content: string } }> };
-    const raw = body.choices?.[0]?.message?.content ?? "{}";
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      parsed = JSON.parse(raw.replace(/```json\s*|```/g, "").trim());
-    }
-    return ResultSchema.parse(parsed);
+    return parsed;
   });

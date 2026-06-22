@@ -205,7 +205,7 @@ function NovaDespesa() {
     setCameraOpen(true);
   };
 
-  const handleFile = async (file: File) => {
+  const handleFile = async (file: File, origin: "camera" | "upload" = "upload") => {
     if (!ACCEPTED.has(file.type)) {
       const msg = `Formato inválido (${file.type || "desconhecido"}). Use JPG, PNG ou PDF.`;
       logFailure("validate_type", msg, { name: file.name, type: file.type, size: file.size });
@@ -245,7 +245,7 @@ function NovaDespesa() {
         supabase.storage
           .from("receipts")
           .upload(path, file, { contentType: file.type, upsert: false }),
-        runOcr({ data: { fileDataUrl: dataUrl, mimeType: file.type } }),
+        runOcr({ data: { fileDataUrl: dataUrl, mimeType: file.type, source: origin } }),
       ]);
       if (upErr) {
         setStep("upload", "error");
@@ -513,7 +513,7 @@ function NovaDespesa() {
             onCapture={(file) => {
               console.log("[CAMERA_OPEN] foto capturada:", file.name, file.type, file.size);
               setCameraOpen(false);
-              handleFile(file);
+              handleFile(file, "camera");
             }}
           />
           <input
