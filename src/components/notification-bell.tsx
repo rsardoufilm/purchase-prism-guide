@@ -53,7 +53,7 @@ export function NotificationBell() {
         const now = Date.now();
         // só roda a geração no máximo a cada 30 min
         if (now - last > 30 * 60_000) {
-          const res = await generate({ data: undefined as never });
+          const res = await generate();
           localStorage.setItem(LAST_CHECK_KEY, String(now));
           if (active && res.created > 0) {
             toast(`${res.created} nova${res.created>1?"s":""} notificação${res.created>1?"ões":""}`, {
