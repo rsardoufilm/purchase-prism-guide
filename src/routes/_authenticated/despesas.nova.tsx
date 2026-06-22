@@ -459,6 +459,10 @@ function NovaDespesa() {
               <p className="text-xs text-muted-foreground">
                 OCR automático da nota fiscal — tire uma foto.
               </p>
+              <p className="text-[10px] text-amber-500 flex items-center gap-1 mt-0.5">
+                <AlertTriangle className="size-3" />
+                Nota amassada ou ilegível? A leitura pode falhar.
+              </p>
             </div>
             <Camera className="size-5 text-muted-foreground shrink-0" />
           </button>
