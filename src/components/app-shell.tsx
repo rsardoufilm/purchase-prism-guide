@@ -90,44 +90,63 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-6 pb-12">{children}</main>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-card/85 backdrop-blur-xl border-t border-border z-50">
-        <div className="grid grid-cols-5 items-center px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
-          {[NAV[0], NAV[1]].map(({ to, label, icon: Icon }) => (
-            <Link
-              key={to}
-              to={to}
-              className={cn(
-                "flex flex-col items-center gap-1 py-1",
-                isActive(to) ? "text-primary" : "text-muted-foreground",
-              )}
-            >
-              <Icon className="size-5" strokeWidth={2} />
-              <span className="text-[9px] font-semibold tracking-tight">{label}</span>
-            </Link>
-          ))}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 w-full bg-card/90 backdrop-blur-xl border-t border-border z-50"
+        aria-label="Navegação principal"
+      >
+        <div className="grid grid-cols-5 items-end px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+          {[NAV[0], NAV[1]].map(({ to, label, icon: Icon }) => {
+            const active = isActive(to);
+            return (
+              <Link
+                key={to}
+                to={to}
+                aria-label={label}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "relative flex flex-col items-center gap-1 py-2 min-h-12 rounded-xl transition-colors",
+                  active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {active && (
+                  <span className="absolute -top-0.5 h-1 w-8 rounded-full bg-primary" aria-hidden />
+                )}
+                <Icon className="size-5" strokeWidth={active ? 2.4 : 2} />
+                <span className="text-[10px] font-semibold tracking-tight">{label}</span>
+              </Link>
+            );
+          })}
           <Link
             to="/despesas/nova"
             onPointerDown={handleNewExpenseTouch}
             onClick={handleNewExpenseClick}
             aria-label="Nova despesa"
-            className="mx-auto grid size-16 place-items-center rounded-3xl bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] ring-4 ring-background border-0 p-0 cursor-pointer transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="mx-auto -mt-6 grid size-16 place-items-center rounded-3xl bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] ring-4 ring-background border-0 p-0 cursor-pointer transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
           >
             <ScanLine className="size-6" strokeWidth={2.2} />
           </Link>
-          {[NAV[5], NAV[8]].map(({ to, label, icon: Icon }) => (
-            <Link
-              key={to}
-              to={to}
-              className={cn(
-                "flex flex-col items-center gap-1 py-1",
-                isActive(to) ? "text-primary" : "text-muted-foreground",
-              )}
-            >
-              <Icon className="size-5" strokeWidth={2} />
-              <span className="text-[9px] font-semibold tracking-tight">{label}</span>
-            </Link>
-          ))}
+          {[NAV[5], NAV[8]].map(({ to, label, icon: Icon }) => {
+            const active = isActive(to);
+            return (
+              <Link
+                key={to}
+                to={to}
+                aria-label={label}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "relative flex flex-col items-center gap-1 py-2 min-h-12 rounded-xl transition-colors",
+                  active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {active && (
+                  <span className="absolute -top-0.5 h-1 w-8 rounded-full bg-primary" aria-hidden />
+                )}
+                <Icon className="size-5" strokeWidth={active ? 2.4 : 2} />
+                <span className="text-[10px] font-semibold tracking-tight">{label}</span>
+              </Link>
+            );
+          })}
         </div>
       </nav>
     </div>
