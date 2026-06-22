@@ -193,7 +193,7 @@ function Dashboard() {
             icon={<Sparkles className="size-4" />}
             label="Produto top"
             value={kpis.topProd?.[0] ?? "—"}
-            sub={kpis.topProd ? brlCompact(kpis.topProd[1]) : ""}
+            sub={kpis.topProd ? `${kpis.topProd[1]} ${kpis.topProd[1] > 1 ? "compras" : "compra"}` : ""}
           />
           <KpiCard
             icon={<Store className="size-4" />}
