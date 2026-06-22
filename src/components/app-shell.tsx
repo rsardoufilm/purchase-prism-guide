@@ -57,7 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-28 md:pb-0 md:pl-20">
+    <div className="min-h-screen bg-background text-foreground pb-28 md:pb-0 md:pl-20 overflow-x-hidden">
       {/* Desktop sidebar */}
       <nav className="hidden md:flex fixed left-0 top-0 h-screen w-20 flex-col items-center py-8 border-r border-border bg-card z-40">
         <BrandLogo size="md" className="mb-12" />
@@ -87,7 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </button>
       </nav>
 
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-6 pb-12">{children}</main>
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-5 pb-10">{children}</main>
 
       {/* Mobile bottom nav */}
       <nav
