@@ -7,6 +7,7 @@ import { periodRange, type PeriodKey } from "@/lib/period";
 import { brl, brlCompact, fmtDate } from "@/lib/format";
 import { Sparkles, TrendingDown, Store, Package as PackageIcon } from "lucide-react";
 import { DashboardSummaryCard } from "@/components/dashboard-summary-card";
+import { DashboardCardsSkeleton, RecentExpensesSkeleton } from "@/components/dashboard-skeleton";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -138,32 +139,36 @@ function Dashboard() {
         <PeriodFilter value={period} onChange={setPeriod} />
       </div>
 
-      <section className="grid grid-cols-2 gap-2.5 mb-3 animate-aura-in">
-        <div className="col-span-2 bg-card p-4 sm:p-6 rounded-3xl border border-border shadow-[var(--shadow-card)]">
-          <p className="text-muted-foreground text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider mb-1.5">
-            Total gasto no período
-          </p>
-          <div className="flex items-baseline gap-1">
-            <span className="text-muted-foreground text-base sm:text-lg font-medium">R$</span>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">
-              {brl(kpis.total).replace("R$", "").trim()}
-            </h2>
+      {loading ? (
+        <DashboardCardsSkeleton />
+      ) : (
+        <section className="grid grid-cols-2 gap-2.5 mb-3 animate-aura-in">
+          <div className="col-span-2 bg-card p-4 sm:p-6 rounded-3xl border border-border shadow-[var(--shadow-card)]">
+            <p className="text-muted-foreground text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider mb-1.5">
+              Total gasto no período
+            </p>
+            <div className="flex items-baseline gap-1">
+              <span className="text-muted-foreground text-base sm:text-lg font-medium">R$</span>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">
+                {brl(kpis.total).replace("R$", "").trim()}
+              </h2>
+            </div>
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-1.5">
+              {expenses.length} {expenses.length === 1 ? "nota fiscal" : "notas fiscais"}
+            </p>
           </div>
-          <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-1.5">
-            {expenses.length} {expenses.length === 1 ? "nota fiscal" : "notas fiscais"}
-          </p>
-        </div>
 
-        <KpiCard icon={<PackageIcon className="size-4" />} label="Categoria top"
-          value={kpis.topCat?.[0] ?? "—"} sub={kpis.topCat ? brlCompact(kpis.topCat[1]) : ""} />
-        <KpiCard icon={<Sparkles className="size-4" />} label="Produto top"
-          value={kpis.topProd?.[0] ?? "—"} sub={kpis.topProd ? brlCompact(kpis.topProd[1]) : ""} />
-        <KpiCard icon={<Store className="size-4" />} label="Estabelecimento"
-          value={kpis.topStore?.[0] ?? "—"}
-          sub={kpis.topStore ? `${kpis.topStore[1]} visita${kpis.topStore[1] > 1 ? "s" : ""}` : ""} />
-        <KpiCard icon={<TrendingDown className="size-4" />} label="Economia"
-          value={brl(kpis.savings)} sub="vs. preço médio" accent />
-      </section>
+          <KpiCard icon={<PackageIcon className="size-4" />} label="Categoria top"
+            value={kpis.topCat?.[0] ?? "—"} sub={kpis.topCat ? brlCompact(kpis.topCat[1]) : ""} />
+          <KpiCard icon={<Sparkles className="size-4" />} label="Produto top"
+            value={kpis.topProd?.[0] ?? "—"} sub={kpis.topProd ? brlCompact(kpis.topProd[1]) : ""} />
+          <KpiCard icon={<Store className="size-4" />} label="Estabelecimento"
+            value={kpis.topStore?.[0] ?? "—"}
+            sub={kpis.topStore ? `${kpis.topStore[1]} visita${kpis.topStore[1] > 1 ? "s" : ""}` : ""} />
+          <KpiCard icon={<TrendingDown className="size-4" />} label="Economia"
+            value={brl(kpis.savings)} sub="vs. preço médio" accent />
+        </section>
+      )}
 
 
       <section className="mb-3 animate-aura-in">
@@ -188,7 +193,7 @@ function Dashboard() {
         </div>
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
+          <RecentExpensesSkeleton />
         ) : expenses.length === 0 ? (
           <div className="bg-card border border-border rounded-2xl p-6 text-center">
             <p className="text-sm text-muted-foreground">Nenhuma despesa no período.</p>

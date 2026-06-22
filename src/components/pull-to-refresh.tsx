@@ -21,7 +21,15 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
         setPull(0);
         return;
       }
-      setPull(Math.min(MAX, dy * 0.5));
+      const next = Math.min(MAX, dy * 0.5);
+      setPull((prev) => {
+        if (prev < THRESHOLD && next >= THRESHOLD) {
+          try {
+            (navigator as Navigator & { vibrate?: (p: number | number[]) => boolean }).vibrate?.(8);
+          } catch { /* no-op */ }
+        }
+        return next;
+      });
     };
     const onTouchEnd = async () => {
       if (startY.current == null) return;
@@ -30,6 +38,9 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       if (p >= THRESHOLD && !refreshing) {
         setRefreshing(true);
         setPull(THRESHOLD);
+        try {
+          (navigator as Navigator & { vibrate?: (p: number | number[]) => boolean }).vibrate?.(15);
+        } catch { /* no-op */ }
         window.dispatchEvent(new CustomEvent("aura:data-changed"));
         await new Promise((r) => setTimeout(r, 600));
         setRefreshing(false);
