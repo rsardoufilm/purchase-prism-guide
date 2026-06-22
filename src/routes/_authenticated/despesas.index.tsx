@@ -40,8 +40,11 @@ interface Row {
 
 const FILTER_KEY = "aura:despesas:filter-category";
 
+function isoDate(d: Date | null) { return d ? d.toISOString().slice(0, 10) : null; }
+
 function DespesasIndex() {
   const navigate = useNavigate();
+  const [period, setPeriod] = useSharedPeriod();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
