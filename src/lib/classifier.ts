@@ -32,6 +32,12 @@ export type MerchantCategory =
   | "Transporte"
   | "Outros";
 
+export const MERCHANT_CATEGORY_OPTIONS: MerchantCategory[] = [
+  "Restaurantes", "Padaria", "Hortifrutti", "Mercado", "Supermercado",
+  "Farmácia", "Combustível", "Bebidas", "Vestuário", "Eletrônicos",
+  "Casa e Higiene", "Transporte", "Outros",
+];
+
 type Rule = { cat: ConsumoCategory; patterns: RegExp };
 
 // ─── Regras de ITEM (produto) ────────────────────────────────────────────────
