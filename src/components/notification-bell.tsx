@@ -173,7 +173,16 @@ export function NotificationBell() {
   };
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        // Ao abrir, marca todas como lidas automaticamente
+        if (v && items.some((n) => !n.read)) {
+          void markAllRead();
+        }
+      }}
+    >
       <DropdownMenuTrigger asChild>
         <button
           className="relative size-10 shrink-0 rounded-full bg-card border border-border grid place-items-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
