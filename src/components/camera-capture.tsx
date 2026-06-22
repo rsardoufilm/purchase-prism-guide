@@ -379,8 +379,10 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Canvas sem contexto 2D.");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // pós-processamento: estica histograma + gamma p/ aproveitar todo o sensor
+      brightenCanvas(ctx, canvas.width, canvas.height);
       const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92),
+        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.95),
       );
       if (!blob) throw new Error("Falha ao gerar imagem.");
       const file = new File([blob], `nota-${Date.now()}.jpg`, { type: "image/jpeg" });
