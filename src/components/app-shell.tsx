@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { BrandLogo } from "@/components/brand-logo";
+import { PullToRefresh } from "@/components/pull-to-refresh";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -87,7 +88,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </button>
       </nav>
 
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-5 pb-10">{children}</main>
+      <PullToRefresh>
+        <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-5 pb-10">{children}</main>
+      </PullToRefresh>
 
       {/* Mobile bottom nav */}
       <nav
