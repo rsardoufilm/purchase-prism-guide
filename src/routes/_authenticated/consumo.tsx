@@ -228,6 +228,38 @@ function Consumo() {
           ))}
         </div>
       </section>
+
+      <AlertDialog open={!!bulkTarget} onOpenChange={(o) => !o && !bulkSaving && setBulkTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reclassificar “{bulkTarget?.from}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkTarget?.count} {bulkTarget?.count === 1 ? "despesa será movida" : "despesas serão movidas"} para a nova categoria escolhida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Select value={bulkNewCat} onValueChange={setBulkNewCat}>
+            <SelectTrigger className="rounded-xl h-10 text-sm">
+              <SelectValue placeholder="Escolher nova categoria…" />
+            </SelectTrigger>
+            <SelectContent>
+              {MERCHANT_CATEGORY_OPTIONS.filter((c) => c !== bulkTarget?.from).map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkSaving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); reclassifyCategory(); }}
+              disabled={bulkSaving || !bulkNewCat}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {bulkSaving && <Loader2 className="size-4 mr-2 animate-spin" />}
+              Aplicar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
