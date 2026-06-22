@@ -137,7 +137,8 @@ function Dashboard() {
 
   return (
     <>
-      <PageHeader eyebrow="Dashboard" title="AURA Consumo" />
+      <PageHeader eyebrow="Dashboard" title="AURA Consumo" tourKey="dashboard" />
+      <TourGuide tourKey="dashboard" steps={TOURS.dashboard} />
 
       <DashboardSummaryCard />
 
