@@ -24,7 +24,7 @@ type FrameStatus = "searching" | "adjust" | "hold" | "ready";
 
 const STATUS_LABEL: Record<FrameStatus, string> = {
   searching: "Posicione a nota dentro do quadro",
-  adjust: "Aproxime ou centralize a nota",
+  adjust: "Imagem borrada — segure firme e aguarde o foco",
   hold: "Segure firme…",
   ready: "Pronto! Capturando…",
 };
