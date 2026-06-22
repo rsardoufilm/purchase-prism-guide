@@ -52,6 +52,9 @@ function DespesasIndex() {
 
   useEffect(() => {
     load();
+    const onChange = () => load();
+    window.addEventListener("aura:data-changed", onChange);
+    return () => window.removeEventListener("aura:data-changed", onChange);
   }, []);
 
   const handleNewExpenseTouch = () => {
@@ -91,7 +94,7 @@ function DespesasIndex() {
   return (
     <>
       <PageHeader eyebrow="Despesas" title="Suas despesas" />
-      <Button asChild className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-semibold gap-2 mb-5">
+      <Button asChild className="w-full h-11 rounded-2xl bg-primary text-primary-foreground font-semibold gap-2 mb-3">
         <Link to="/despesas/nova" onPointerDown={handleNewExpenseTouch} onClick={handleNewExpenseClick}>
           <Plus className="size-4" /> Nova despesa
         </Link>
@@ -107,11 +110,11 @@ function DespesasIndex() {
           {rows.map((r) => (
             <div
               key={r.id}
-              className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-2 bg-card p-4 rounded-2xl border border-border items-center"
+              className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-2 bg-card p-3 sm:p-4 rounded-2xl border border-border items-center"
             >
               <div className="min-w-0">
                 <p className="text-sm font-semibold truncate">{r.merchant_name}</p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">
                   {fmtDate(r.expense_date)} • {paymentLabel[r.payment_method] ?? r.payment_method}
                   {r.category ? ` • ${r.category}` : ""}
                 </p>

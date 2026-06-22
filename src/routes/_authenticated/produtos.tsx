@@ -21,11 +21,16 @@ interface Price {
 function Produtos() {
   const [prices, setPrices] = useState<Price[]>([]);
   useEffect(() => {
-    supabase
-      .from("product_prices")
-      .select("normalized_name,merchant_name,unit_price,quantity,unit,purchase_date")
-      .order("purchase_date", { ascending: false })
-      .then(({ data }) => setPrices((data ?? []) as Price[]));
+    const load = () => {
+      supabase
+        .from("product_prices")
+        .select("normalized_name,merchant_name,unit_price,quantity,unit,purchase_date")
+        .order("purchase_date", { ascending: false })
+        .then(({ data }) => setPrices((data ?? []) as Price[]));
+    };
+    load();
+    window.addEventListener("aura:data-changed", load);
+    return () => window.removeEventListener("aura:data-changed", load);
   }, []);
 
   const products = useMemo(() => {
@@ -65,11 +70,11 @@ function Produtos() {
       ) : (
         <div className="space-y-2">
           {products.map((p) => (
-            <details key={p.name} className="bg-card border border-border rounded-2xl p-4 group">
+            <details key={p.name} className="bg-card border border-border rounded-2xl p-3 sm:p-4 group">
               <summary className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 cursor-pointer list-none">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{p.name}</p>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
                     {p.qty.toLocaleString("pt-BR")} {p.unit ?? "un"} acumulado
                   </p>
                 </div>
@@ -81,7 +86,7 @@ function Produtos() {
                 <Mini label="Máx" value={brl(p.max)} />
               </div>
               {p.cheapestStore && (
-                <p className="text-[11px] text-primary mt-3 font-medium">
+                <p className="text-[11px] text-primary mt-2 font-medium truncate">
                   Mais barato em <span className="font-semibold">{p.cheapestStore.s}</span> ({brl(p.cheapestStore.avg)})
                 </p>
               )}
