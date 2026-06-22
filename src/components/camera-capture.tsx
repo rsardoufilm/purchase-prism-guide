@@ -425,17 +425,32 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
           <X className="size-5" />
         </button>
         <p className="text-sm font-medium">Escanear nota</p>
-        <button
-          type="button"
-          onClick={() => setAutoCapture((v) => !v)}
-          className={`text-[11px] px-2.5 py-1 rounded-full border ${
-            autoCapture ? "border-emerald-400/70 text-emerald-300" : "border-white/30 text-white/70"
-          }`}
-          aria-pressed={autoCapture}
-          aria-label="Alternar captura automática"
-        >
-          Auto {autoCapture ? "on" : "off"}
-        </button>
+        <div className="flex items-center gap-2">
+          {torchAvailable && (
+            <button
+              type="button"
+              onClick={toggleTorch}
+              className={`size-9 grid place-items-center rounded-full border ${
+                torchOn ? "bg-amber-300 text-black border-amber-200" : "border-white/30 text-white/80"
+              }`}
+              aria-pressed={torchOn}
+              aria-label="Alternar lanterna"
+            >
+              {torchOn ? <Zap className="size-4" /> : <ZapOff className="size-4" />}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setAutoCapture((v) => !v)}
+            className={`text-[11px] px-2.5 py-1 rounded-full border ${
+              autoCapture ? "border-emerald-400/70 text-emerald-300" : "border-white/30 text-white/70"
+            }`}
+            aria-pressed={autoCapture}
+            aria-label="Alternar captura automática"
+          >
+            Auto {autoCapture ? "on" : "off"}
+          </button>
+        </div>
       </div>
 
       <div className="relative flex-1 overflow-hidden">
@@ -445,15 +460,14 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
           muted
           autoPlay
           className="absolute inset-0 w-full h-full object-cover"
+          style={{ filter: "brightness(1.15) contrast(1.08) saturate(1.05)" }}
         />
 
-        {/* Guia de enquadramento: máscara escura + retângulo central com cantos */}
+        {/* Guia de enquadramento sem máscara escura (preserva luz do preview) */}
         {status === "ready" && (
           <div className="pointer-events-none absolute inset-0">
-            {/* máscara MUITO leve ao redor — preserva a luz da câmera */}
             <div
               className={`absolute left-[6%] right-[6%] top-[12%] bottom-[12%] rounded-2xl border-2 transition-colors duration-200 ${borderColor}`}
-              style={{ boxShadow: "0 0 0 9999px rgba(0,0,0,0.22)" }}
             >
               {/* cantos destacados */}
               <span className={`absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 rounded-tl-2xl ${borderColor}`} />
