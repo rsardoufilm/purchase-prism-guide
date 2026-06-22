@@ -41,25 +41,16 @@ interface ExpenseRow {
   expense_date: string;
 }
 
-const CONSUMO_FILTER_KEY = "aura:consumo:filter-category";
-
 function isoDate(d: Date | null) { return d ? d.toISOString().slice(0, 10) : null; }
 
 function Consumo() {
   const [period, setPeriod] = useSharedPeriod();
   const [items, setItems] = useState<ItemRow[]>([]);
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
-  const [filter, setFilter] = useState<string>(() => {
-    if (typeof window === "undefined") return "all";
-    return window.localStorage.getItem(CONSUMO_FILTER_KEY) ?? "all";
-  });
+  const [filter, setFilter] = useSharedCategory();
   const [bulkTarget, setBulkTarget] = useState<{ from: string; count: number } | null>(null);
   const [bulkNewCat, setBulkNewCat] = useState<string>("");
   const [bulkSaving, setBulkSaving] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") window.localStorage.setItem(CONSUMO_FILTER_KEY, filter);
-  }, [filter]);
 
   const reclassifyCategory = async () => {
     if (!bulkTarget || !bulkNewCat) return;
