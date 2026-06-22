@@ -843,14 +843,59 @@ function AuditLog({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </Label>
+      <div className="flex items-center justify-between gap-2">
+        <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </Label>
+        {hint}
+      </div>
       {children}
     </div>
+  );
+}
+
+function CategorySourceBadge({ source }: { source: CategorySource }) {
+  if (!source || source === "ocr") return null;
+  if (source === "learned") {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-1.5 py-0.5 text-[9px] font-semibold text-primary"
+        title="Categoria sugerida pelo seu histórico de compras"
+      >
+        <Sparkles className="size-2.5" />
+        Aprendido
+      </span>
+    );
+  }
+  if (source === "rule") {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground"
+        title="Categoria sugerida por regra automática"
+      >
+        Auto
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full bg-secondary px-1.5 py-0.5 text-[9px] font-semibold text-secondary-foreground"
+      title="Categoria definida por você"
+    >
+      <UserCheck className="size-2.5" />
+      Você
+    </span>
   );
 }
 
@@ -861,18 +906,20 @@ function ItemsEditor({
   total,
   onChange,
   userCatMap,
+  sources,
 }: {
   items: EditableItem[];
   total: number;
-  onChange: (items: EditableItem[]) => void;
+  onChange: (items: EditableItem[], sources?: CategorySource[]) => void;
   userCatMap: UserCategoryMap;
+  sources: CategorySource[];
 }) {
   const sum = items.reduce((acc, it) => acc + (Number(it.total_price) || 0), 0);
   const diff = Math.abs(sum - total);
   const tolerance = Math.max(0.05, total * 0.02);
   const mismatch = total > 0 && diff > tolerance;
 
-  const update = (i: number, patch: Partial<EditableItem>) => {
+  const update = (i: number, patch: Partial<EditableItem>, opts?: { userEdit?: boolean }) => {
     const next = [...items];
     const merged = { ...next[i], ...patch };
     if (patch.quantity !== undefined || patch.unit_price !== undefined) {
@@ -880,20 +927,32 @@ function ItemsEditor({
       const u = Number(merged.unit_price ?? 0);
       merged.total_price = Math.round(q * u * 100) / 100;
     }
-    // Edição manual da descrição PREVALECE: o normalized_name passa a refletir
-    // o texto digitado. A categoria é sugerida apenas se ainda estiver vazia,
-    // priorizando o histórico do usuário antes das regras determinísticas.
+    const nextSources = [...sources];
     if (patch.raw_name !== undefined) {
       const raw = String(patch.raw_name ?? "").trim();
       merged.normalized_name = raw || null;
       if (!merged.category) {
-        merged.category = suggestCategory(raw, userCatMap) ?? classifyItem(raw) ?? "Outros";
+        const learned = suggestCategory(raw, userCatMap);
+        if (learned) {
+          merged.category = learned;
+          nextSources[i] = "learned";
+        } else {
+          merged.category = classifyItem(raw) ?? "Outros";
+          nextSources[i] = "rule";
+        }
       }
     }
+    if (opts?.userEdit) nextSources[i] = "user";
     next[i] = merged;
-    onChange(next);
+    onChange(next, nextSources);
   };
 
+  const remove = (i: number) => {
+    onChange(
+      items.filter((_, j) => j !== i),
+      sources.filter((_, j) => j !== i),
+    );
+  };
 
   return (
     <div className="space-y-2">
@@ -927,7 +986,7 @@ function ItemsEditor({
                 placeholder="Descrição do item"
               />
               <button
-                onClick={() => onChange(items.filter((_, j) => j !== i))}
+                onClick={() => remove(i)}
                 className="text-muted-foreground hover:text-destructive p-2 shrink-0"
                 aria-label="Remover item"
                 type="button"
@@ -978,21 +1037,24 @@ function ItemsEditor({
               </div>
             </div>
 
-            <Select
-              value={it.category ?? "Outros"}
-              onValueChange={(v) => update(i, { category: v })}
-            >
-              <SelectTrigger className="rounded-lg h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORY_OPTIONS.map((c) => (
-                  <SelectItem key={c} value={c} className="text-xs">
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select
+                value={it.category ?? "Outros"}
+                onValueChange={(v) => update(i, { category: v }, { userEdit: true })}
+              >
+                <SelectTrigger className="rounded-lg h-8 text-xs flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORY_OPTIONS.map((c) => (
+                    <SelectItem key={c} value={c} className="text-xs">
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <CategorySourceBadge source={sources[i] ?? null} />
+            </div>
           </div>
         ))}
       </div>
