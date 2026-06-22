@@ -17,6 +17,7 @@ import { brl } from "@/lib/format";
 import { MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
 import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
+import { useSharedCategory } from "@/hooks/use-shared-category";
 
 export const Route = createFileRoute("/_authenticated/consumo")({
   component: Consumo,
@@ -40,25 +41,16 @@ interface ExpenseRow {
   expense_date: string;
 }
 
-const CONSUMO_FILTER_KEY = "aura:consumo:filter-category";
-
 function isoDate(d: Date | null) { return d ? d.toISOString().slice(0, 10) : null; }
 
 function Consumo() {
   const [period, setPeriod] = useSharedPeriod();
   const [items, setItems] = useState<ItemRow[]>([]);
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
-  const [filter, setFilter] = useState<string>(() => {
-    if (typeof window === "undefined") return "all";
-    return window.localStorage.getItem(CONSUMO_FILTER_KEY) ?? "all";
-  });
+  const [filter, setFilter] = useSharedCategory();
   const [bulkTarget, setBulkTarget] = useState<{ from: string; count: number } | null>(null);
   const [bulkNewCat, setBulkNewCat] = useState<string>("");
   const [bulkSaving, setBulkSaving] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") window.localStorage.setItem(CONSUMO_FILTER_KEY, filter);
-  }, [filter]);
 
   const reclassifyCategory = async () => {
     if (!bulkTarget || !bulkNewCat) return;
@@ -108,7 +100,8 @@ function Consumo() {
     if (s) list = list.filter((x) => x.expense_date >= s);
     if (e) list = list.filter((x) => x.expense_date <= e);
     if (filter === "all") return list;
-    return list.filter((e) => (e.category || "Sem categoria") === filter);
+    if (filter === "__uncat__") return list.filter((x) => !x.category);
+    return list.filter((x) => x.category === filter);
   }, [expenses, s, e, filter]);
 
   const filteredItems = useMemo(() => {
@@ -118,9 +111,11 @@ function Consumo() {
 
   const allCategories = useMemo(() => {
     const set = new Set<string>();
-    for (const e of expenses) set.add(e.category || "Sem categoria");
+    for (const e of expenses) if (e.category) set.add(e.category);
     return Array.from(set).sort();
   }, [expenses]);
+
+  const hasUncategorized = useMemo(() => expenses.some((e) => !e.category), [expenses]);
 
   const byProduct = useMemo(() => {
     const m = new Map<string, { total: number; qty: number; unit: string | null }>();
@@ -167,7 +162,8 @@ function Consumo() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos os tipos</SelectItem>
+            <SelectItem value="all">Todas as categorias</SelectItem>
+            {hasUncategorized && <SelectItem value="__uncat__">Sem categoria</SelectItem>}
             {allCategories.map((c) => (
               <SelectItem key={c} value={c}>{c}</SelectItem>
             ))}
