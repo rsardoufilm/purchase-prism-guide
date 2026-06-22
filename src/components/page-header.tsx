@@ -11,12 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { LogOut, Settings, Bell, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -105,7 +100,9 @@ export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string 
       });
       try {
         new Notification("AURA Consumo", { body: "Notificações ativadas com sucesso." });
-      } catch { /* iOS pode bloquear isto fora de PWA */ }
+      } catch {
+        /* iOS pode bloquear isto fora de PWA */
+      }
     } else {
       setNotifEnabled(false);
       toast.error("Permissão negada pelo navegador.");
@@ -121,9 +118,10 @@ export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string 
         <p className="text-muted-foreground text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest mb-0.5">
           {eyebrow}
         </p>
-        <h1 className="font-display text-xl sm:text-3xl font-bold truncate leading-tight">{title}</h1>
+        <h1 className="font-display text-xl sm:text-3xl font-bold truncate leading-tight">
+          {title}
+        </h1>
       </div>
-
 
       <div className="flex items-center gap-2 justify-self-end">
         <NotificationBell />
@@ -147,13 +145,22 @@ export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string 
               </TooltipContent>
             </Tooltip>
 
-            <DropdownMenuContent align="end" sideOffset={8} className="w-64 rounded-2xl border bg-popover p-2 shadow-lg">
+            <DropdownMenuContent
+              align="end"
+              sideOffset={8}
+              className="w-64 rounded-2xl border bg-popover p-2 shadow-lg"
+            >
               <DropdownMenuLabel className="flex items-center gap-3 px-2 py-2 font-normal">
-                <div className="size-10 shrink-0 rounded-full bg-primary-soft grid place-items-center text-xs font-bold text-primary" aria-hidden>
+                <div
+                  className="size-10 shrink-0 rounded-full bg-primary-soft grid place-items-center text-xs font-bold text-primary"
+                  aria-hidden
+                >
                   {profile.initials}
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-semibold truncate">{profile.displayName || "Usuário"}</span>
+                  <span className="text-sm font-semibold truncate">
+                    {profile.displayName || "Usuário"}
+                  </span>
                   <span className="text-xs text-muted-foreground truncate">{profile.email}</span>
                 </div>
               </DropdownMenuLabel>
@@ -161,7 +168,10 @@ export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string 
 
               <div className="rounded-xl px-2 py-2 hover:bg-accent">
                 <div className="flex items-center justify-between gap-2 text-sm">
-                  <label htmlFor="notif-switch" className="flex items-center gap-2 min-w-0 cursor-pointer">
+                  <label
+                    htmlFor="notif-switch"
+                    className="flex items-center gap-2 min-w-0 cursor-pointer"
+                  >
                     <Bell className="size-4 text-muted-foreground shrink-0" aria-hidden />
                     <span className="truncate">Avisos do sistema</span>
                   </label>
@@ -177,14 +187,20 @@ export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string 
                 </p>
               </div>
 
-              <DropdownMenuItem asChild className="rounded-xl cursor-pointer px-2 py-2 gap-2 text-sm focus:bg-accent focus:text-accent-foreground">
+              <DropdownMenuItem
+                asChild
+                className="rounded-xl cursor-pointer px-2 py-2 gap-2 text-sm focus:bg-accent focus:text-accent-foreground"
+              >
                 <Link to="/ajuda">
                   <HelpCircle className="size-4 text-muted-foreground" aria-hidden />
                   Central de ajuda
                 </Link>
               </DropdownMenuItem>
 
-              <DropdownMenuItem asChild className="rounded-xl cursor-pointer px-2 py-2 gap-2 text-sm focus:bg-accent focus:text-accent-foreground">
+              <DropdownMenuItem
+                asChild
+                className="rounded-xl cursor-pointer px-2 py-2 gap-2 text-sm focus:bg-accent focus:text-accent-foreground"
+              >
                 <Link to="/configuracoes">
                   <Settings className="size-4 text-muted-foreground" aria-hidden />
                   Configurações

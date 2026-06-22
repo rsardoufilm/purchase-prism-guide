@@ -18,10 +18,30 @@ export const Route = createFileRoute("/_authenticated/insights")({
   head: () => ({ meta: [{ title: "Insights — AURA Consumo" }] }),
 });
 
-interface E { id: string; merchant_name: string; total_amount: number; category: string | null; expense_date: string }
-interface I { normalized_name: string | null; raw_name: string; total_price: number; category: string | null; expense_id: string }
-interface P { normalized_name: string; merchant_name: string; unit_price: number; purchase_date: string }
-interface Msg { role: "user" | "aura"; text: string }
+interface E {
+  id: string;
+  merchant_name: string;
+  total_amount: number;
+  category: string | null;
+  expense_date: string;
+}
+interface I {
+  normalized_name: string | null;
+  raw_name: string;
+  total_price: number;
+  category: string | null;
+  expense_id: string;
+}
+interface P {
+  normalized_name: string;
+  merchant_name: string;
+  unit_price: number;
+  purchase_date: string;
+}
+interface Msg {
+  role: "user" | "aura";
+  text: string;
+}
 
 const SUGGESTIONS = [
   "Quanto gastei este mês?",
@@ -30,7 +50,9 @@ const SUGGESTIONS = [
   "Onde posso economizar?",
 ];
 
-function isoDate(d: Date | null) { return d ? d.toISOString().slice(0, 10) : null; }
+function isoDate(d: Date | null) {
+  return d ? d.toISOString().slice(0, 10) : null;
+}
 
 function Insights() {
   const [period, setPeriod] = useSharedPeriod();
@@ -41,11 +63,17 @@ function Insights() {
 
   useEffect(() => {
     const load = () => {
-      supabase.from("expenses").select("id,merchant_name,total_amount,category,expense_date")
+      supabase
+        .from("expenses")
+        .select("id,merchant_name,total_amount,category,expense_date")
         .then(({ data }) => setAllExpenses((data ?? []) as E[]));
-      supabase.from("expense_items").select("normalized_name,raw_name,total_price,category,expense_id")
+      supabase
+        .from("expense_items")
+        .select("normalized_name,raw_name,total_price,category,expense_id")
         .then(({ data }) => setAllItems((data ?? []) as I[]));
-      supabase.from("product_prices").select("normalized_name,merchant_name,unit_price,purchase_date")
+      supabase
+        .from("product_prices")
+        .select("normalized_name,merchant_name,unit_price,purchase_date")
         .order("purchase_date", { ascending: true })
         .then(({ data }) => setPrices((data ?? []) as P[]));
     };
@@ -69,15 +97,16 @@ function Insights() {
     return { expenses: filteredExp, items: filteredItems };
   }, [allExpenses, allItems, period]);
 
-
   const generalInsights = useMemo(() => {
     const out: { icon: React.ReactNode; title: string; desc: string }[] = [];
     if (expenses.length === 0) {
-      return [{
-        icon: <Sparkles className="size-5" />,
-        title: "Comece a registrar",
-        desc: "Adicione suas primeiras notas fiscais para que a AURA descubra padrões e oportunidades de economia.",
-      }];
+      return [
+        {
+          icon: <Sparkles className="size-5" />,
+          title: "Comece a registrar",
+          desc: "Adicione suas primeiras notas fiscais para que a AURA descubra padrões e oportunidades de economia.",
+        },
+      ];
     }
     const byCat = new Map<string, number>();
     for (const r of expenses) {
@@ -85,26 +114,30 @@ function Insights() {
       byCat.set(k, (byCat.get(k) ?? 0) + Number(r.total_amount));
     }
     const top = [...byCat.entries()].sort((a, b) => b[1] - a[1])[0];
-    if (top) out.push({
-      icon: <Sparkles className="size-5" />,
-      title: `${top[0]} é sua maior categoria`,
-      desc: `${brl(top[1])} no total registrado.`,
-    });
+    if (top)
+      out.push({
+        icon: <Sparkles className="size-5" />,
+        title: `${top[0]} é sua maior categoria`,
+        desc: `${brl(top[1])} no total registrado.`,
+      });
 
     const byStore = new Map<string, { sum: number; count: number }>();
     for (const r of expenses) {
       const v = byStore.get(r.merchant_name) ?? { sum: 0, count: 0 };
-      v.sum += Number(r.total_amount); v.count++; byStore.set(r.merchant_name, v);
+      v.sum += Number(r.total_amount);
+      v.count++;
+      byStore.set(r.merchant_name, v);
     }
     const stores = [...byStore.entries()]
       .filter(([_, v]) => v.count >= 2)
       .map(([n, v]) => ({ n, avg: v.sum / v.count }))
       .sort((a, b) => a.avg - b.avg);
-    if (stores.length >= 1) out.push({
-      icon: <Store className="size-5" />,
-      title: `${stores[0].n} é seu estabelecimento mais barato`,
-      desc: `Ticket médio de ${brl(stores[0].avg)}.`,
-    });
+    if (stores.length >= 1)
+      out.push({
+        icon: <Store className="size-5" />,
+        title: `${stores[0].n} é seu estabelecimento mais barato`,
+        desc: `Ticket médio de ${brl(stores[0].avg)}.`,
+      });
     if (stores.length >= 2) {
       const exp = stores[stores.length - 1];
       out.push({
@@ -117,19 +150,37 @@ function Insights() {
     const prodPrices = new Map<string, P[]>();
     for (const p of prices) {
       const arr = prodPrices.get(p.normalized_name) ?? [];
-      arr.push(p); prodPrices.set(p.normalized_name, arr);
+      arr.push(p);
+      prodPrices.set(p.normalized_name, arr);
     }
-    let biggestSwing: { name: string; min: number; max: number; minStore: string; maxStore: string } | null = null;
+    let biggestSwing: {
+      name: string;
+      min: number;
+      max: number;
+      minStore: string;
+      maxStore: string;
+    } | null = null;
     let priceUp: { name: string; first: number; last: number; pct: number } | null = null;
     for (const [name, arr] of prodPrices) {
       if (arr.length < 2) continue;
       const sorted = [...arr].sort((a, b) => Number(a.unit_price) - Number(b.unit_price));
-      const min = sorted[0]; const max = sorted[sorted.length - 1];
-      if (!biggestSwing || Number(max.unit_price) - Number(min.unit_price) > biggestSwing.max - biggestSwing.min) {
-        biggestSwing = { name, min: Number(min.unit_price), max: Number(max.unit_price), minStore: min.merchant_name, maxStore: max.merchant_name };
+      const min = sorted[0];
+      const max = sorted[sorted.length - 1];
+      if (
+        !biggestSwing ||
+        Number(max.unit_price) - Number(min.unit_price) > biggestSwing.max - biggestSwing.min
+      ) {
+        biggestSwing = {
+          name,
+          min: Number(min.unit_price),
+          max: Number(max.unit_price),
+          minStore: min.merchant_name,
+          maxStore: max.merchant_name,
+        };
       }
       const byDate = [...arr].sort((a, b) => a.purchase_date.localeCompare(b.purchase_date));
-      const first = Number(byDate[0].unit_price); const last = Number(byDate[byDate.length - 1].unit_price);
+      const first = Number(byDate[0].unit_price);
+      const last = Number(byDate[byDate.length - 1].unit_price);
       if (first > 0 && last > first) {
         const pct = ((last - first) / first) * 100;
         if (!priceUp || pct > priceUp.pct) priceUp = { name, first, last, pct };
@@ -143,23 +194,30 @@ function Insights() {
         desc: `${brl(biggestSwing.min)} em ${biggestSwing.minStore} vs ${brl(biggestSwing.max)} em ${biggestSwing.maxStore}.`,
       });
     }
-    if (priceUp) out.push({
-      icon: <TrendingUp className="size-5" />,
-      title: `${priceUp.name} subiu ${priceUp.pct.toFixed(0)}%`,
-      desc: `De ${brl(priceUp.first)} para ${brl(priceUp.last)} no histórico.`,
-    });
+    if (priceUp)
+      out.push({
+        icon: <TrendingUp className="size-5" />,
+        title: `${priceUp.name} subiu ${priceUp.pct.toFixed(0)}%`,
+        desc: `De ${brl(priceUp.first)} para ${brl(priceUp.last)} no histórico.`,
+      });
     return out;
   }, [expenses, prices]);
 
   // Insights por categoria
   const categoryInsights = useMemo(() => {
-    const expByCat = new Map<string, { total: number; count: number; merchants: Map<string, number> }>();
+    const expByCat = new Map<
+      string,
+      { total: number; count: number; merchants: Map<string, number> }
+    >();
     for (const r of expenses) {
       const k = r.category || "Sem categoria";
       const v = expByCat.get(k) ?? { total: 0, count: 0, merchants: new Map() };
       v.total += Number(r.total_amount);
       v.count += 1;
-      v.merchants.set(r.merchant_name, (v.merchants.get(r.merchant_name) ?? 0) + Number(r.total_amount));
+      v.merchants.set(
+        r.merchant_name,
+        (v.merchants.get(r.merchant_name) ?? 0) + Number(r.total_amount),
+      );
       expByCat.set(k, v);
     }
 
@@ -173,7 +231,13 @@ function Insights() {
       itemsByCat.set(k, prodMap);
     }
 
-    const all: Array<{ category: string; total: number; count: number; topMerchant?: [string, number]; topProduct?: [string, number] }> = [];
+    const all: Array<{
+      category: string;
+      total: number;
+      count: number;
+      topMerchant?: [string, number];
+      topProduct?: [string, number];
+    }> = [];
     for (const [cat, v] of expByCat) {
       const topMerchant = [...v.merchants.entries()].sort((a, b) => b[1] - a[1])[0];
       const prods = itemsByCat.get(cat);
@@ -189,7 +253,9 @@ function Insights() {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, busy]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [msgs, busy]);
 
   const send = async (question: string) => {
     const t = question.trim();
@@ -202,7 +268,9 @@ function Insights() {
       setMsgs((m) => [...m, { role: "aura", text: res.answer }]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha");
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -215,13 +283,20 @@ function Insights() {
 
       <section className="mb-5 space-y-3">
         {generalInsights.map((ins, i) => (
-          <div key={i} className="bg-card border border-border rounded-3xl p-4 sm:p-5 grid grid-cols-[auto_minmax(0,1fr)] gap-3 sm:gap-4">
+          <div
+            key={i}
+            className="bg-card border border-border rounded-3xl p-4 sm:p-5 grid grid-cols-[auto_minmax(0,1fr)] gap-3 sm:gap-4"
+          >
             <div className="size-10 sm:size-11 shrink-0 rounded-2xl bg-primary-soft text-primary grid place-items-center">
               {ins.icon}
             </div>
             <div className="min-w-0">
-              <p className="font-display font-semibold text-sm sm:text-base text-balance">{ins.title}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1 text-pretty">{ins.desc}</p>
+              <p className="font-display font-semibold text-sm sm:text-base text-balance">
+                {ins.title}
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 text-pretty">
+                {ins.desc}
+              </p>
             </div>
           </div>
         ))}
@@ -245,7 +320,9 @@ function Insights() {
                 </p>
                 {c.topProduct && (
                   <p className="text-[11px] text-muted-foreground">
-                    Produto top: <span className="text-foreground font-medium">{c.topProduct[0]}</span> ({brl(c.topProduct[1])})
+                    Produto top:{" "}
+                    <span className="text-foreground font-medium">{c.topProduct[0]}</span> (
+                    {brl(c.topProduct[1])})
                   </p>
                 )}
               </div>
@@ -262,8 +339,11 @@ function Insights() {
         {msgs.length === 0 && (
           <div className="grid gap-2 mb-3">
             {SUGGESTIONS.map((s) => (
-              <button key={s} onClick={() => send(s)}
-                className="text-left text-sm bg-card hover:bg-muted border border-border rounded-2xl px-4 py-3 transition-colors">
+              <button
+                key={s}
+                onClick={() => send(s)}
+                className="text-left text-sm bg-card hover:bg-muted border border-border rounded-2xl px-4 py-3 transition-colors"
+              >
                 {s}
               </button>
             ))}
@@ -273,11 +353,15 @@ function Insights() {
         <div className="space-y-3 mb-3">
           {msgs.map((m, i) => (
             <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
-              <div className={
-                m.role === "user"
-                  ? "bg-primary text-primary-foreground rounded-2xl rounded-br-md px-4 py-2.5 max-w-[85%] text-sm"
-                  : "bg-card border border-border rounded-2xl rounded-bl-md px-4 py-2.5 max-w-[90%] text-sm whitespace-pre-wrap"
-              }>{m.text}</div>
+              <div
+                className={
+                  m.role === "user"
+                    ? "bg-primary text-primary-foreground rounded-2xl rounded-br-md px-4 py-2.5 max-w-[85%] text-sm"
+                    : "bg-card border border-border rounded-2xl rounded-bl-md px-4 py-2.5 max-w-[90%] text-sm whitespace-pre-wrap"
+                }
+              >
+                {m.text}
+              </div>
             </div>
           ))}
           {busy && (
@@ -291,16 +375,24 @@ function Insights() {
         </div>
 
         <form
-          onSubmit={(e) => { e.preventDefault(); send(q); }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            send(q);
+          }}
           className="sticky bottom-24 md:bottom-4 bg-background/80 backdrop-blur-xl flex gap-2"
         >
           <Input
-            value={q} onChange={(e) => setQ(e.target.value)}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
             placeholder="Pergunte ao AURA Consumo…"
             className="h-12 rounded-2xl"
             disabled={busy}
           />
-          <Button type="submit" disabled={busy || !q.trim()} className="h-12 px-4 rounded-2xl bg-primary text-primary-foreground">
+          <Button
+            type="submit"
+            disabled={busy || !q.trim()}
+            className="h-12 px-4 rounded-2xl bg-primary text-primary-foreground"
+          >
             <Send className="size-4" />
           </Button>
         </form>

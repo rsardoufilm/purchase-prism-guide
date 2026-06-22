@@ -6,11 +6,21 @@ import { PageHeader } from "@/components/page-header";
 import { PeriodFilter } from "@/components/period-filter";
 import { periodRange } from "@/lib/period";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
 import { brl } from "@/lib/format";
@@ -41,7 +51,9 @@ interface ExpenseRow {
   expense_date: string;
 }
 
-function isoDate(d: Date | null) { return d ? d.toISOString().slice(0, 10) : null; }
+function isoDate(d: Date | null) {
+  return d ? d.toISOString().slice(0, 10) : null;
+}
 
 function Consumo() {
   const [period, setPeriod] = useSharedPeriod();
@@ -64,9 +76,13 @@ function Consumo() {
     if (error) {
       toast.error("Falha ao reclassificar.");
     } else {
-      toast.success(`${bulkTarget.count} ${bulkTarget.count === 1 ? "despesa movida" : "despesas movidas"} para ${bulkNewCat}.`);
+      toast.success(
+        `${bulkTarget.count} ${bulkTarget.count === 1 ? "despesa movida" : "despesas movidas"} para ${bulkNewCat}.`,
+      );
       setExpenses((prev) =>
-        prev.map((e) => ((isUncat ? !e.category : e.category === fromCat) ? { ...e, category: bulkNewCat } : e)),
+        prev.map((e) =>
+          (isUncat ? !e.category : e.category === fromCat) ? { ...e, category: bulkNewCat } : e,
+        ),
       );
       window.dispatchEvent(new CustomEvent("aura:data-changed"));
     }
@@ -165,31 +181,44 @@ function Consumo() {
             <SelectItem value="all">Todas as categorias</SelectItem>
             {hasUncategorized && <SelectItem value="__uncat__">Sem categoria</SelectItem>}
             {allCategories.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
+              <SelectItem key={c} value={c}>
+                {c}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-
       <section className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <h2 className="font-display font-semibold text-sm">Por tipo de estabelecimento</h2>
-          <span className="text-[10px] text-muted-foreground">toque em <Tag className="inline size-3" /> para reclassificar</span>
+          <span className="text-[10px] text-muted-foreground">
+            toque em <Tag className="inline size-3" /> para reclassificar
+          </span>
         </div>
         <div className="space-y-2">
           {byExpenseCategory.slice(0, 8).map(([cat, total]) => {
-            const count = filteredExpenses.filter((e) => (e.category || "Sem categoria") === cat).length;
+            const count = filteredExpenses.filter(
+              (e) => (e.category || "Sem categoria") === cat,
+            ).length;
             return (
-              <div key={cat} className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2 items-center bg-card border border-border rounded-2xl p-3 sm:p-4">
+              <div
+                key={cat}
+                className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2 items-center bg-card border border-border rounded-2xl p-3 sm:p-4"
+              >
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{cat}</p>
-                  <p className="text-[10px] text-muted-foreground">{count} {count === 1 ? "despesa" : "despesas"}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {count} {count === 1 ? "despesa" : "despesas"}
+                  </p>
                 </div>
                 <p className="text-sm font-bold whitespace-nowrap">{brl(total)}</p>
                 <button
                   type="button"
-                  onClick={() => { setBulkTarget({ from: cat, count }); setBulkNewCat(""); }}
+                  onClick={() => {
+                    setBulkTarget({ from: cat, count });
+                    setBulkNewCat("");
+                  }}
                   aria-label={`Reclassificar ${cat}`}
                   className="size-8 grid place-items-center rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
                 >
@@ -208,7 +237,10 @@ function Consumo() {
         <h2 className="font-display font-semibold mb-2 text-sm">Categorias de produtos</h2>
         <div className="space-y-2">
           {byItemCategory.slice(0, 6).map(([cat, total]) => (
-            <div key={cat} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-3 sm:p-4">
+            <div
+              key={cat}
+              className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-3 sm:p-4"
+            >
               <p className="text-sm font-semibold truncate">{cat}</p>
               <p className="text-sm font-bold">{brl(total)}</p>
             </div>
@@ -223,7 +255,10 @@ function Consumo() {
         <h2 className="font-display font-semibold mb-2 text-sm">Produtos mais consumidos</h2>
         <div className="space-y-2">
           {byProduct.map(([prod, v]) => (
-            <div key={prod} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-3 sm:p-4">
+            <div
+              key={prod}
+              className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-3 sm:p-4"
+            >
               <div className="min-w-0">
                 <p className="text-sm font-semibold truncate">{prod}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
@@ -236,12 +271,17 @@ function Consumo() {
         </div>
       </section>
 
-      <AlertDialog open={!!bulkTarget} onOpenChange={(o) => !o && !bulkSaving && setBulkTarget(null)}>
+      <AlertDialog
+        open={!!bulkTarget}
+        onOpenChange={(o) => !o && !bulkSaving && setBulkTarget(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Reclassificar “{bulkTarget?.from}”?</AlertDialogTitle>
             <AlertDialogDescription>
-              {bulkTarget?.count} {bulkTarget?.count === 1 ? "despesa será movida" : "despesas serão movidas"} para a nova categoria escolhida.
+              {bulkTarget?.count}{" "}
+              {bulkTarget?.count === 1 ? "despesa será movida" : "despesas serão movidas"} para a
+              nova categoria escolhida.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Select value={bulkNewCat} onValueChange={setBulkNewCat}>
@@ -250,14 +290,19 @@ function Consumo() {
             </SelectTrigger>
             <SelectContent>
               {MERCHANT_CATEGORY_OPTIONS.filter((c) => c !== bulkTarget?.from).map((c) => (
-                <SelectItem key={c} value={c}>{c}</SelectItem>
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={bulkSaving}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); reclassifyCategory(); }}
+              onClick={(e) => {
+                e.preventDefault();
+                reclassifyCategory();
+              }}
               disabled={bulkSaving || !bulkNewCat}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >

@@ -33,8 +33,17 @@ const ResultSchema = z.object({
 export type OcrResult = z.infer<typeof ResultSchema>;
 
 const CATEGORIES = [
-  "Supermercado","Carnes","Padaria","Bebidas","Laticínios","Higiene",
-  "Limpeza","Farmácia","Combustível","Restaurantes","Outros",
+  "Supermercado",
+  "Carnes",
+  "Padaria",
+  "Bebidas",
+  "Laticínios",
+  "Higiene",
+  "Limpeza",
+  "Farmácia",
+  "Combustível",
+  "Restaurantes",
+  "Outros",
 ] as const;
 
 const SYSTEM_PROMPT = `Você é um extrator OCR especialista em notas fiscais brasileiras (NFC-e/NF-e/cupons fiscais).

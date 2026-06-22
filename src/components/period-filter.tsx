@@ -29,7 +29,9 @@ export function PeriodFilter({
       }
       setMonths([...set]); // já ordenado pela query
     })();
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, []);
 
   const isPrimary = (PRIMARY_PERIODS as readonly string[]).includes(value);

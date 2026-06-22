@@ -33,11 +33,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setTheme = (t: Theme) => {
     setThemeState(t);
     apply(t);
-    try { window.localStorage.setItem(KEY, t); } catch {}
+    try {
+      window.localStorage.setItem(KEY, t);
+    } catch {}
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggle: () => setTheme(theme === "dark" ? "light" : "dark") }}>
+    <ThemeContext.Provider
+      value={{ theme, setTheme, toggle: () => setTheme(theme === "dark" ? "light" : "dark") }}
+    >
       {children}
     </ThemeContext.Provider>
   );

@@ -17,7 +17,9 @@ function readCategory(): SharedCategory {
   try {
     const raw = window.localStorage.getItem(SHARED_KEY);
     if (raw) return raw;
-  } catch { /* noop */ }
+  } catch {
+    /* noop */
+  }
   return "all";
 }
 
@@ -28,7 +30,9 @@ export function useSharedCategory(): [SharedCategory, (c: SharedCategory) => voi
     setCategoryState(c);
     try {
       window.localStorage.setItem(SHARED_KEY, c);
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
     window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: c }));
   }, []);
 

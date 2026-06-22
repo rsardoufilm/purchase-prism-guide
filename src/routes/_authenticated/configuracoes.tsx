@@ -6,11 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTheme } from "@/lib/theme";
-import { Camera, ChevronRight, FileText, Loader2, LogOut, Moon, ShieldCheck, Sun, Trash2, User } from "lucide-react";
+import {
+  Camera,
+  ChevronRight,
+  FileText,
+  Loader2,
+  LogOut,
+  Moon,
+  ShieldCheck,
+  Sun,
+  Trash2,
+  User,
+} from "lucide-react";
 import { toast } from "sonner";
 import { LEGAL } from "@/lib/legal-info";
 import { NotificationPreferences } from "@/components/notification-preferences";
-
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: Configuracoes,
@@ -56,10 +66,16 @@ function Configuracoes() {
   }, []);
 
   useEffect(() => {
-    if (!avatarUrl) { setSignedAvatar(null); return; }
-    supabase.storage.from("avatars").createSignedUrl(avatarUrl, 60 * 60).then(({ data }) => {
-      setSignedAvatar(data?.signedUrl ?? null);
-    });
+    if (!avatarUrl) {
+      setSignedAvatar(null);
+      return;
+    }
+    supabase.storage
+      .from("avatars")
+      .createSignedUrl(avatarUrl, 60 * 60)
+      .then(({ data }) => {
+        setSignedAvatar(data?.signedUrl ?? null);
+      });
   }, [avatarUrl]);
 
   const saveProfile = async () => {
@@ -73,13 +89,21 @@ function Configuracoes() {
       toast.success("Perfil atualizado.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao salvar");
-    } finally { setSavingProfile(false); }
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const uploadAvatar = async (file: File) => {
     if (!userId) return;
-    if (!file.type.startsWith("image/")) { toast.error("Use uma imagem."); return; }
-    if (file.size > AVATAR_MAX) { toast.error("Máximo 5MB."); return; }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Use uma imagem.");
+      return;
+    }
+    if (file.size > AVATAR_MAX) {
+      toast.error("Máximo 5MB.");
+      return;
+    }
     setUploadingAvatar(true);
     try {
       const ext = file.name.split(".").pop() || "jpg";
@@ -96,21 +120,32 @@ function Configuracoes() {
       toast.success("Foto atualizada.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha no upload");
-    } finally { setUploadingAvatar(false); }
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   const changePassword = async () => {
-    if (pwd.length < 8) { toast.error("Mínimo de 8 caracteres."); return; }
-    if (pwd !== pwd2) { toast.error("As senhas não coincidem."); return; }
+    if (pwd.length < 8) {
+      toast.error("Mínimo de 8 caracteres.");
+      return;
+    }
+    if (pwd !== pwd2) {
+      toast.error("As senhas não coincidem.");
+      return;
+    }
     setSavingPwd(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: pwd });
       if (error) throw error;
-      setPwd(""); setPwd2("");
+      setPwd("");
+      setPwd2("");
       toast.success("Senha atualizada.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao alterar senha");
-    } finally { setSavingPwd(false); }
+    } finally {
+      setSavingPwd(false);
+    }
   };
 
   const signOut = async () => {
@@ -141,7 +176,11 @@ function Configuracoes() {
               className="absolute -bottom-1 -right-1 size-8 rounded-full bg-primary text-primary-foreground grid place-items-center shadow"
               aria-label="Trocar foto"
             >
-              {uploadingAvatar ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
+              {uploadingAvatar ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Camera className="size-4" />
+              )}
             </button>
             <input
               ref={fileRef}
@@ -162,7 +201,9 @@ function Configuracoes() {
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Nome</Label>
+          <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Nome
+          </Label>
           <Input
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
@@ -192,7 +233,9 @@ function Configuracoes() {
             type="button"
             onClick={() => setTheme("light")}
             className={`h-12 rounded-2xl border flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
-              theme === "light" ? "border-primary bg-primary-soft text-primary" : "border-border text-muted-foreground hover:bg-muted"
+              theme === "light"
+                ? "border-primary bg-primary-soft text-primary"
+                : "border-border text-muted-foreground hover:bg-muted"
             }`}
           >
             <Sun className="size-4" /> Claro
@@ -201,7 +244,9 @@ function Configuracoes() {
             type="button"
             onClick={() => setTheme("dark")}
             className={`h-12 rounded-2xl border flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
-              theme === "dark" ? "border-primary bg-primary-soft text-primary" : "border-border text-muted-foreground hover:bg-muted"
+              theme === "dark"
+                ? "border-primary bg-primary-soft text-primary"
+                : "border-border text-muted-foreground hover:bg-muted"
             }`}
           >
             <Moon className="size-4" /> Escuro
@@ -213,12 +258,28 @@ function Configuracoes() {
       <section className="bg-card border border-border rounded-3xl p-5 space-y-3 mb-4">
         <h2 className="text-sm font-semibold">Alterar senha</h2>
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Nova senha</Label>
-          <Input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} className="rounded-xl" autoComplete="new-password" />
+          <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Nova senha
+          </Label>
+          <Input
+            type="password"
+            value={pwd}
+            onChange={(e) => setPwd(e.target.value)}
+            className="rounded-xl"
+            autoComplete="new-password"
+          />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Confirmar nova senha</Label>
-          <Input type="password" value={pwd2} onChange={(e) => setPwd2(e.target.value)} className="rounded-xl" autoComplete="new-password" />
+          <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Confirmar nova senha
+          </Label>
+          <Input
+            type="password"
+            value={pwd2}
+            onChange={(e) => setPwd2(e.target.value)}
+            className="rounded-xl"
+            autoComplete="new-password"
+          />
         </div>
         <Button
           onClick={changePassword}
@@ -248,11 +309,7 @@ function Configuracoes() {
       </section>
 
       {/* Sair */}
-      <Button
-        onClick={signOut}
-        variant="outline"
-        className="w-full h-11 rounded-2xl gap-2"
-      >
+      <Button onClick={signOut} variant="outline" className="w-full h-11 rounded-2xl gap-2">
         <LogOut className="size-4" /> Sair da conta
       </Button>
     </>
@@ -283,4 +340,3 @@ function LegalLink({
     </Link>
   );
 }
-

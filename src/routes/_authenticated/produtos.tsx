@@ -35,12 +35,21 @@ function Produtos() {
 
   const products = useMemo(() => {
     type Agg = {
-      qty: number; total: number; prices: number[];
-      byStore: Map<string, number[]>; unit: string | null;
+      qty: number;
+      total: number;
+      prices: number[];
+      byStore: Map<string, number[]>;
+      unit: string | null;
     };
     const m = new Map<string, Agg>();
     for (const p of prices) {
-      const v: Agg = m.get(p.normalized_name) ?? { qty: 0, total: 0, prices: [], byStore: new Map<string, number[]>(), unit: p.unit };
+      const v: Agg = m.get(p.normalized_name) ?? {
+        qty: 0,
+        total: 0,
+        prices: [],
+        byStore: new Map<string, number[]>(),
+        unit: p.unit,
+      };
       v.qty += Number(p.quantity);
       v.total += Number(p.unit_price) * Number(p.quantity);
       v.prices.push(Number(p.unit_price));
@@ -70,7 +79,10 @@ function Produtos() {
       ) : (
         <div className="space-y-2">
           {products.map((p) => (
-            <details key={p.name} className="bg-card border border-border rounded-2xl p-3 sm:p-4 group">
+            <details
+              key={p.name}
+              className="bg-card border border-border rounded-2xl p-3 sm:p-4 group"
+            >
               <summary className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 cursor-pointer list-none">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{p.name}</p>
@@ -87,7 +99,8 @@ function Produtos() {
               </div>
               {p.cheapestStore && (
                 <p className="text-[11px] text-primary mt-2 font-medium truncate">
-                  Mais barato em <span className="font-semibold">{p.cheapestStore.s}</span> ({brl(p.cheapestStore.avg)})
+                  Mais barato em <span className="font-semibold">{p.cheapestStore.s}</span> (
+                  {brl(p.cheapestStore.avg)})
                 </p>
               )}
             </details>
@@ -101,7 +114,9 @@ function Produtos() {
 function Mini({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
+      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">
+        {label}
+      </p>
       <p className="text-xs font-semibold">{value}</p>
     </div>
   );
