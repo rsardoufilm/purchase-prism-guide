@@ -122,18 +122,7 @@ function AuthPage() {
     <div className="min-h-screen flex flex-col items-center justify-center px-5 py-12 bg-background">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-block relative mb-5">
-            <div className="absolute -inset-2 rounded-2xl bg-gradient-to-br from-primary/25 to-primary/5 dark:from-primary/45 dark:to-primary/15 blur-[4px]" />
-            <div className="relative rounded-2xl bg-card/90 dark:bg-card/70 ring-1 ring-primary/20 dark:ring-primary/40 p-2.5 shadow-sm dark:shadow-[0_0_32px_hsla(24,95%,58%,0.30)]">
-              <img
-                src={logoAlpha}
-                alt="AURA Consumo"
-                width={64}
-                height={64}
-                className="size-16"
-              />
-            </div>
-          </div>
+          <BrandLogo size="lg" className="mb-5" />
           <h1 className="font-display text-3xl font-bold tracking-tight">AURA Consumo</h1>
           <p className="text-sm text-muted-foreground mt-1.5 text-balance">
             Entenda para onde seu dinheiro está indo.
