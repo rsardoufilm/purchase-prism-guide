@@ -21,7 +21,15 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
         setPull(0);
         return;
       }
-      setPull(Math.min(MAX, dy * 0.5));
+      const next = Math.min(MAX, dy * 0.5);
+      setPull((prev) => {
+        if (prev < THRESHOLD && next >= THRESHOLD) {
+          try {
+            (navigator as Navigator & { vibrate?: (p: number | number[]) => boolean }).vibrate?.(8);
+          } catch { /* no-op */ }
+        }
+        return next;
+      });
     };
     const onTouchEnd = async () => {
       if (startY.current == null) return;
