@@ -784,6 +784,15 @@ function ItemsEditor({
       const u = Number(merged.unit_price ?? 0);
       merged.total_price = Math.round(q * u * 100) / 100;
     }
+    // Se o usuário editou a descrição manualmente, re-normaliza o nome
+    // e reclassifica a categoria para manter coerência com a nota.
+    if (patch.raw_name !== undefined) {
+      const raw = String(patch.raw_name ?? "").trim();
+      merged.normalized_name = raw ? normalizeName(raw) : null;
+      if (patch.category === undefined) {
+        merged.category = classifyItem(raw);
+      }
+    }
     next[i] = merged;
     onChange(next);
   };
