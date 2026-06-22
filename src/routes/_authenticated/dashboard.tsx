@@ -191,13 +191,18 @@ function Dashboard() {
   }, [expenses, items]);
 
   const periodLabel = useMemo(() => {
+    if (typeof period === "string" && period.startsWith("month:")) return "neste mês";
     switch (period) {
-      case "this_month": return "este mês";
-      case "last_month": return "no mês passado";
-      case "last_7": return "nos últimos 7 dias";
-      case "last_30": return "nos últimos 30 dias";
-      case "this_year": return "este ano";
-      case "all": return "no total";
+      case "hoje": return "hoje";
+      case "ontem": return "ontem";
+      case "7d": return "nos últimos 7 dias";
+      case "15d": return "nos últimos 15 dias";
+      case "30d": return "nos últimos 30 dias";
+      case "este_mes": return "este mês";
+      case "90d": return "nos últimos 90 dias";
+      case "este_ano": return "este ano";
+      case "ultimo_ano": return "no último ano";
+      case "tudo": return "no total";
       default: return "no período";
     }
   }, [period]);
