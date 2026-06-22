@@ -138,6 +138,8 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
   const [tipIndex, setTipIndex] = useState(0);
   const [frameStatus, setFrameStatus] = useState<FrameStatus>("searching");
   const [autoCapture, setAutoCapture] = useState(true);
+  const [torchAvailable, setTorchAvailable] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
 
   // Rotaciona dicas a cada 3,5 s.
   useEffect(() => {
