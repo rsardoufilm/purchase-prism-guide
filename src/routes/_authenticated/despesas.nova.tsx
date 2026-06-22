@@ -276,8 +276,10 @@ function NovaDespesa() {
       setStep("ocr", "done");
 
       // Classificação determinística pós-OCR
+      // Prioridade: categoria já vinda do OCR → histórico do usuário → regras → null
       const processedItems = result.items.map((it) => {
-        const cat = it.category ?? classifyItem(it.raw_name);
+        const cat =
+          it.category ?? suggestCategory(it.raw_name, userCatMap) ?? classifyItem(it.raw_name);
         const norm = it.normalized_name ?? normalizeName(it.raw_name);
         return { ...it, category: cat, normalized_name: norm };
       });
