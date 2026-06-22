@@ -1,19 +1,30 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, X, RotateCcw, Loader2, Check, Zap, ZapOff } from "lucide-react";
+import { Camera, X, RotateCcw, Loader2, Check, Zap, ZapOff, Sun, Moon } from "lucide-react";
 import { logFailure } from "@/lib/failure-log";
 
 /**
- * Tenta ajustar a câmera para o máximo de luz/qualidade que o hardware
- * permite. Cada navegador expõe um subconjunto diferente — por isso
- * aplicamos cada constraint em try/catch separado.
+ * Detecta iOS (Safari/Chrome no iPhone/iPad). iOS expõe MUITO POUCO
+ * controle de exposição/ISO via getCapabilities — não adianta tentar
+ * `exposureCompensation`/`brightness`. Compensamos via pós-processamento
+ * + flash da câmera (`torch`) quando disponível.
  */
-async function tuneTrackForBrightness(track: MediaStreamTrack) {
+function isIOS() {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  return /iPad|iPhone|iPod/.test(ua) || (ua.includes("Mac") && "ontouchend" in document);
+}
+
+/**
+ * Ajusta a câmera para o melhor equilíbrio de luz. Por padrão NÃO força
+ * super-exposição (a regra anterior estourava a imagem em ambientes
+ * normais). O modo "low-light" amplifica os ganhos sob demanda.
+ */
+async function tuneTrack(track: MediaStreamTrack, lowLight: boolean) {
   const caps = (track.getCapabilities?.() ?? {}) as MediaTrackCapabilities & {
     exposureMode?: string[];
     exposureCompensation?: { min: number; max: number; step: number };
     whiteBalanceMode?: string[];
     focusMode?: string[];
-    iso?: { min: number; max: number };
     brightness?: { min: number; max: number };
     contrast?: { min: number; max: number };
   };
@@ -22,7 +33,7 @@ async function tuneTrackForBrightness(track: MediaStreamTrack) {
     try {
       await track.applyConstraints(c);
     } catch {
-      /* ignora — capability não suportada nesse device */
+      /* capability não suportada */
     }
   };
 
@@ -36,36 +47,48 @@ async function tuneTrackForBrightness(track: MediaStreamTrack) {
     await tryApply({ advanced: [{ focusMode: "continuous" } as never] });
   }
   if (caps.exposureCompensation) {
-    // valor positivo = imagem mais clara
-    const target = Math.min(caps.exposureCompensation.max, 2);
+    // Padrão: neutro (0). Low-light: +1.3 stops (sem estourar).
+    const target = lowLight
+      ? Math.min(caps.exposureCompensation.max, 1.3)
+      : 0;
     await tryApply({ advanced: [{ exposureCompensation: target } as never] });
   }
   if (caps.brightness) {
-    const target = caps.brightness.min + (caps.brightness.max - caps.brightness.min) * 0.65;
+    const ratio = lowLight ? 0.65 : 0.5;
+    const target = caps.brightness.min + (caps.brightness.max - caps.brightness.min) * ratio;
     await tryApply({ advanced: [{ brightness: target } as never] });
   }
   if (caps.contrast) {
-    const target = caps.contrast.min + (caps.contrast.max - caps.contrast.min) * 0.55;
+    const target = caps.contrast.min + (caps.contrast.max - caps.contrast.min) * 0.5;
     await tryApply({ advanced: [{ contrast: target } as never] });
   }
 }
 
-/** Pós-processamento leve: estica o histograma e aplica gamma para clarear sombras. */
-function brightenCanvas(ctx: CanvasRenderingContext2D, w: number, h: number) {
+/** Esticamento de histograma + gamma. Só roda quando a foto está
+ *  subexposta — evita estourar fotos já bem iluminadas. */
+function brightenCanvasIfDark(ctx: CanvasRenderingContext2D, w: number, h: number) {
   try {
     const img = ctx.getImageData(0, 0, w, h);
     const d = img.data;
-    // amostra para achar percentis aproximados (passo grande p/ performance)
     let min = 255;
     let max = 0;
+    let sum = 0;
+    let n = 0;
     const step = 40;
     for (let i = 0; i < d.length; i += step * 4) {
       const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
       if (lum < min) min = lum;
       if (lum > max) max = lum;
+      sum += lum;
+      n++;
     }
+    const mean = sum / Math.max(1, n);
+    // Imagem já bem exposta? Não mexe.
+    if (mean > 130) return;
+
     const range = Math.max(40, max - min);
-    const gamma = 0.78; // < 1 clareia médios-tons
+    // gamma adaptativo: mais agressivo quanto mais escura a cena.
+    const gamma = mean < 70 ? 0.7 : mean < 100 ? 0.8 : 0.9;
     const lut = new Uint8ClampedArray(256);
     for (let v = 0; v < 256; v++) {
       const norm = Math.min(1, Math.max(0, (v - min) / range));
@@ -78,7 +101,7 @@ function brightenCanvas(ctx: CanvasRenderingContext2D, w: number, h: number) {
     }
     ctx.putImageData(img, 0, 0);
   } catch {
-    /* ignora — imagem segue sem ajuste */
+    /* segue sem ajuste */
   }
 }
 
@@ -88,10 +111,6 @@ interface CameraCaptureProps {
   onClose: () => void;
 }
 
-/**
- * Dicas curtas que rotacionam enquanto o usuário enquadra a nota.
- * Mantemos textos pequenos para não competir com o guia visual.
- */
 const TIPS = [
   "Apoie a nota em uma superfície plana",
   "Evite sombras e reflexos",
@@ -100,11 +119,13 @@ const TIPS = [
   "Iluminação uniforme melhora a leitura",
 ] as const;
 
-type FrameStatus = "searching" | "adjust" | "hold" | "ready";
+type FrameStatus = "searching" | "adjust" | "dark" | "bright" | "hold" | "ready";
 
 const STATUS_LABEL: Record<FrameStatus, string> = {
   searching: "Posicione a nota dentro do quadro",
   adjust: "Imagem borrada — segure firme e aguarde o foco",
+  dark: "Pouca luz — ative o modo noturno ou a lanterna",
+  bright: "Muita luz — afaste a fonte de luz ou reduza o brilho",
   hold: "Segure firme…",
   ready: "Pronto! Capturando…",
 };
@@ -112,18 +133,12 @@ const STATUS_LABEL: Record<FrameStatus, string> = {
 const STATUS_COLOR: Record<FrameStatus, string> = {
   searching: "border-white/60",
   adjust: "border-amber-400",
+  dark: "border-indigo-400",
+  bright: "border-orange-400",
   hold: "border-sky-400",
   ready: "border-emerald-400",
 };
 
-/**
- * Captura nativa via getUserMedia — força câmera traseira (facingMode:
- * "environment") e solicita permissão explicitamente na primeira vez.
- *
- * Inclui guia visual de enquadramento, dicas rotativas e uma detecção
- * leve de borda (variância/densidade de gradientes dentro do quadro)
- * que dispara auto-captura quando a nota fica estável por ~1,2 s.
- */
 export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -131,6 +146,7 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
   const rafRef = useRef<number | null>(null);
   const stableSinceRef = useRef<number | null>(null);
   const capturedRef = useRef(false);
+  const lowLightRef = useRef(false);
 
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string>("");
@@ -140,8 +156,12 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
   const [autoCapture, setAutoCapture] = useState(true);
   const [torchAvailable, setTorchAvailable] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
+  const [lowLight, setLowLight] = useState(false);
+  const [exposure, setExposure] = useState<number>(128); // luminância média 0-255
+  const ios = useRef(isIOS());
 
-  // Rotaciona dicas a cada 3,5 s.
+  lowLightRef.current = lowLight;
+
   useEffect(() => {
     if (!open) return;
     const id = setInterval(() => setTipIndex((i) => (i + 1) % TIPS.length), 3500);
@@ -170,8 +190,6 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
         return;
       }
 
-      // Pedimos resolução alta para aproveitar o sensor + modos contínuos
-      // (foco/exposição/WB) que ajudam o ISP a clarear a cena.
       const hiRes = {
         width: { ideal: 1920 },
         height: { ideal: 1080 },
@@ -217,10 +235,9 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
 
       streamRef.current = stream;
 
-      // Ajusta exposição/WB/foco contínuos para clarear a cena.
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
-        await tuneTrackForBrightness(videoTrack);
+        await tuneTrack(videoTrack, lowLightRef.current);
         const caps = (videoTrack.getCapabilities?.() ?? {}) as MediaTrackCapabilities & {
           torch?: boolean;
         };
@@ -249,7 +266,15 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
     };
   }, [open]);
 
-  // Loop de análise de borda — roda só quando o vídeo está pronto.
+  // Reaplica constraints quando o usuário troca modo noturno.
+  useEffect(() => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track && status === "ready") {
+      void tuneTrack(track, lowLight);
+    }
+  }, [lowLight, status]);
+
+  // Loop de análise: foco, exposição e auto-disparo.
   useEffect(() => {
     if (status !== "ready") return;
     const video = videoRef.current;
@@ -262,7 +287,6 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
 
-    // Resolução baixa: rápido e suficiente p/ detectar variação de borda.
     const SAMPLE_W = 80;
     const SAMPLE_H = 120;
     canvas.width = SAMPLE_W;
@@ -273,7 +297,7 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
     const tick = (now: number) => {
       rafRef.current = requestAnimationFrame(tick);
       if (capturedRef.current) return;
-      if (now - lastRun < 200) return; // ~5 fps de análise
+      if (now - lastRun < 200) return;
       lastRun = now;
       if (video.videoWidth === 0) return;
 
@@ -281,7 +305,6 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
         ctx.drawImage(video, 0, 0, SAMPLE_W, SAMPLE_H);
         const { data } = ctx.getImageData(0, 0, SAMPLE_W, SAMPLE_H);
 
-        // Região central (onde fica o guia ~ 80% w x 70% h)
         const x0 = Math.floor(SAMPLE_W * 0.1);
         const x1 = Math.floor(SAMPLE_W * 0.9);
         const y0 = Math.floor(SAMPLE_H * 0.15);
@@ -293,13 +316,14 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
         let edgeSq = 0;
         let count = 0;
         let edgeCount = 0;
+        let bright = 0; // pixels > 245 (estouro)
         for (let y = y0; y < y1; y++) {
           for (let x = x0; x < x1; x++) {
             const i = (y * SAMPLE_W + x) * 4;
             const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
             sum += lum;
             sumSq += lum * lum;
-            // gradiente H + V (proxy de Laplaciano para medir foco/desfoque)
+            if (lum > 245) bright++;
             if (x + 1 < x1) {
               const j = (y * SAMPLE_W + (x + 1)) * 4;
               const l2 = 0.299 * data[j] + 0.587 * data[j + 1] + 0.114 * data[j + 2];
@@ -322,23 +346,27 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
         const mean = sum / count;
         const variance = sumSq / count - mean * mean;
         const edgeDensity = edgeAbs / Math.max(1, edgeCount);
-        // Variância dos gradientes ≈ Laplacian variance → clássico para desfoque.
-        // Quanto maior, mais nítida a imagem. < ~80 = borrada.
         const focusScore = edgeSq / Math.max(1, edgeCount);
+        const blownRatio = bright / count;
 
-        // Heurísticas recalibradas (mais tolerantes a ambiente escuro):
+        setExposure(Math.round(mean));
+
+        // iOS costuma entregar imagem ~10% mais escura no preview;
+        // afrouxamos o limiar mínimo nele.
+        const minLum = ios.current ? 32 : 45;
+        const maxLum = 225;
+
         const hasContent = variance > 220 && edgeDensity > 3.5;
-        const wellExposed = mean > 40 && mean < 235;
+        const tooDark = mean < minLum;
+        const tooBright = mean > maxLum || blownRatio > 0.18;
         const sharp = focusScore > 95 && edgeDensity > 7;
 
         let next: FrameStatus;
-        if (!hasContent || !wellExposed) {
-          next = "searching";
-        } else if (!sharp) {
-          next = "adjust";
-        } else {
-          next = "hold";
-        }
+        if (tooBright) next = "bright";
+        else if (tooDark) next = "dark";
+        else if (!hasContent) next = "searching";
+        else if (!sharp) next = "adjust";
+        else next = "hold";
 
         setFrameStatus((prev) => (prev === "ready" ? prev : next));
 
@@ -347,7 +375,6 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
           else if (autoCapture && now - stableSinceRef.current > 1200 && !capturedRef.current) {
             capturedRef.current = true;
             setFrameStatus("ready");
-            // pequena espera para feedback visual antes do disparo
             setTimeout(() => {
               void handleShoot();
             }, 150);
@@ -356,7 +383,7 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
           stableSinceRef.current = null;
         }
       } catch {
-        /* getImageData pode falhar se o vídeo ainda não decodificou */
+        /* getImageData pode falhar até o vídeo decodificar */
       }
     };
 
@@ -379,8 +406,9 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Canvas sem contexto 2D.");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      // pós-processamento: estica histograma + gamma p/ aproveitar todo o sensor
-      brightenCanvas(ctx, canvas.width, canvas.height);
+      // Só clareia se a foto estiver subexposta — assim não estoura cenas
+      // já bem iluminadas (problema relatado: "luz muito clara").
+      brightenCanvasIfDark(ctx, canvas.width, canvas.height);
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob((b) => resolve(b), "image/jpeg", 0.95),
       );
@@ -412,6 +440,15 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
   if (!open) return null;
 
   const borderColor = STATUS_COLOR[frameStatus];
+  // Filtro CSS apenas em modo noturno (evita preview sempre estourado).
+  const videoFilter = lowLight
+    ? "brightness(1.18) contrast(1.1) saturate(1.05)"
+    : "brightness(1.0) contrast(1.02)";
+
+  // barra de exposição (0 = escuro, 1 = estourado)
+  const exposureRatio = Math.min(1, Math.max(0, exposure / 255));
+  const exposureColor =
+    exposure < 45 ? "bg-indigo-400" : exposure > 225 ? "bg-orange-400" : "bg-emerald-400";
 
   return (
     <div className="fixed inset-0 z-[100] bg-black flex flex-col">
@@ -441,6 +478,18 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
           )}
           <button
             type="button"
+            onClick={() => setLowLight((v) => !v)}
+            className={`size-9 grid place-items-center rounded-full border ${
+              lowLight ? "bg-indigo-400 text-black border-indigo-200" : "border-white/30 text-white/80"
+            }`}
+            aria-pressed={lowLight}
+            aria-label="Modo baixa luz"
+            title={lowLight ? "Modo noturno ativo" : "Ativar modo noturno"}
+          >
+            {lowLight ? <Moon className="size-4" /> : <Sun className="size-4" />}
+          </button>
+          <button
+            type="button"
             onClick={() => setAutoCapture((v) => !v)}
             className={`text-[11px] px-2.5 py-1 rounded-full border ${
               autoCapture ? "border-emerald-400/70 text-emerald-300" : "border-white/30 text-white/70"
@@ -460,41 +509,51 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
           muted
           autoPlay
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ filter: "brightness(1.15) contrast(1.08) saturate(1.05)" }}
+          style={{ filter: videoFilter }}
         />
 
-        {/* Guia de enquadramento sem máscara escura (preserva luz do preview) */}
         {status === "ready" && (
           <div className="pointer-events-none absolute inset-0">
             <div
               className={`absolute left-[6%] right-[6%] top-[12%] bottom-[12%] rounded-2xl border-2 transition-colors duration-200 ${borderColor}`}
             >
-              {/* cantos destacados */}
               <span className={`absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 rounded-tl-2xl ${borderColor}`} />
               <span className={`absolute -top-0.5 -right-0.5 w-6 h-6 border-t-4 border-r-4 rounded-tr-2xl ${borderColor}`} />
               <span className={`absolute -bottom-0.5 -left-0.5 w-6 h-6 border-b-4 border-l-4 rounded-bl-2xl ${borderColor}`} />
               <span className={`absolute -bottom-0.5 -right-0.5 w-6 h-6 border-b-4 border-r-4 rounded-br-2xl ${borderColor}`} />
             </div>
 
-            {/* status flutuante no topo do quadro */}
-            <div className="absolute left-1/2 -translate-x-1/2 top-[6%] flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 text-white text-xs backdrop-blur-sm">
-              {frameStatus === "ready" ? (
-                <Check className="size-3.5 text-emerald-400" />
-              ) : (
-                <span
-                  className={`size-2 rounded-full ${
-                    frameStatus === "hold"
-                      ? "bg-sky-400 animate-pulse"
-                      : frameStatus === "adjust"
-                        ? "bg-amber-400"
-                        : "bg-white/70"
-                  }`}
+            <div className="absolute left-1/2 -translate-x-1/2 top-[6%] flex flex-col items-center gap-1.5">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 text-white text-xs backdrop-blur-sm">
+                {frameStatus === "ready" ? (
+                  <Check className="size-3.5 text-emerald-400" />
+                ) : (
+                  <span
+                    className={`size-2 rounded-full ${
+                      frameStatus === "hold"
+                        ? "bg-sky-400 animate-pulse"
+                        : frameStatus === "adjust"
+                          ? "bg-amber-400"
+                          : frameStatus === "dark"
+                            ? "bg-indigo-400"
+                            : frameStatus === "bright"
+                              ? "bg-orange-400"
+                              : "bg-white/70"
+                    }`}
+                  />
+                )}
+                <span>{STATUS_LABEL[frameStatus]}</span>
+              </div>
+
+              {/* barra de exposição */}
+              <div className="w-40 h-1 rounded-full bg-white/20 overflow-hidden">
+                <div
+                  className={`h-full ${exposureColor} transition-all duration-200`}
+                  style={{ width: `${exposureRatio * 100}%` }}
                 />
-              )}
-              <span>{STATUS_LABEL[frameStatus]}</span>
+              </div>
             </div>
 
-            {/* dica rotativa abaixo do quadro */}
             <div className="absolute left-1/2 -translate-x-1/2 bottom-[6%] max-w-[80%]">
               <p
                 key={tipIndex}
