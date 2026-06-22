@@ -204,12 +204,22 @@ function Dashboard() {
             }
           />
           <KpiCard
-            icon={<TrendingDown className="size-4" />}
-            label="Economia"
-            value={brl(kpis.savings)}
-            sub="vs. preço médio"
-            accent
+            icon={<Wallet className="size-4" />}
+            label="Pagamento"
+            value={kpis.topPay ? (PAYMENT_LABELS[kpis.topPay[0]] ?? kpis.topPay[0]) : "—"}
+            sub={
+              kpis.topPay ? `${kpis.topPay[1]} ${kpis.topPay[1] > 1 ? "usos" : "uso"}` : ""
+            }
           />
+          <div className="col-span-2">
+            <KpiCard
+              icon={<TrendingDown className="size-4" />}
+              label="Economia"
+              value={brl(kpis.savings)}
+              sub="vs. preço médio"
+              accent
+            />
+          </div>
         </section>
       )}
 
