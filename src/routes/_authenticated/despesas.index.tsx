@@ -74,7 +74,7 @@ function DespesasIndex() {
     supabase
       .from("expenses")
       .select("id,merchant_name,category,expense_date,total_amount,payment_method")
-      .order("expense_date", { ascending: false })
+      .order("expense_date", { ascending: true })
       .then(({ data }) => {
         setRows((data ?? []) as Row[]);
         setLoading(false);
