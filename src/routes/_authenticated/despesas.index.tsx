@@ -74,6 +74,8 @@ function DespesasIndex() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkCat, setBulkCat] = useState<string>("");
   const [bulkSaving, setBulkSaving] = useState(false);
+  const [subs, setSubs] = useState<SubscriptionRow[]>([]);
+  const [showProjected, setShowProjected] = useState(true);
 
   const load = () => {
     setLoading(true);
@@ -85,6 +87,10 @@ function DespesasIndex() {
         setRows((data ?? []) as Row[]);
         setLoading(false);
       });
+    supabase
+      .from("subscriptions")
+      .select("id,name,amount,frequency,next_due_date")
+      .then(({ data }) => setSubs((data ?? []) as SubscriptionRow[]));
   };
 
   useEffect(() => {
