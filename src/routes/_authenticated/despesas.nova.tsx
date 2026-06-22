@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Loader2, ScanLine, Upload, Trash2, Check, Circle, Camera, FileText, Plus, AlertTriangle, Eraser } from "lucide-react";
 import { ocrReceipt, type OcrResult } from "@/lib/ocr.functions";
 import { brl } from "@/lib/format";
-import { classifyItem, normalizeName, classifyMerchant, inferExpenseCategory } from "@/lib/classifier";
+import { classifyItem, normalizeName, classifyMerchant, inferExpenseCategory, MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
 import { requestCameraPermission } from "@/lib/camera-permission";
 import { logFailure, readFailures, clearFailures, type FailureEntry } from "@/lib/failure-log";
 import { useEffect } from "react";
