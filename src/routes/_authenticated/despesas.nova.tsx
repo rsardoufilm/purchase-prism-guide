@@ -205,7 +205,7 @@ function NovaDespesa() {
     setCameraOpen(true);
   };
 
-  const handleFile = async (file: File) => {
+  const handleFile = async (file: File, origin: "camera" | "upload" = "upload") => {
     if (!ACCEPTED.has(file.type)) {
       const msg = `Formato inválido (${file.type || "desconhecido"}). Use JPG, PNG ou PDF.`;
       logFailure("validate_type", msg, { name: file.name, type: file.type, size: file.size });
