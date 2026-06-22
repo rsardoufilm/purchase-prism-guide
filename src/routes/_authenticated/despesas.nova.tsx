@@ -83,6 +83,7 @@ const CATEGORY_OPTIONS = [
   "Peixes",
   "Frios",
   "Queijos",
+  "Laticínios",
   "Leite",
   "Iogurtes",
   "Pães",
