@@ -157,7 +157,8 @@ function Configuracoes() {
 
   return (
     <>
-      <PageHeader eyebrow="Conta" title="Configurações" />
+      <PageHeader eyebrow="Conta" title="Configurações" tourKey="configuracoes" />
+      <TourGuide tourKey="configuracoes" steps={TOURS.configuracoes} />
 
       {/* Perfil */}
       <section className="bg-card border border-border rounded-3xl p-5 space-y-4 mb-4">
