@@ -42,11 +42,20 @@ import {
 import {
   loadUserCategoryMap,
   suggestCategory,
+  suggestSource,
   type UserCategoryMap,
 } from "@/lib/user-classifier";
+import {
+  loadUserExpenseCategoryMap,
+  suggestExpenseCategory,
+  type UserExpenseCategoryMap,
+} from "@/lib/user-classifier-expense";
 import { CameraCapture } from "@/components/camera-capture";
 import { logFailure, readFailures, clearFailures, type FailureEntry } from "@/lib/failure-log";
 import { useEffect } from "react";
+import { Sparkles, UserCheck } from "lucide-react";
+
+type CategorySource = "ocr" | "learned" | "rule" | "user" | null;
 
 export const Route = createFileRoute("/_authenticated/despesas/nova")({
   component: NovaDespesa,
