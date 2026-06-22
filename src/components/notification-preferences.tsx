@@ -12,6 +12,9 @@ interface Prefs {
   enabled_weekly_summary: boolean;
   enabled_health_alert: boolean;
   lead_days: 1 | 3 | 7;
+  daily_summary_hour: number;
+  quiet_start_hour: number | null;
+  quiet_end_hour: number | null;
 }
 
 const DEFAULTS: Prefs = {
@@ -21,6 +24,9 @@ const DEFAULTS: Prefs = {
   enabled_weekly_summary: true,
   enabled_health_alert: true,
   lead_days: 3,
+  daily_summary_hour: 20,
+  quiet_start_hour: null,
+  quiet_end_hour: null,
 };
 
 const TYPES: Array<{ key: keyof Prefs; label: string; desc: string }> = [
@@ -31,11 +37,14 @@ const TYPES: Array<{ key: keyof Prefs; label: string; desc: string }> = [
   { key: "enabled_health_alert", label: "Alerta de gorduras saturadas", desc: "Detecta consumo elevado de itens gordurosos." },
 ];
 
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
 export function NotificationPreferences() {
   const [userId, setUserId] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [quietEnabled, setQuietEnabled] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -44,10 +53,14 @@ export function NotificationPreferences() {
       setUserId(u.user.id);
       const { data } = await supabase
         .from("notification_preferences")
-        .select("enabled_subscription,enabled_recurring,enabled_daily_summary,enabled_weekly_summary,enabled_health_alert,lead_days")
+        .select("enabled_subscription,enabled_recurring,enabled_daily_summary,enabled_weekly_summary,enabled_health_alert,lead_days,daily_summary_hour,quiet_start_hour,quiet_end_hour")
         .eq("user_id", u.user.id)
         .maybeSingle();
-      if (data) setPrefs({ ...DEFAULTS, ...data } as Prefs);
+      if (data) {
+        const merged = { ...DEFAULTS, ...data } as Prefs;
+        setPrefs(merged);
+        setQuietEnabled(merged.quiet_start_hour != null && merged.quiet_end_hour != null);
+      }
       setLoading(false);
     })();
   }, []);
@@ -64,6 +77,12 @@ export function NotificationPreferences() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao salvar");
     } finally { setSaving(false); }
+  };
+
+  const toggleQuiet = (v: boolean) => {
+    setQuietEnabled(v);
+    if (v) save({ ...prefs, quiet_start_hour: prefs.quiet_start_hour ?? 22, quiet_end_hour: prefs.quiet_end_hour ?? 8 });
+    else save({ ...prefs, quiet_start_hour: null, quiet_end_hour: null });
   };
 
   if (loading) {
@@ -98,11 +117,11 @@ export function NotificationPreferences() {
         ))}
       </ul>
 
-      <div className="pt-2 border-t border-border">
+      <div className="pt-2 border-t border-border space-y-2">
         <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Avisar com antecedência
         </Label>
-        <div className="grid grid-cols-3 gap-2 mt-2">
+        <div className="grid grid-cols-3 gap-2">
           {[1, 3, 7].map((d) => (
             <button
               key={d}
@@ -119,9 +138,61 @@ export function NotificationPreferences() {
             </button>
           ))}
         </div>
-        <p className="text-[11px] text-muted-foreground mt-2">
-          Aplica-se a assinaturas e contas recorrentes.
-        </p>
+        <p className="text-[11px] text-muted-foreground">Aplica-se a assinaturas e contas recorrentes.</p>
+      </div>
+
+      <div className="pt-2 border-t border-border space-y-2">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="dailyHour" className="text-sm font-medium">Horário do resumo diário</Label>
+          <span className="text-xs text-muted-foreground">Horário de Brasília</span>
+        </div>
+        <select
+          id="dailyHour"
+          value={prefs.daily_summary_hour}
+          onChange={(e) => save({ ...prefs, daily_summary_hour: Number(e.target.value) })}
+          className="w-full h-10 rounded-xl border border-border bg-background px-3 text-sm"
+        >
+          {HOURS.map((h) => (
+            <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>
+          ))}
+        </select>
+        <p className="text-[11px] text-muted-foreground">O resumo semanal usa o mesmo horário (toda segunda).</p>
+      </div>
+
+      <div className="pt-2 border-t border-border space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <Label htmlFor="quiet" className="text-sm font-medium">Período silencioso</Label>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Nenhuma notificação é criada durante esta faixa.
+            </p>
+          </div>
+          <Switch id="quiet" checked={quietEnabled} onCheckedChange={toggleQuiet} aria-label="Período silencioso" />
+        </div>
+        {quietEnabled && (
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">De</Label>
+              <select
+                value={prefs.quiet_start_hour ?? 22}
+                onChange={(e) => save({ ...prefs, quiet_start_hour: Number(e.target.value) })}
+                className="w-full h-10 mt-1 rounded-xl border border-border bg-background px-3 text-sm"
+              >
+                {HOURS.map((h) => <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>)}
+              </select>
+            </div>
+            <div>
+              <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Até</Label>
+              <select
+                value={prefs.quiet_end_hour ?? 8}
+                onChange={(e) => save({ ...prefs, quiet_end_hour: Number(e.target.value) })}
+                className="w-full h-10 mt-1 rounded-xl border border-border bg-background px-3 text-sm"
+              >
+                {HOURS.map((h) => <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>)}
+              </select>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
