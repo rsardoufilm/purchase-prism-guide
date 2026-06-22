@@ -201,6 +201,26 @@ function DespesasIndex() {
 
   const uncategorizedCount = useMemo(() => rows.filter((r) => !r.category).length, [rows]);
 
+  const projectedOccurrences = useMemo(() => {
+    const { start, end } = periodRange(period);
+    const all = projectSubscriptionOccurrences(subs);
+    const todayIso = new Date().toISOString().slice(0, 10);
+    return all.filter((o) => {
+      const iso = `${o.date.getFullYear()}-${String(o.date.getMonth() + 1).padStart(2, "0")}-${String(o.date.getDate()).padStart(2, "0")}`;
+      if (iso < todayIso) return false;
+      const s = isoDate(start);
+      const e = isoDate(end);
+      if (s && iso < s) return false;
+      if (e && iso > e) return false;
+      return true;
+    });
+  }, [subs, period]);
+
+  const projectedTotal = useMemo(
+    () => projectedOccurrences.reduce((acc, o) => acc + o.amount, 0),
+    [projectedOccurrences],
+  );
+
   return (
     <>
       <PageHeader eyebrow="Despesas" title="Suas despesas" />
