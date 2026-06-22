@@ -166,14 +166,31 @@ function Consumo() {
 
 
       <section className="mb-4">
-        <h2 className="font-display font-semibold mb-2 text-sm">Por tipo de estabelecimento</h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="font-display font-semibold text-sm">Por tipo de estabelecimento</h2>
+          <span className="text-[10px] text-muted-foreground">toque em <Tag className="inline size-3" /> para reclassificar</span>
+        </div>
         <div className="space-y-2">
-          {byExpenseCategory.slice(0, 6).map(([cat, total]) => (
-            <div key={cat} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-3 sm:p-4">
-              <p className="text-sm font-semibold truncate">{cat}</p>
-              <p className="text-sm font-bold">{brl(total)}</p>
-            </div>
-          ))}
+          {byExpenseCategory.slice(0, 8).map(([cat, total]) => {
+            const count = filteredExpenses.filter((e) => (e.category || "Sem categoria") === cat).length;
+            return (
+              <div key={cat} className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2 items-center bg-card border border-border rounded-2xl p-3 sm:p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">{cat}</p>
+                  <p className="text-[10px] text-muted-foreground">{count} {count === 1 ? "despesa" : "despesas"}</p>
+                </div>
+                <p className="text-sm font-bold whitespace-nowrap">{brl(total)}</p>
+                <button
+                  type="button"
+                  onClick={() => { setBulkTarget({ from: cat, count }); setBulkNewCat(""); }}
+                  aria-label={`Reclassificar ${cat}`}
+                  className="size-8 grid place-items-center rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+                >
+                  <Tag className="size-3.5" />
+                </button>
+              </div>
+            );
+          })}
           {byExpenseCategory.length === 0 && (
             <p className="text-sm text-muted-foreground">Nenhuma despesa registrada ainda.</p>
           )}
