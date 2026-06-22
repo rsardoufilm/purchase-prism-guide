@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
-import { Bell, BellRing, CreditCard, Repeat, Receipt, Apple, CheckCheck } from "lucide-react";
+import { Bell, BellRing, CreditCard, Repeat, Receipt, Apple, CheckCheck, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { generateNotifications } from "@/lib/notifications.functions";
 import {
@@ -40,31 +40,64 @@ const ROUTES: Record<string, AppRoute> = {
   health_alert: "/consumo",
 };
 
+const TYPE_LABELS: Record<string, string> = {
+  subscription_due: "Assinaturas",
+  recurring_due: "Contas",
+  daily_summary: "Resumo diário",
+  weekly_summary: "Resumo semanal",
+  health_alert: "Saúde",
+};
+
+type Filter = "all" | "unread" | string; // string = tipo específico
+
 const LAST_CHECK_KEY = "aura:notif-last-check";
+const PUSH_ENABLED_KEY = "aura:notifications-enabled";
+
+/** Dispara notificação nativa do navegador (in-browser push, sem servidor). */
+function firePush(title: string, body: string) {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+  if (localStorage.getItem(PUSH_ENABLED_KEY) !== "1") return;
+  try {
+    new Notification(title, { body, icon: "/favicon.ico", tag: "aura-notif", silent: false });
+  } catch {
+    // alguns navegadores exigem service worker para mostrar — falha silenciosamente
+  }
+}
 
 export function NotificationBell() {
   const [items, setItems] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState<Filter>("all");
   const generate = useServerFn(generateNotifications);
   const navigate = useNavigate();
+  const seenIdsRef = useRef<Set<string> | null>(null);
 
   const load = useCallback(async () => {
     const { data } = await supabase
       .from("user_notifications")
       .select("id,type,title,message,read,created_at,related_id")
       .order("created_at", { ascending: false })
-      .limit(30);
-    setItems((data ?? []) as Notif[]);
+      .limit(50);
+    const next = (data ?? []) as Notif[];
+
+    // Detecta novas e dispara push nativo (apenas para itens não vistos antes)
+    if (seenIdsRef.current !== null) {
+      const newly = next.filter((n) => !seenIdsRef.current!.has(n.id) && !n.read);
+      if (newly.length === 1) firePush(newly[0].title, newly[0].message);
+      else if (newly.length > 1) firePush(`${newly.length} novas notificações`, newly[0].title);
+    }
+    seenIdsRef.current = new Set(next.map((n) => n.id));
+    setItems(next);
   }, []);
 
-  // Gera e carrega no mount + a cada 5 minutos
+  // Mount: gera + carrega; depois recarrega a cada 5 min
   useEffect(() => {
     let active = true;
     const run = async () => {
       try {
         const last = Number(localStorage.getItem(LAST_CHECK_KEY) ?? 0);
         const now = Date.now();
-        // só roda a geração no máximo a cada 30 min
         if (now - last > 30 * 60_000) {
           const res = await generate();
           localStorage.setItem(LAST_CHECK_KEY, String(now));
@@ -74,9 +107,7 @@ export function NotificationBell() {
             });
           }
         }
-      } catch {
-        // silencioso — não bloqueia o app
-      }
+      } catch { /* silencioso */ }
       if (active) await load();
     };
     run();
@@ -85,6 +116,18 @@ export function NotificationBell() {
   }, [generate, load]);
 
   const unread = items.filter((n) => !n.read).length;
+
+  const filtered = useMemo(() => {
+    if (filter === "all") return items;
+    if (filter === "unread") return items.filter((n) => !n.read);
+    return items.filter((n) => n.type === filter);
+  }, [items, filter]);
+
+  // tipos presentes (para mostrar só chips relevantes)
+  const presentTypes = useMemo(
+    () => [...new Set(items.map((n) => n.type))].filter((t) => t in TYPE_LABELS),
+    [items],
+  );
 
   const markAllRead = async () => {
     const ids = items.filter((n) => !n.read).map((n) => n.id);
@@ -96,6 +139,21 @@ export function NotificationBell() {
   const markOne = async (id: string) => {
     await supabase.from("user_notifications").update({ read: true }).eq("id", id);
     setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  };
+
+  const clearAll = async () => {
+    if (items.length === 0) return;
+    if (!confirm("Apagar todas as notificações? Esta ação não pode ser desfeita.")) return;
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    const { error } = await supabase
+      .from("user_notifications")
+      .delete()
+      .eq("user_id", u.user.id);
+    if (error) { toast.error("Falha ao limpar"); return; }
+    setItems([]);
+    seenIdsRef.current = new Set();
+    toast.success("Notificações limpas.");
   };
 
   const handleClick = async (n: Notif) => {
@@ -130,28 +188,57 @@ export function NotificationBell() {
       <DropdownMenuContent
         align="end"
         sideOffset={8}
-        className="w-80 max-h-[70vh] overflow-y-auto rounded-2xl border bg-popover p-0 shadow-lg"
+        className="w-80 max-h-[80vh] overflow-y-auto rounded-2xl border bg-popover p-0 shadow-lg"
       >
-        <div className="flex items-center justify-between px-3 py-2.5 border-b border-border sticky top-0 bg-popover z-10">
-          <span className="text-sm font-semibold">Notificações</span>
-          {unread > 0 && (
-            <button
-              onClick={markAllRead}
-              className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
-              aria-label="Marcar todas como lidas"
-            >
-              <CheckCheck className="size-3.5" aria-hidden />
-              Marcar todas
-            </button>
+        <div className="sticky top-0 bg-popover z-10 border-b border-border">
+          <div className="flex items-center justify-between px-3 py-2.5">
+            <span className="text-sm font-semibold">Notificações</span>
+            <div className="flex items-center gap-2">
+              {unread > 0 && (
+                <button
+                  onClick={markAllRead}
+                  className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
+                  aria-label="Marcar todas como lidas"
+                >
+                  <CheckCheck className="size-3.5" aria-hidden />
+                  Marcar
+                </button>
+              )}
+              {items.length > 0 && (
+                <button
+                  onClick={clearAll}
+                  className="text-xs text-destructive font-medium hover:underline flex items-center gap-1"
+                  aria-label="Limpar todas as notificações"
+                >
+                  <Trash2 className="size-3.5" aria-hidden />
+                  Limpar
+                </button>
+              )}
+            </div>
+          </div>
+          {items.length > 0 && (
+            <div className="flex gap-1.5 overflow-x-auto no-scrollbar px-3 pb-2" role="tablist" aria-label="Filtrar notificações">
+              <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label={`Todas (${items.length})`} />
+              <FilterChip active={filter === "unread"} onClick={() => setFilter("unread")} label={`Não lidas (${unread})`} />
+              {presentTypes.map((t) => (
+                <FilterChip
+                  key={t}
+                  active={filter === t}
+                  onClick={() => setFilter(t)}
+                  label={TYPE_LABELS[t] ?? t}
+                />
+              ))}
+            </div>
           )}
         </div>
-        {items.length === 0 ? (
+
+        {filtered.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            Nenhuma notificação ainda. Volte mais tarde.
+            {items.length === 0 ? "Nenhuma notificação ainda. Volte mais tarde." : "Nada neste filtro."}
           </p>
         ) : (
           <ul className="divide-y divide-border" role="list">
-            {items.map((n) => {
+            {filtered.map((n) => {
               const Icon = ICONS[n.type] ?? Bell;
               return (
                 <li key={n.id}>
@@ -191,5 +278,24 @@ export function NotificationBell() {
         )}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function FilterChip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        "px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-colors",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "bg-muted text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {label}
+    </button>
   );
 }
