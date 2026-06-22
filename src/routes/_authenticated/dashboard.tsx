@@ -7,7 +7,7 @@ import { TOURS } from "@/lib/tours";
 import { PeriodFilter } from "@/components/period-filter";
 import { periodRange, type PeriodKey } from "@/lib/period";
 import { brl, brlCompact, fmtDate } from "@/lib/format";
-import { Sparkles, TrendingDown, Store, Package as PackageIcon } from "lucide-react";
+import { Sparkles, TrendingDown, Store, Package as PackageIcon, Wallet } from "lucide-react";
 import { DashboardSummaryCard } from "@/components/dashboard-summary-card";
 import { DashboardCardsSkeleton, RecentExpensesSkeleton } from "@/components/dashboard-skeleton";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
@@ -28,6 +28,7 @@ interface ExpenseRow {
   category: string | null;
   expense_date: string;
   total_amount: number;
+  payment_method: string | null;
 }
 interface ItemRow {
   normalized_name: string | null;
@@ -36,6 +37,16 @@ interface ItemRow {
   unit_price: number;
   category: string | null;
 }
+
+const PAYMENT_LABELS: Record<string, string> = {
+  pix: "PIX",
+  credito: "Crédito",
+  debito: "Débito",
+  dinheiro: "Dinheiro",
+  vale_alimentacao: "Vale Alim.",
+  vale_refeicao: "Vale Refei.",
+  outros: "Outros",
+};
 
 function isoDate(d: Date | null) {
   return d ? d.toISOString().slice(0, 10) : null;
@@ -63,7 +74,7 @@ function Dashboard() {
     (async () => {
       let q = supabase
         .from("expenses")
-        .select("id,merchant_name,category,expense_date,total_amount")
+        .select("id,merchant_name,category,expense_date,total_amount,payment_method")
         .order("expense_date", { ascending: false });
       if (s) q = q.gte("expense_date", s);
       if (e) q = q.lte("expense_date", e);
@@ -112,6 +123,13 @@ function Dashboard() {
     for (const r of expenses) byStore.set(r.merchant_name, (byStore.get(r.merchant_name) ?? 0) + 1);
     const topStore = [...byStore.entries()].sort((a, b) => b[1] - a[1])[0];
 
+    const byPay = new Map<string, number>();
+    for (const r of expenses) {
+      const k = r.payment_method || "outros";
+      byPay.set(k, (byPay.get(k) ?? 0) + 1);
+    }
+    const topPay = [...byPay.entries()].sort((a, b) => b[1] - a[1])[0];
+
     // Economia: itens com preço unitário abaixo da média do produto normalizado
     const prodAvg = new Map<string, { sum: number; count: number }>();
     for (const it of items) {
@@ -132,7 +150,7 @@ function Dashboard() {
       if (Number(it.unit_price) < avg) savings += (avg - Number(it.unit_price)) * 1;
     }
 
-    return { total, topCat, topProd, topStore, savings, catList };
+    return { total, topCat, topProd, topStore, topPay, savings, catList };
   }, [expenses, items]);
 
   return (
@@ -186,12 +204,22 @@ function Dashboard() {
             }
           />
           <KpiCard
-            icon={<TrendingDown className="size-4" />}
-            label="Economia"
-            value={brl(kpis.savings)}
-            sub="vs. preço médio"
-            accent
+            icon={<Wallet className="size-4" />}
+            label="Pagamento"
+            value={kpis.topPay ? (PAYMENT_LABELS[kpis.topPay[0]] ?? kpis.topPay[0]) : "—"}
+            sub={
+              kpis.topPay ? `${kpis.topPay[1]} ${kpis.topPay[1] > 1 ? "usos" : "uso"}` : ""
+            }
           />
+          <div className="col-span-2">
+            <KpiCard
+              icon={<TrendingDown className="size-4" />}
+              label="Economia"
+              value={brl(kpis.savings)}
+              sub="vs. preço médio"
+              accent
+            />
+          </div>
         </section>
       )}
 
