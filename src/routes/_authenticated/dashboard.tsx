@@ -315,6 +315,35 @@ function Dashboard() {
         </section>
       )}
 
+      {!loading && kpis.productAccum.length > 0 && (
+        <section className="mb-3 animate-aura-in">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-display font-semibold text-sm">Acumulado por produto</h3>
+            <span className="text-[10px] text-muted-foreground">
+              {kpis.productAccum.length} {kpis.productAccum.length === 1 ? "produto" : "produtos"}
+            </span>
+          </div>
+          <p className="text-[11px] text-muted-foreground mb-2">
+            Quanto você já comprou de cada produto {periodLabel}.
+          </p>
+          <div className="space-y-1.5">
+            {kpis.productAccum.slice(0, 8).map((a) => (
+              <div
+                key={`${a.display}-${a.baseUnit}`}
+                className="bg-card border border-border rounded-2xl p-3 flex items-center justify-between gap-3"
+              >
+                <p className="text-xs font-semibold truncate capitalize">{a.display}</p>
+                <p className="text-xs font-bold whitespace-nowrap text-primary">
+                  {formatQty(a.qty, a.baseUnit)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+
+
       <section className="mb-3 animate-aura-in">
         <div className="bg-secondary text-secondary-foreground p-4 rounded-3xl relative overflow-hidden">
           <div className="relative z-10">
