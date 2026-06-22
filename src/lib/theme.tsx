@@ -35,7 +35,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     apply(t);
     try {
       window.localStorage.setItem(KEY, t);
-    } catch { /* ignore storage errors */ }
+    } catch {
+      /* ignore storage errors */
+    }
   };
 
   return (
