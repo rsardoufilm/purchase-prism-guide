@@ -39,6 +39,11 @@ import {
   inferExpenseCategory,
   MERCHANT_CATEGORY_OPTIONS,
 } from "@/lib/classifier";
+import {
+  loadUserCategoryMap,
+  suggestCategory,
+  type UserCategoryMap,
+} from "@/lib/user-classifier";
 import { CameraCapture } from "@/components/camera-capture";
 import { logFailure, readFailures, clearFailures, type FailureEntry } from "@/lib/failure-log";
 import { useEffect } from "react";
