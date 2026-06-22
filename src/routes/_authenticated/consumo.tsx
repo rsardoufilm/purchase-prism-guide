@@ -21,10 +21,15 @@ interface ItemRow {
 function Consumo() {
   const [items, setItems] = useState<ItemRow[]>([]);
   useEffect(() => {
-    supabase
-      .from("expense_items")
-      .select("normalized_name,raw_name,category,quantity,unit,total_price")
-      .then(({ data }) => setItems((data ?? []) as ItemRow[]));
+    const load = () => {
+      supabase
+        .from("expense_items")
+        .select("normalized_name,raw_name,category,quantity,unit,total_price")
+        .then(({ data }) => setItems((data ?? []) as ItemRow[]));
+    };
+    load();
+    window.addEventListener("aura:data-changed", load);
+    return () => window.removeEventListener("aura:data-changed", load);
   }, []);
 
   const byCategory = useMemo(() => {
@@ -51,11 +56,11 @@ function Consumo() {
   return (
     <>
       <PageHeader eyebrow="Consumo" title="O que você compra" />
-      <section className="mb-6">
-        <h2 className="font-display font-semibold mb-3">Categorias mais consumidas</h2>
+      <section className="mb-4">
+        <h2 className="font-display font-semibold mb-2 text-sm">Categorias mais consumidas</h2>
         <div className="space-y-2">
           {byCategory.slice(0, 6).map(([cat, total]) => (
-            <div key={cat} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-4">
+            <div key={cat} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-3 sm:p-4">
               <p className="text-sm font-semibold truncate">{cat}</p>
               <p className="text-sm font-bold">{brl(total)}</p>
             </div>
@@ -66,13 +71,13 @@ function Consumo() {
         </div>
       </section>
       <section>
-        <h2 className="font-display font-semibold mb-3">Produtos mais consumidos</h2>
+        <h2 className="font-display font-semibold mb-2 text-sm">Produtos mais consumidos</h2>
         <div className="space-y-2">
           {byProduct.map(([prod, v]) => (
-            <div key={prod} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-4">
+            <div key={prod} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-3 sm:p-4">
               <div className="min-w-0">
                 <p className="text-sm font-semibold truncate">{prod}</p>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
                   {v.qty.toLocaleString("pt-BR")} {v.unit ?? "un"} acumulado
                 </p>
               </div>

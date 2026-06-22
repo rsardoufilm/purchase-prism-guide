@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
 import { CalendarDays, TrendingUp } from "lucide-react";
+import { DashboardSummarySkeleton } from "./dashboard-summary-skeleton";
 
 export function DashboardSummaryCard() {
   const [today, setToday] = useState(0);
@@ -35,7 +36,7 @@ export function DashboardSummaryCard() {
     return () => { cancel = true; };
   }, []);
 
-  if (loading) return null;
+  if (loading) return <DashboardSummarySkeleton />;
   if (today === 0 && week === 0) return null;
 
   return (
