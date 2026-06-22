@@ -115,7 +115,7 @@ function Dashboard() {
     const byProd = new Map<string, number>();
     for (const it of items) {
       const k = it.normalized_name || it.raw_name;
-      byProd.set(k, (byProd.get(k) ?? 0) + Number(it.total_price ?? 0));
+      byProd.set(k, (byProd.get(k) ?? 0) + 1);
     }
     const topProd = [...byProd.entries()].sort((a, b) => b[1] - a[1])[0];
 
