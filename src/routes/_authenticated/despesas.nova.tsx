@@ -27,6 +27,7 @@ import {
   FileText,
   Plus,
   AlertTriangle,
+  Info,
   Eraser,
 } from "lucide-react";
 import { ocrReceipt, type OcrResult } from "@/lib/ocr.functions";
