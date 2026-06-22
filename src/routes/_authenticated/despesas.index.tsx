@@ -39,7 +39,10 @@ import { brl, fmtDate, paymentLabel } from "@/lib/format";
 import { MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
 import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
+import { useSharedCategories } from "@/hooks/use-shared-categories";
+import { CategoryMultiFilter } from "@/components/category-multi-filter";
 import { useSharedCategory } from "@/hooks/use-shared-category";
+
 import { SubscriptionDialog } from "@/components/subscription-dialog";
 import { Repeat, CalendarClock } from "lucide-react";
 import {
@@ -72,7 +75,7 @@ function DespesasIndex() {
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [filter, setFilter] = useSharedCategory();
+  const [filter, setFilter] = useSharedCategories();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkCat, setBulkCat] = useState<string>("");
   const [bulkSaving, setBulkSaving] = useState(false);
@@ -196,9 +199,15 @@ function DespesasIndex() {
     let list = rows;
     if (s) list = list.filter((r) => r.expense_date >= s);
     if (e) list = list.filter((r) => r.expense_date <= e);
-    if (filter === "all") return list;
-    if (filter === "__uncat__") return list.filter((r) => !r.category);
-    return list.filter((r) => r.category === filter);
+    const isAll = filter.length === 1 && filter[0] === "all";
+    if (isAll) return list;
+    const includeUncat = filter.includes("__uncat__");
+    const selectedCategories = filter.filter((f) => f !== "__uncat__");
+    return list.filter(
+      (r) =>
+        (includeUncat && !r.category) ||
+        (r.category && selectedCategories.includes(r.category)),
+    );
   }, [rows, filter, period]);
 
   const uncategorizedCount = useMemo(() => rows.filter((r) => !r.category).length, [rows]);
@@ -258,10 +267,10 @@ function DespesasIndex() {
         />
       </div>
 
-      {uncategorizedCount > 0 && filter !== "__uncat__" && (
+      {uncategorizedCount > 0 && !filter.includes("__uncat__") && (
         <button
           type="button"
-          onClick={() => setFilter("__uncat__")}
+          onClick={() => setFilter(["__uncat__"])}
           className="w-full flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 rounded-2xl p-3 mb-3 text-left hover:bg-amber-500/15 transition-colors"
         >
           <AlertTriangle className="size-4 shrink-0" />
@@ -273,25 +282,13 @@ function DespesasIndex() {
         </button>
       )}
 
-      <div className="flex items-center gap-2 mb-3">
-        <Filter className="size-4 text-muted-foreground shrink-0" />
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="rounded-xl h-9 text-xs flex-1">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as categorias</SelectItem>
-            <SelectItem value="__uncat__">
-              Sem categoria{uncategorizedCount ? ` (${uncategorizedCount})` : ""}
-            </SelectItem>
-            {categoriesPresent.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <CategoryMultiFilter
+        value={filter}
+        onChange={setFilter}
+        categories={categoriesPresent}
+        uncategorizedCount={uncategorizedCount}
+        className="mb-3"
+      />
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
