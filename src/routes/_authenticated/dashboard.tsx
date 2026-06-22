@@ -138,7 +138,7 @@ function Dashboard() {
       <DashboardSummaryCard />
 
       <div className="mb-3 animate-aura-in">
-        <PeriodFilter value={period} onChange={handlePeriodChange} />
+        <PeriodFilter value={period} onChange={setPeriod} />
       </div>
 
       {loading ? (
