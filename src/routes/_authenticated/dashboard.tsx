@@ -166,11 +166,11 @@ function Dashboard() {
       </section>
 
 
-      <section className="mb-6 animate-aura-in">
-        <div className="bg-secondary text-secondary-foreground p-5 rounded-3xl relative overflow-hidden">
+      <section className="mb-3 animate-aura-in">
+        <div className="bg-secondary text-secondary-foreground p-4 rounded-3xl relative overflow-hidden">
           <div className="relative z-10">
-            <h3 className="font-display text-lg font-semibold mb-1">Insight</h3>
-            <p className="text-secondary-foreground/70 text-sm leading-relaxed max-w-[85%]">
+            <h3 className="font-display text-base font-semibold mb-0.5">Insight</h3>
+            <p className="text-secondary-foreground/70 text-xs sm:text-sm leading-relaxed max-w-[85%]">
               {expenses.length === 0
                 ? "Adicione sua primeira nota fiscal para receber insights de consumo."
                 : kpis.topCat
@@ -178,14 +178,15 @@ function Dashboard() {
                   : "Continue registrando para descobrir padrões."}
             </p>
           </div>
-          <div className="absolute -right-6 -bottom-6 size-32 bg-primary rounded-full blur-3xl opacity-25" />
+          <div className="absolute -right-6 -bottom-6 size-32 bg-primary rounded-full blur-3xl opacity-25" aria-hidden />
         </div>
       </section>
 
-      <section className="animate-aura-in mb-8">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-display font-semibold">Recentes</h3>
+      <section className="animate-aura-in mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-display font-semibold text-sm">Recentes</h3>
         </div>
+
         {loading ? (
           <p className="text-sm text-muted-foreground">Carregando…</p>
         ) : expenses.length === 0 ? (
@@ -217,13 +218,14 @@ function KpiCard({ icon, label, value, sub, accent }: {
   icon: React.ReactNode; label: string; value: string; sub: string; accent?: boolean;
 }) {
   return (
-    <div className="bg-card p-4 rounded-3xl border border-border shadow-[var(--shadow-card)] min-w-0">
-      <div className="flex items-center gap-1.5 mb-2">
+    <div className="bg-card p-3 sm:p-4 rounded-3xl border border-border shadow-[var(--shadow-card)] min-w-0">
+      <div className="flex items-center gap-1.5 mb-1.5">
         <span className={accent ? "text-primary" : "text-muted-foreground"}>{icon}</span>
-        <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">{label}</p>
+        <p className="text-muted-foreground text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider truncate">{label}</p>
       </div>
-      <p className={`font-semibold text-sm truncate ${accent ? "text-primary" : ""}`}>{value}</p>
+      <p className={`font-semibold text-xs sm:text-sm truncate ${accent ? "text-primary" : ""}`}>{value}</p>
       <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{sub}</p>
     </div>
+
   );
 }
