@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Filter, Tag, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
+import { TourGuide } from "@/components/tour-guide";
+import { TOURS } from "@/lib/tours";
 import { PeriodFilter } from "@/components/period-filter";
 import { periodRange } from "@/lib/period";
 import {
