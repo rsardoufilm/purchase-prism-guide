@@ -5,11 +5,12 @@ import {
   Pencil,
   Trash2,
   Loader2,
-  Filter,
   AlertTriangle,
   CheckSquare,
   Square,
   X,
+  Repeat,
+  CalendarClock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
