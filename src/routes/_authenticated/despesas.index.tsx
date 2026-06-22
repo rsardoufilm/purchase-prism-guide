@@ -155,10 +155,16 @@ function DespesasIndex() {
   }, [rows]);
 
   const filteredRows = useMemo(() => {
-    if (filter === "all") return rows;
-    if (filter === "__uncat__") return rows.filter((r) => !r.category);
-    return rows.filter((r) => r.category === filter);
-  }, [rows, filter]);
+    const { start, end } = periodRange(period);
+    const s = isoDate(start);
+    const e = isoDate(end);
+    let list = rows;
+    if (s) list = list.filter((r) => r.expense_date >= s);
+    if (e) list = list.filter((r) => r.expense_date <= e);
+    if (filter === "all") return list;
+    if (filter === "__uncat__") return list.filter((r) => !r.category);
+    return list.filter((r) => r.category === filter);
+  }, [rows, filter, period]);
 
   const uncategorizedCount = useMemo(() => rows.filter((r) => !r.category).length, [rows]);
 
