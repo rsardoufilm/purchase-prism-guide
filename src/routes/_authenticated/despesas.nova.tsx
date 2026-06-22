@@ -437,7 +437,7 @@ function NovaDespesa() {
         title={editId ? "Editar nota" : "Adicionar nota"}
         tourKey={editId ? undefined : "despesas-nova"}
       />
-      {!editId && <TourGuide tourKey="despesas-nova" steps={TOURS["despesas-nova"]} />
+      {!editId && <TourGuide tourKey="despesas-nova" steps={TOURS["despesas-nova"]} />}
 
       {loadingEdit && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
