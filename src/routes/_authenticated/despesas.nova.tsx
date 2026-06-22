@@ -294,16 +294,44 @@ function NovaDespesa() {
 
       // Classificação determinística pós-OCR
       // Prioridade: categoria já vinda do OCR → histórico do usuário → regras → null
+      const sources: CategorySource[] = [];
       const processedItems = result.items.map((it) => {
-        const cat =
-          it.category ?? suggestCategory(it.raw_name, userCatMap) ?? classifyItem(it.raw_name);
+        let source: CategorySource = null;
+        let cat = it.category ?? null;
+        if (cat) source = "ocr";
+        if (!cat) {
+          const learned = suggestCategory(it.raw_name, userCatMap);
+          if (learned) {
+            cat = learned;
+            source = "learned";
+          }
+        }
+        if (!cat) {
+          const rule = classifyItem(it.raw_name);
+          if (rule) {
+            cat = rule;
+            source = "rule";
+          }
+        }
+        sources.push(source);
         const norm = it.normalized_name ?? normalizeName(it.raw_name);
         return { ...it, category: cat, normalized_name: norm };
       });
       const inferredCategory = inferExpenseCategory(processedItems, result.merchant_name);
+      const learnedExp = suggestExpenseCategory(result.merchant_name, userExpMap);
+      let expCat: string | null = result.category ?? null;
+      let expSource: CategorySource = expCat ? "ocr" : null;
+      if (!expCat && learnedExp) {
+        expCat = learnedExp;
+        expSource = "learned";
+      }
+      if (!expCat && inferredCategory) {
+        expCat = inferredCategory;
+        expSource = "rule";
+      }
       const enriched: OcrResult = {
         ...result,
-        category: result.category ?? inferredCategory ?? null,
+        category: expCat,
         items: processedItems,
       };
 
@@ -314,6 +342,8 @@ function NovaDespesa() {
       setStoragePath(path);
       setSource(file.type === "application/pdf" ? "pdf" : "photo");
       setDraft(enriched);
+      setItemSources(sources);
+      setExpenseCategorySource(expSource);
       toast.success(
         `Nota lida! ${enriched.items.length} ${enriched.items.length === 1 ? "item" : "itens"} encontrados.`,
       );
