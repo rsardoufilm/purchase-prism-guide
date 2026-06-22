@@ -134,22 +134,22 @@ function Dashboard() {
 
       <DashboardSummaryCard />
 
-      <div className="mb-6 animate-aura-in">
+      <div className="mb-3 animate-aura-in">
         <PeriodFilter value={period} onChange={setPeriod} />
       </div>
 
-      <section className="grid grid-cols-2 gap-3 mb-5 animate-aura-in">
-        <div className="col-span-2 bg-card p-6 rounded-3xl border border-border shadow-[var(--shadow-card)]">
-          <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider mb-2">
+      <section className="grid grid-cols-2 gap-2.5 mb-3 animate-aura-in">
+        <div className="col-span-2 bg-card p-4 sm:p-6 rounded-3xl border border-border shadow-[var(--shadow-card)]">
+          <p className="text-muted-foreground text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider mb-1.5">
             Total gasto no período
           </p>
           <div className="flex items-baseline gap-1">
-            <span className="text-muted-foreground text-lg font-medium">R$</span>
-            <h2 className="font-display text-4xl font-bold tracking-tight">
+            <span className="text-muted-foreground text-base sm:text-lg font-medium">R$</span>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">
               {brl(kpis.total).replace("R$", "").trim()}
             </h2>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-2">
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-1.5">
             {expenses.length} {expenses.length === 1 ? "nota fiscal" : "notas fiscais"}
           </p>
         </div>
@@ -164,6 +164,7 @@ function Dashboard() {
         <KpiCard icon={<TrendingDown className="size-4" />} label="Economia"
           value={brl(kpis.savings)} sub="vs. preço médio" accent />
       </section>
+
 
       <section className="mb-6 animate-aura-in">
         <div className="bg-secondary text-secondary-foreground p-5 rounded-3xl relative overflow-hidden">
