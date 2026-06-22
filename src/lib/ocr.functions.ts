@@ -61,7 +61,9 @@ Extraia os dados em JSON ESTRITO com este schema:
   "category": string|null,                 // uma de: ${CATEGORIES.join(", ")}
   "expense_date": string|null,             // YYYY-MM-DD
   "expense_time": string|null,             // HH:MM:SS
-  "total_amount": number,
+  "subtotal_amount": number|null,          // soma bruta antes de descontos (se aparecer na nota)
+  "discount_total": number|null,           // total de descontos aplicados à nota (valor positivo)
+  "total_amount": number,                  // valor LÍQUIDO final pago (já com descontos)
   "payment_method": "pix"|"credito"|"debito"|"dinheiro"|"vale_alimentacao"|"vale_refeicao"|"outros",
   "items": [
     {
@@ -70,8 +72,10 @@ Extraia os dados em JSON ESTRITO com este schema:
       "category": string|null,
       "quantity": number|null,
       "unit": string|null,                 // "kg","g","l","ml","un","cx","pct","dz"
-      "unit_price": number|null,
-      "total_price": number|null
+      "unit_price": number|null,           // preço unitário CHEIO (antes de desconto)
+      "gross_price": number|null,          // quantity * unit_price (bruto, antes de desconto)
+      "discount": number|null,             // desconto aplicado ao item (valor POSITIVO em R$)
+      "total_price": number|null           // valor LÍQUIDO do item = gross_price - discount
     }
   ]
 }
@@ -79,13 +83,19 @@ Extraia os dados em JSON ESTRITO com este schema:
 Regras CRÍTICAS para ITENS (papel térmico costuma estar borrado — siga à risca):
 1. raw_name = texto EXATAMENTE como aparece, PRESERVANDO espaços entre palavras. Se vir "COCACOLA2L" reconstrua para "COCA COLA 2L". NUNCA grude palavras nem invente caracteres.
 2. Remova códigos numéricos longos (EAN/SKU com 8+ dígitos seguidos) do raw_name — não fazem parte do nome do produto.
-3. Cada linha de item geralmente tem "Qtd X UN Vl.Unit Y Vl.Total Z". Extraia quantity, unit_price e total_price desses números. Valide: quantity * unit_price ≈ total_price (tolerância R$ 0,02). Se não bater, releia a linha antes de responder.
-4. normalized_name agrupa equivalentes: "ARROZ TIPO 1 5KG TIO JOÃO" → "Arroz"; "COCA COLA 2L" → "Refrigerante"; "PÃO FRANCÊS UN" → "Pães"; "LEITE INTEGRAL UHT 1L" → "Leite"; "FEIJÃO CARIOCA 1KG" → "Feijão"; "CREME DENTAL COLGATE 90G" → "Creme dental" (NUNCA confunda com "Creme de leite"); "CREME DE LEITE NESTLÉ 200G" → "Creme de leite". Leia o raw_name com atenção: "DENTAL" ≠ "DE LEITE".
-5. unit infira pelo sufixo: "5KG"→kg, "500G"→g, "2L"→l, "350ML"→ml; sem sufixo → "un".
-6. NUNCA invente itens. Se a linha está ilegível, OMITA — é melhor faltar do que alucinar.
-7. RECONCILIAÇÃO: a soma dos total_price dos itens deve ficar a ≤2% do total_amount. Se a diferença for maior, releia antes de responder (provavelmente confundiu quantidade ou preço).
+3. Cada linha de item geralmente tem "Qtd X UN Vl.Unit Y Vl.Total Z". Extraia quantity, unit_price e gross_price desses números. Valide: quantity * unit_price ≈ gross_price (tolerância R$ 0,02).
+4. DESCONTOS — leia com MUITA atenção:
+   a) Desconto por item aparece como linha logo abaixo do produto, com rótulos: "DESC", "DESCONTO", "DESC. ITEM", "DESC ITEM", "Vl. Desconto", "(-) DESCONTO", "DESC PROMOC", "DESC OFERTA", "DESC FIDELIDADE", "DESC ATACADO". Sempre é um valor a SUBTRAIR. Coloque em "discount" (valor POSITIVO, ex.: R$ 2,50 → 2.5) e calcule total_price = gross_price - discount.
+   b) Algumas notas mostram apenas o preço líquido já com desconto na coluna total. Nesse caso, se você identificar "DE R$ X POR R$ Y" ou "VL UNIT PROMO" abaixo do unit_price normal, use Y como total_price e registre a diferença em discount.
+   c) Desconto GERAL da nota (rótulos "DESCONTO TOTAL", "DESC. SUBTOTAL", "(-) DESCONTOS") vai em discount_total. NÃO duplique: se o desconto já foi rateado por item, não some de novo no discount_total.
+   d) Se a nota tem subtotal explícito (rótulos "SUBTOTAL", "TOTAL BRUTO", "TOTAL PRODUTOS"), registre em subtotal_amount. Valide: subtotal_amount - discount_total ≈ total_amount.
+   e) total_amount é SEMPRE o valor LÍQUIDO final efetivamente pago (rótulos "TOTAL", "VALOR A PAGAR", "VALOR PAGO", "TOTAL R$"). NUNCA use o subtotal bruto aqui.
+5. normalized_name agrupa equivalentes: "ARROZ TIPO 1 5KG TIO JOÃO" → "Arroz"; "COCA COLA 2L" → "Refrigerante"; "PÃO FRANCÊS UN" → "Pães"; "LEITE INTEGRAL UHT 1L" → "Leite"; "FEIJÃO CARIOCA 1KG" → "Feijão"; "CREME DENTAL COLGATE 90G" → "Creme dental" (NUNCA confunda com "Creme de leite"); "CREME DE LEITE NESTLÉ 200G" → "Creme de leite". Leia o raw_name com atenção: "DENTAL" ≠ "DE LEITE".
+6. unit infira pelo sufixo: "5KG"→kg, "500G"→g, "2L"→l, "350ML"→ml; sem sufixo → "un".
+7. NUNCA invente itens. Se a linha está ilegível, OMITA — é melhor faltar do que alucinar. Descontos NÃO viram itens próprios — eles modificam o item acima.
+8. RECONCILIAÇÃO FINAL: soma(total_price dos itens) ≈ total_amount (≤2% de diferença). Equivalentemente: soma(gross_price) - soma(discount) - discount_total ≈ total_amount. Se não bater, releia descontos e quantidades antes de responder.
 
-Valores numéricos com ponto decimal (12.90), NUNCA strings. Campos não identificáveis: null. Responda APENAS o objeto JSON, sem markdown.`;
+Valores numéricos com ponto decimal (12.90), NUNCA strings. Descontos sempre como número POSITIVO. Campos não identificáveis: null. Responda APENAS o objeto JSON, sem markdown.`;
 
 export const ocrReceipt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
