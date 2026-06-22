@@ -25,6 +25,7 @@ import { Route as AuthenticatedConsumoRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenticated/assinaturas'
+import { Route as AuthenticatedAprendizadoRouteImport } from './routes/_authenticated/aprendizado'
 import { Route as AuthenticatedAjudaRouteImport } from './routes/_authenticated/ajuda'
 import { Route as AuthenticatedDespesasIndexRouteImport } from './routes/_authenticated/despesas.index'
 import { Route as AuthenticatedDespesasNovaRouteImport } from './routes/_authenticated/despesas.nova'
@@ -112,6 +113,12 @@ const AuthenticatedAssinaturasRoute =
     path: '/assinaturas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAprendizadoRoute =
+  AuthenticatedAprendizadoRouteImport.update({
+    id: '/aprendizado',
+    path: '/aprendizado',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAjudaRoute = AuthenticatedAjudaRouteImport.update({
   id: '/ajuda',
   path: '/ajuda',
@@ -141,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/ajuda': typeof AuthenticatedAjudaRoute
+  '/aprendizado': typeof AuthenticatedAprendizadoRoute
   '/assinaturas': typeof AuthenticatedAssinaturasRoute
   '/chat': typeof AuthenticatedChatRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -162,6 +170,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/ajuda': typeof AuthenticatedAjudaRoute
+  '/aprendizado': typeof AuthenticatedAprendizadoRoute
   '/assinaturas': typeof AuthenticatedAssinaturasRoute
   '/chat': typeof AuthenticatedChatRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -184,6 +193,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/ajuda': typeof AuthenticatedAjudaRoute
+  '/_authenticated/aprendizado': typeof AuthenticatedAprendizadoRoute
   '/_authenticated/assinaturas': typeof AuthenticatedAssinaturasRoute
   '/_authenticated/chat': typeof AuthenticatedChatRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -207,6 +217,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/ajuda'
+    | '/aprendizado'
     | '/assinaturas'
     | '/chat'
     | '/configuracoes'
@@ -228,6 +239,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/ajuda'
+    | '/aprendizado'
     | '/assinaturas'
     | '/chat'
     | '/configuracoes'
@@ -249,6 +261,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/ajuda'
+    | '/_authenticated/aprendizado'
     | '/_authenticated/assinaturas'
     | '/_authenticated/chat'
     | '/_authenticated/configuracoes'
@@ -391,6 +404,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAssinaturasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/aprendizado': {
+      id: '/_authenticated/aprendizado'
+      path: '/aprendizado'
+      fullPath: '/aprendizado'
+      preLoaderRoute: typeof AuthenticatedAprendizadoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ajuda': {
       id: '/_authenticated/ajuda'
       path: '/ajuda'
@@ -439,6 +459,7 @@ const AuthenticatedDespesasRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAjudaRoute: typeof AuthenticatedAjudaRoute
+  AuthenticatedAprendizadoRoute: typeof AuthenticatedAprendizadoRoute
   AuthenticatedAssinaturasRoute: typeof AuthenticatedAssinaturasRoute
   AuthenticatedChatRoute: typeof AuthenticatedChatRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
@@ -452,6 +473,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAjudaRoute: AuthenticatedAjudaRoute,
+  AuthenticatedAprendizadoRoute: AuthenticatedAprendizadoRoute,
   AuthenticatedAssinaturasRoute: AuthenticatedAssinaturasRoute,
   AuthenticatedChatRoute: AuthenticatedChatRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
