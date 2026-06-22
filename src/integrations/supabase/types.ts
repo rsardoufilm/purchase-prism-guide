@@ -360,6 +360,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_tour_progress: {
+        Row: {
+          completed_at: string
+          tour_key: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          tour_key: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          tour_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

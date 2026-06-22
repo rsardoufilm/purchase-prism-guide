@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
+import { TourGuide } from "@/components/tour-guide";
+import { TOURS } from "@/lib/tours";
 import { PeriodFilter } from "@/components/period-filter";
 import { periodRange, type PeriodKey } from "@/lib/period";
 import { brl, brlCompact, fmtDate } from "@/lib/format";
@@ -135,7 +137,8 @@ function Dashboard() {
 
   return (
     <>
-      <PageHeader eyebrow="Dashboard" title="AURA Consumo" />
+      <PageHeader eyebrow="Dashboard" title="AURA Consumo" tourKey="dashboard" />
+      <TourGuide tourKey="dashboard" steps={TOURS.dashboard} />
 
       <DashboardSummaryCard />
 

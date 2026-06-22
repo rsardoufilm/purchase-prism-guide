@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
+import { TourGuide } from "@/components/tour-guide";
+import { TOURS } from "@/lib/tours";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -90,7 +92,8 @@ function Recorrentes() {
 
   return (
     <>
-      <PageHeader eyebrow="Recorrentes" title="Contas fixas" />
+      <PageHeader eyebrow="Recorrentes" title="Contas fixas" tourKey="recorrentes" />
+      <TourGuide tourKey="recorrentes" steps={TOURS.recorrentes} />
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-semibold mb-5 gap-2">

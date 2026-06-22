@@ -3,6 +3,8 @@ import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
+import { TourGuide } from "@/components/tour-guide";
+import { TOURS } from "@/lib/tours";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -433,7 +435,9 @@ function NovaDespesa() {
       <PageHeader
         eyebrow={editId ? "Editar despesa" : "Nova despesa"}
         title={editId ? "Editar nota" : "Adicionar nota"}
+        tourKey={editId ? undefined : "despesas-nova"}
       />
+      {!editId && <TourGuide tourKey="despesas-nova" steps={TOURS["despesas-nova"]} />}
 
       {loadingEdit && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

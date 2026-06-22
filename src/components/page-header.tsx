@@ -13,8 +13,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
-import { LogOut, Settings, Bell, HelpCircle } from "lucide-react";
+import { LogOut, Settings, Bell, HelpCircle, CircleHelp } from "lucide-react";
 import { toast } from "sonner";
+import { replayTour } from "@/components/tour-guide";
 
 interface ProfileData {
   displayName: string;
@@ -24,7 +25,7 @@ interface ProfileData {
 
 const NOTIF_KEY = "aura:notifications-enabled";
 
-export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
+export function PageHeader({ eyebrow, title, tourKey }: { eyebrow: string; title: string; tourKey?: string }) {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileData>({
     displayName: "",
@@ -124,6 +125,25 @@ export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string 
       </div>
 
       <div className="flex items-center gap-2 justify-self-end">
+        {tourKey && (
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => replayTour(tourKey)}
+                  className="size-10 shrink-0 rounded-full bg-card border border-border grid place-items-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  aria-label="Abrir guia rápido desta tela"
+                >
+                  <CircleHelp className="size-5" aria-hidden />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={6}>
+                Guia rápido
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         <NotificationBell />
 
         <TooltipProvider delayDuration={300}>

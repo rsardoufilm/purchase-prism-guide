@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
+import { TourGuide } from "@/components/tour-guide";
+import { TOURS } from "@/lib/tours";
 import { PeriodFilter } from "@/components/period-filter";
 import { periodRange, type PeriodKey } from "@/lib/period";
 import { Input } from "@/components/ui/input";
@@ -275,7 +277,8 @@ function Insights() {
 
   return (
     <>
-      <PageHeader eyebrow="Insights" title="Sua inteligência" />
+      <PageHeader eyebrow="Insights" title="Sua inteligência" tourKey="chat" />
+      <TourGuide tourKey="chat" steps={TOURS.chat} />
 
       <div className="mb-4">
         <PeriodFilter value={period} onChange={setPeriod} />

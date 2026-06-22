@@ -2,6 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
+import { TourGuide } from "@/components/tour-guide";
+import { TOURS } from "@/lib/tours";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -155,7 +157,8 @@ function Configuracoes() {
 
   return (
     <>
-      <PageHeader eyebrow="Conta" title="Configurações" />
+      <PageHeader eyebrow="Conta" title="Configurações" tourKey="configuracoes" />
+      <TourGuide tourKey="configuracoes" steps={TOURS.configuracoes} />
 
       {/* Perfil */}
       <section className="bg-card border border-border rounded-3xl p-5 space-y-4 mb-4">
