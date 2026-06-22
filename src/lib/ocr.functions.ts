@@ -5,6 +5,9 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const Input = z.object({
   fileDataUrl: z.string().min(20).max(15_000_000),
   mimeType: z.string().min(3).max(100),
+  // "upload" usa modelo mais preciso (Pro) + passe de reconciliação.
+  // "camera" mantém Flash para resposta rápida no fluxo de captura.
+  source: z.enum(["upload", "camera"]).optional().default("camera"),
 });
 
 const ItemSchema = z.object({
