@@ -1,12 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Filter } from "lucide-react";
+import { Filter, Tag, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/format";
+import { MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/consumo")({
   component: Consumo,
