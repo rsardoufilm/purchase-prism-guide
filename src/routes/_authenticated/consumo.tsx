@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Filter, Tag, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
+import { PeriodFilter } from "@/components/period-filter";
+import { periodRange } from "@/lib/period";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -14,6 +16,7 @@ import {
 import { brl } from "@/lib/format";
 import { MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
 import { toast } from "sonner";
+import { useSharedPeriod } from "@/hooks/use-shared-period";
 
 export const Route = createFileRoute("/_authenticated/consumo")({
   component: Consumo,
@@ -34,11 +37,15 @@ interface ExpenseRow {
   merchant_name: string;
   category: string | null;
   total_amount: number;
+  expense_date: string;
 }
 
 const CONSUMO_FILTER_KEY = "aura:consumo:filter-category";
 
+function isoDate(d: Date | null) { return d ? d.toISOString().slice(0, 10) : null; }
+
 function Consumo() {
+  const [period, setPeriod] = useSharedPeriod();
   const [items, setItems] = useState<ItemRow[]>([]);
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [filter, setFilter] = useState<string>(() => {
@@ -84,7 +91,7 @@ function Consumo() {
         .then(({ data }) => setItems((data ?? []) as ItemRow[]));
       supabase
         .from("expenses")
-        .select("id,merchant_name,category,total_amount")
+        .select("id,merchant_name,category,total_amount,expense_date")
         .then(({ data }) => setExpenses((data ?? []) as ExpenseRow[]));
     };
     load();
@@ -92,28 +99,28 @@ function Consumo() {
     return () => window.removeEventListener("aura:data-changed", load);
   }, []);
 
-  // Mapa expense_id → categoria de estabelecimento (para filtrar itens)
-  const expCategoryById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const e of expenses) m.set(e.id, e.category || "Sem categoria");
-    return m;
-  }, [expenses]);
+  const { start, end } = periodRange(period);
+  const s = isoDate(start);
+  const e = isoDate(end);
+
+  const filteredExpenses = useMemo(() => {
+    let list = expenses;
+    if (s) list = list.filter((x) => x.expense_date >= s);
+    if (e) list = list.filter((x) => x.expense_date <= e);
+    if (filter === "all") return list;
+    return list.filter((e) => (e.category || "Sem categoria") === filter);
+  }, [expenses, s, e, filter]);
+
+  const filteredItems = useMemo(() => {
+    const ids = new Set(filteredExpenses.map((x) => x.id));
+    return items.filter((it) => ids.has(it.expense_id));
+  }, [items, filteredExpenses]);
 
   const allCategories = useMemo(() => {
     const set = new Set<string>();
     for (const e of expenses) set.add(e.category || "Sem categoria");
     return Array.from(set).sort();
   }, [expenses]);
-
-  const filteredExpenses = useMemo(() => {
-    if (filter === "all") return expenses;
-    return expenses.filter((e) => (e.category || "Sem categoria") === filter);
-  }, [expenses, filter]);
-
-  const filteredItems = useMemo(() => {
-    if (filter === "all") return items;
-    return items.filter((it) => expCategoryById.get(it.expense_id) === filter);
-  }, [items, expCategoryById, filter]);
 
   const byProduct = useMemo(() => {
     const m = new Map<string, { total: number; qty: number; unit: string | null }>();
@@ -148,6 +155,10 @@ function Consumo() {
   return (
     <>
       <PageHeader eyebrow="Consumo" title="O que você compra" />
+
+      <div className="mb-3 animate-aura-in">
+        <PeriodFilter value={period} onChange={setPeriod} />
+      </div>
 
       <div className="flex items-center gap-2 mb-4">
         <Filter className="size-4 text-muted-foreground shrink-0" />

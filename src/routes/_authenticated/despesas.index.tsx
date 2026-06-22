@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Pencil, Trash2, Loader2, Filter, AlertTriangle, CheckSquare, Square, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
+import { PeriodFilter } from "@/components/period-filter";
+import { periodRange } from "@/lib/period";
 import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -20,6 +22,7 @@ import {
 import { brl, fmtDate, paymentLabel } from "@/lib/format";
 import { MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
 import { toast } from "sonner";
+import { useSharedPeriod } from "@/hooks/use-shared-period";
 
 export const Route = createFileRoute("/_authenticated/despesas/")({
   component: DespesasIndex,
@@ -37,8 +40,11 @@ interface Row {
 
 const FILTER_KEY = "aura:despesas:filter-category";
 
+function isoDate(d: Date | null) { return d ? d.toISOString().slice(0, 10) : null; }
+
 function DespesasIndex() {
   const navigate = useNavigate();
+  const [period, setPeriod] = useSharedPeriod();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
@@ -149,16 +155,27 @@ function DespesasIndex() {
   }, [rows]);
 
   const filteredRows = useMemo(() => {
-    if (filter === "all") return rows;
-    if (filter === "__uncat__") return rows.filter((r) => !r.category);
-    return rows.filter((r) => r.category === filter);
-  }, [rows, filter]);
+    const { start, end } = periodRange(period);
+    const s = isoDate(start);
+    const e = isoDate(end);
+    let list = rows;
+    if (s) list = list.filter((r) => r.expense_date >= s);
+    if (e) list = list.filter((r) => r.expense_date <= e);
+    if (filter === "all") return list;
+    if (filter === "__uncat__") return list.filter((r) => !r.category);
+    return list.filter((r) => r.category === filter);
+  }, [rows, filter, period]);
 
   const uncategorizedCount = useMemo(() => rows.filter((r) => !r.category).length, [rows]);
 
   return (
     <>
       <PageHeader eyebrow="Despesas" title="Suas despesas" />
+
+      <div className="mb-3 animate-aura-in">
+        <PeriodFilter value={period} onChange={setPeriod} />
+      </div>
+
       <Button asChild className="w-full h-11 rounded-2xl bg-primary text-primary-foreground font-semibold gap-2 mb-3">
         <Link to="/despesas/nova" onPointerDown={handleNewExpenseTouch} onClick={handleNewExpenseClick}>
           <Plus className="size-4" /> Nova despesa
