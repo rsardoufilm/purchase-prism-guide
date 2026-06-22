@@ -39,7 +39,11 @@ import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
 import { useSharedCategory } from "@/hooks/use-shared-category";
 import { SubscriptionDialog } from "@/components/subscription-dialog";
-import { Repeat } from "lucide-react";
+import { Repeat, CalendarClock } from "lucide-react";
+import {
+  projectSubscriptionOccurrences,
+  type SubscriptionRow,
+} from "@/lib/subscriptions";
 
 export const Route = createFileRoute("/_authenticated/despesas/")({
   component: DespesasIndex,
