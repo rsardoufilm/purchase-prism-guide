@@ -335,11 +335,10 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
         {/* Guia de enquadramento: máscara escura + retângulo central com cantos */}
         {status === "ready" && (
           <div className="pointer-events-none absolute inset-0">
-            {/* máscara escurecida ao redor do quadro (80% x 70%) */}
-            <div className="absolute inset-0 bg-black/45" />
+            {/* máscara MUITO leve ao redor — preserva a luz da câmera */}
             <div
-              className={`absolute left-[10%] right-[10%] top-[15%] bottom-[15%] rounded-2xl border-2 transition-colors duration-200 ${borderColor}`}
-              style={{ boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)" }}
+              className={`absolute left-[6%] right-[6%] top-[12%] bottom-[12%] rounded-2xl border-2 transition-colors duration-200 ${borderColor}`}
+              style={{ boxShadow: "0 0 0 9999px rgba(0,0,0,0.22)" }}
             >
               {/* cantos destacados */}
               <span className={`absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 rounded-tl-2xl ${borderColor}`} />
