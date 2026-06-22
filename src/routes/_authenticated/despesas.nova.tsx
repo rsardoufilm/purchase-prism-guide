@@ -156,11 +156,19 @@ function NovaDespesa() {
     byRaw: new Map(),
     byToken: new Map(),
   });
+  const [userExpMap, setUserExpMap] = useState<UserExpenseCategoryMap>({
+    byMerchant: new Map(),
+  });
+  // Origem da categoria por item (paralelo a draft.items por posição).
+  const [itemSources, setItemSources] = useState<CategorySource[]>([]);
+  const [expenseCategorySource, setExpenseCategorySource] = useState<CategorySource>(null);
 
   useEffect(() => {
     let cancelled = false;
-    loadUserCategoryMap().then((m) => {
-      if (!cancelled) setUserCatMap(m);
+    Promise.all([loadUserCategoryMap(), loadUserExpenseCategoryMap()]).then(([m, em]) => {
+      if (cancelled) return;
+      setUserCatMap(m);
+      setUserExpMap(em);
     });
     return () => {
       cancelled = true;
