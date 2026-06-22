@@ -1,52 +1,45 @@
-# Plano de implementação
+## Objetivo
+Tornar o classificador aprendido por usuário visível, auditável e expansível, cobrindo também a categoria da despesa (não só dos itens).
 
-## 1. Relatório de correções
-Criar painel expansível na tela de nova despesa que exibe, após o OCR, as correções aplicadas automaticamente:
-- itens cujo `raw_name` foi normalizado (`normalized_name` divergente);
-- categorias inferidas para itens sem categoria;
-- categoria geral da nota inferida pelo conteúdo;
-- valores reconciliados (quando o 2º passe corrigiu diferenças);
-- itens omitidos por ilegibilidade.
-O relatório é informativo, não bloqueia o salvamento e ajuda a auditar o OCR.
+## 1. Registrar feedback do usuário
+Quando o usuário edita manualmente a categoria de um item (ou da despesa) que veio sugerida pela IA/histórico, registrar isso como sinal forte de aprendizado.
 
-## 2. Status de leitura
-Aproveitar o stepper existente (`steps`) e enriquecê-lo:
-- mostrar contagens (bytes recebidos, itens encontrados, correções aplicadas);
-- substituir labels genéricas por descrições do que acabou de acontecer;
-- manter estados visuais `pending|running|done|error` com ícones e cores dos tokens semânticos;
-- exibir tempo decorrido e mensagem de erro por etapa.
+- Em `ItemsEditor` (`despesas.nova.tsx`), ao alterar `category` de um item, marcar `item._userEdited = true` (campo runtime, não persistido no banco).
+- Ao salvar a despesa, os itens com `_userEdited` já vão para `expense_items` como categoria final — o `loadUserCategoryMap` da próxima sessão capta automaticamente (priorizando registros mais recentes via `order created_at desc`, que já existe).
+- Adicionar peso extra: itens recentes (últimos 30 dias) com edição manual contam dobrado na contagem de moda → reforça aprendizado rápido.
 
-## 3. Pós-processamento OCR
-Criar server function `postProcessOcr` (ou estender `ocrReceipt`) que, após a resposta do modelo, aplica um dicionário de correções baseado na tabela `product_normalization`:
-- buscar normalizações já conhecidas para `raw_name`;
-- corrigir `normalized_name` e `category` quando houver correspondência confiável;
-- manter a edição manual como soberana (não sobrescrever valores já editados pelo usuário);
-- registrar no relatório de correções o que foi ajustado.
-Isso reduz alucinações recorrentes sem depender de nova chamada de IA.
+Não cria tabela nova — usa `expense_items` existente. O "feedback" é implícito: editou = ensinou.
 
-## 4. Aprimorar aviso de escaneamento
-Melhorar o aviso recém-adicionado no botão "Escanear com a câmera":
-- destaque visual (badge/info compacto) dentro do botão;
-- mensagem curta: "Para maior precisão, envie o arquivo.";
-- adicionar o mesmo aviso dentro do modal da câmera (`CameraCapture`), logo acima do viewfinder;
-- usar tokens semânticos (`text-primary`, `bg-primary-soft`) em vez de cor hardcoded.
+## 2. Gerenciar mapeamentos aprendidos
+Criar nova rota `src/routes/_authenticated/aprendizado.tsx` com tabela de associações:
 
-## 5. Criar fluxo de envio de arquivo
-Substituir o botão simples "Enviar arquivo" por um fluxo completo na própria tela:
-- área de drop com drag-and-drop ativo;
-- preview da imagem/PDF selecionado com opção de remover;
-- validação de tipo e tamanho antes de iniciar upload;
-- indicador de progresso durante upload + OCR;
-- mensagem de sucesso com resumo.
-O fluxo não cria nova rota — permanece em `/despesas/nova`.
+- Coluna: Produto (raw_name normalizado) | Categoria aprendida | Frequência | Última ocorrência | Ação (remover/redefinir).
+- "Remover" abre dialog: oferece (a) definir nova categoria padrão ou (b) limpar a associação atualizando os `expense_items` correspondentes para `category = null` (apaga o sinal de aprendizado).
+- Link no menu lateral (`app-shell.tsx`) com ícone `Brain` ou `Sparkles`.
+
+Carrega via `loadUserCategoryMap` reformulado para devolver também `count` e `last_seen` por chave.
+
+## 3. Mostrar badge de aprendizado
+Em `ItemsEditor`, quando a categoria de um item foi sugerida pelo histórico do usuário (e não por regra determinística nem pelo OCR), exibir um pequeno badge ao lado do select:
+
+- Badge: `<Sparkles className="size-3" /> Aprendido` com `bg-primary-soft text-primary`.
+- Tooltip: "Categoria sugerida pelo seu histórico de compras".
+- Quando o usuário edita manualmente, badge muda para `Personalizado` com cor `secondary`.
+- Necessário rastrear origem da categoria por item: estender o item runtime com `_categorySource: 'ocr' | 'learned' | 'rule' | 'user' | null` setado no pipeline pós-OCR.
+
+## 4. Aprender na categoria da despesa
+Espelhar o sistema para o campo `expenses.category`:
+
+- Novo arquivo `src/lib/user-classifier-expense.ts` com `loadUserExpenseCategoryMap()` e `suggestExpenseCategory(merchantName)` — chave: `merchant_name` normalizado.
+- Em `despesas.nova.tsx`, após OCR, se a despesa não tem categoria mas o `merchant_name` aparece no histórico, sugerir.
+- Mesmo badge "Aprendido" no select de categoria da despesa.
+- Lista de gerenciamento em `aprendizado.tsx` ganha segunda aba "Estabelecimentos → Categoria".
 
 ---
 
-# Detalhes técnicos
-
-- Novos arquivos: `src/components/ocr-correction-report.tsx`, `src/lib/post-process.functions.ts`.
-- Arquivos alterados: `src/routes/_authenticated/despesas.nova.tsx`, `src/components/camera-capture.tsx`, `src/lib/ocr.functions.ts`.
-- Nenhuma mudança de schema/banco; usa a tabela `product_normalization` existente (leitura apenas).
-- Tokens semânticos do Tailwind/shadcn em toda UI; sem cores hardcoded.
-- Server function com `requireSupabaseAuth`; env `LOVABLE_API_KEY` continua server-side.
-- Build/typecheck executados ao final.
+## Detalhes técnicos
+- Arquivos novos: `src/lib/user-classifier-expense.ts`, `src/routes/_authenticated/aprendizado.tsx`.
+- Editados: `src/lib/user-classifier.ts` (devolver metadados de count/last_seen + helper `clearLearning`), `src/routes/_authenticated/despesas.nova.tsx` (badges, rastreio de origem, sugestão de categoria de despesa), `src/components/app-shell.tsx` (link de menu).
+- Sem mudanças de schema. Reaproveita `expense_items.category` e `expenses.category` existentes.
+- Tokens semânticos (`bg-primary-soft`, `text-primary`, `bg-secondary`); zero cor hardcoded.
+- Build/typecheck ao final.

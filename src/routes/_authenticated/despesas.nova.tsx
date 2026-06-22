@@ -44,9 +44,17 @@ import {
   suggestCategory,
   type UserCategoryMap,
 } from "@/lib/user-classifier";
+import {
+  loadUserExpenseCategoryMap,
+  suggestExpenseCategory,
+  type UserExpenseCategoryMap,
+} from "@/lib/user-classifier-expense";
 import { CameraCapture } from "@/components/camera-capture";
 import { logFailure, readFailures, clearFailures, type FailureEntry } from "@/lib/failure-log";
 import { useEffect } from "react";
+import { Sparkles, UserCheck } from "lucide-react";
+
+type CategorySource = "ocr" | "learned" | "rule" | "user" | null;
 
 export const Route = createFileRoute("/_authenticated/despesas/nova")({
   component: NovaDespesa,
@@ -147,11 +155,19 @@ function NovaDespesa() {
     byRaw: new Map(),
     byToken: new Map(),
   });
+  const [userExpMap, setUserExpMap] = useState<UserExpenseCategoryMap>({
+    byMerchant: new Map(),
+  });
+  // Origem da categoria por item (paralelo a draft.items por posição).
+  const [itemSources, setItemSources] = useState<CategorySource[]>([]);
+  const [expenseCategorySource, setExpenseCategorySource] = useState<CategorySource>(null);
 
   useEffect(() => {
     let cancelled = false;
-    loadUserCategoryMap().then((m) => {
-      if (!cancelled) setUserCatMap(m);
+    Promise.all([loadUserCategoryMap(), loadUserExpenseCategoryMap()]).then(([m, em]) => {
+      if (cancelled) return;
+      setUserCatMap(m);
+      setUserExpMap(em);
     });
     return () => {
       cancelled = true;
@@ -277,16 +293,44 @@ function NovaDespesa() {
 
       // Classificação determinística pós-OCR
       // Prioridade: categoria já vinda do OCR → histórico do usuário → regras → null
+      const sources: CategorySource[] = [];
       const processedItems = result.items.map((it) => {
-        const cat =
-          it.category ?? suggestCategory(it.raw_name, userCatMap) ?? classifyItem(it.raw_name);
+        let source: CategorySource = null;
+        let cat = it.category ?? null;
+        if (cat) source = "ocr";
+        if (!cat) {
+          const learned = suggestCategory(it.raw_name, userCatMap);
+          if (learned) {
+            cat = learned;
+            source = "learned";
+          }
+        }
+        if (!cat) {
+          const rule = classifyItem(it.raw_name);
+          if (rule) {
+            cat = rule;
+            source = "rule";
+          }
+        }
+        sources.push(source);
         const norm = it.normalized_name ?? normalizeName(it.raw_name);
         return { ...it, category: cat, normalized_name: norm };
       });
       const inferredCategory = inferExpenseCategory(processedItems, result.merchant_name);
+      const learnedExp = suggestExpenseCategory(result.merchant_name, userExpMap);
+      let expCat: string | null = result.category ?? null;
+      let expSource: CategorySource = expCat ? "ocr" : null;
+      if (!expCat && learnedExp) {
+        expCat = learnedExp;
+        expSource = "learned";
+      }
+      if (!expCat && inferredCategory) {
+        expCat = inferredCategory;
+        expSource = "rule";
+      }
       const enriched: OcrResult = {
         ...result,
-        category: result.category ?? inferredCategory ?? null,
+        category: expCat,
         items: processedItems,
       };
 
@@ -297,6 +341,8 @@ function NovaDespesa() {
       setStoragePath(path);
       setSource(file.type === "application/pdf" ? "pdf" : "photo");
       setDraft(enriched);
+      setItemSources(sources);
+      setExpenseCategorySource(expSource);
       toast.success(
         `Nota lida! ${enriched.items.length} ${enriched.items.length === 1 ? "item" : "itens"} encontrados.`,
       );
@@ -593,10 +639,19 @@ function NovaDespesa() {
               onBlur={(e) => {
                 // Auto-classifica categoria ao sair do campo (apenas se ainda vazia)
                 if (!draft.category) {
+                  const name = e.target.value;
+                  const learned = suggestExpenseCategory(name, userExpMap);
+                  if (learned) {
+                    setDraft({ ...draft, category: learned });
+                    setExpenseCategorySource("learned");
+                    return;
+                  }
                   const inferred =
-                    classifyMerchant(e.target.value) ??
-                    inferExpenseCategory(draft.items, e.target.value);
-                  if (inferred) setDraft({ ...draft, category: inferred });
+                    classifyMerchant(name) ?? inferExpenseCategory(draft.items, name);
+                  if (inferred) {
+                    setDraft({ ...draft, category: inferred });
+                    setExpenseCategorySource("rule");
+                  }
                 }
               }}
               className="rounded-xl"
@@ -611,10 +666,16 @@ function NovaDespesa() {
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Categoria">
+            <Field
+              label="Categoria"
+              hint={<CategorySourceBadge source={expenseCategorySource} />}
+            >
               <Select
                 value={draft.category ?? ""}
-                onValueChange={(v) => setDraft({ ...draft, category: v || null })}
+                onValueChange={(v) => {
+                  setDraft({ ...draft, category: v || null });
+                  setExpenseCategorySource("user");
+                }}
               >
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="Selecionar…" />
@@ -680,7 +741,11 @@ function NovaDespesa() {
             <ItemsEditor
               items={draft.items}
               total={Number(draft.total_amount) || 0}
-              onChange={(items) => setDraft({ ...draft, items })}
+              sources={itemSources}
+              onChange={(items, nextSources) => {
+                setDraft({ ...draft, items });
+                if (nextSources) setItemSources(nextSources);
+              }}
               userCatMap={userCatMap}
             />
           )}
@@ -688,7 +753,7 @@ function NovaDespesa() {
           {draft && (
             <button
               type="button"
-              onClick={() =>
+              onClick={() => {
                 setDraft({
                   ...draft,
                   items: [
@@ -703,8 +768,9 @@ function NovaDespesa() {
                       total_price: 0,
                     },
                   ],
-                })
-              }
+                });
+                setItemSources([...itemSources, "user"]);
+              }}
               className="w-full text-xs text-primary border border-dashed border-primary/40 rounded-xl py-2 hover:bg-primary-soft"
             >
               + Adicionar item manualmente
@@ -776,14 +842,59 @@ function AuditLog({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </Label>
+      <div className="flex items-center justify-between gap-2">
+        <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </Label>
+        {hint}
+      </div>
       {children}
     </div>
+  );
+}
+
+function CategorySourceBadge({ source }: { source: CategorySource }) {
+  if (!source || source === "ocr") return null;
+  if (source === "learned") {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-1.5 py-0.5 text-[9px] font-semibold text-primary"
+        title="Categoria sugerida pelo seu histórico de compras"
+      >
+        <Sparkles className="size-2.5" />
+        Aprendido
+      </span>
+    );
+  }
+  if (source === "rule") {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground"
+        title="Categoria sugerida por regra automática"
+      >
+        Auto
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full bg-secondary px-1.5 py-0.5 text-[9px] font-semibold text-secondary-foreground"
+      title="Categoria definida por você"
+    >
+      <UserCheck className="size-2.5" />
+      Você
+    </span>
   );
 }
 
@@ -794,18 +905,20 @@ function ItemsEditor({
   total,
   onChange,
   userCatMap,
+  sources,
 }: {
   items: EditableItem[];
   total: number;
-  onChange: (items: EditableItem[]) => void;
+  onChange: (items: EditableItem[], sources?: CategorySource[]) => void;
   userCatMap: UserCategoryMap;
+  sources: CategorySource[];
 }) {
   const sum = items.reduce((acc, it) => acc + (Number(it.total_price) || 0), 0);
   const diff = Math.abs(sum - total);
   const tolerance = Math.max(0.05, total * 0.02);
   const mismatch = total > 0 && diff > tolerance;
 
-  const update = (i: number, patch: Partial<EditableItem>) => {
+  const update = (i: number, patch: Partial<EditableItem>, opts?: { userEdit?: boolean }) => {
     const next = [...items];
     const merged = { ...next[i], ...patch };
     if (patch.quantity !== undefined || patch.unit_price !== undefined) {
@@ -813,20 +926,32 @@ function ItemsEditor({
       const u = Number(merged.unit_price ?? 0);
       merged.total_price = Math.round(q * u * 100) / 100;
     }
-    // Edição manual da descrição PREVALECE: o normalized_name passa a refletir
-    // o texto digitado. A categoria é sugerida apenas se ainda estiver vazia,
-    // priorizando o histórico do usuário antes das regras determinísticas.
+    const nextSources = [...sources];
     if (patch.raw_name !== undefined) {
       const raw = String(patch.raw_name ?? "").trim();
       merged.normalized_name = raw || null;
       if (!merged.category) {
-        merged.category = suggestCategory(raw, userCatMap) ?? classifyItem(raw) ?? "Outros";
+        const learned = suggestCategory(raw, userCatMap);
+        if (learned) {
+          merged.category = learned;
+          nextSources[i] = "learned";
+        } else {
+          merged.category = classifyItem(raw) ?? "Outros";
+          nextSources[i] = "rule";
+        }
       }
     }
+    if (opts?.userEdit) nextSources[i] = "user";
     next[i] = merged;
-    onChange(next);
+    onChange(next, nextSources);
   };
 
+  const remove = (i: number) => {
+    onChange(
+      items.filter((_, j) => j !== i),
+      sources.filter((_, j) => j !== i),
+    );
+  };
 
   return (
     <div className="space-y-2">
@@ -860,7 +985,7 @@ function ItemsEditor({
                 placeholder="Descrição do item"
               />
               <button
-                onClick={() => onChange(items.filter((_, j) => j !== i))}
+                onClick={() => remove(i)}
                 className="text-muted-foreground hover:text-destructive p-2 shrink-0"
                 aria-label="Remover item"
                 type="button"
@@ -911,21 +1036,24 @@ function ItemsEditor({
               </div>
             </div>
 
-            <Select
-              value={it.category ?? "Outros"}
-              onValueChange={(v) => update(i, { category: v })}
-            >
-              <SelectTrigger className="rounded-lg h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORY_OPTIONS.map((c) => (
-                  <SelectItem key={c} value={c} className="text-xs">
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select
+                value={it.category ?? "Outros"}
+                onValueChange={(v) => update(i, { category: v }, { userEdit: true })}
+              >
+                <SelectTrigger className="rounded-lg h-8 text-xs flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORY_OPTIONS.map((c) => (
+                    <SelectItem key={c} value={c} className="text-xs">
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <CategorySourceBadge source={sources[i] ?? null} />
+            </div>
           </div>
         ))}
       </div>
