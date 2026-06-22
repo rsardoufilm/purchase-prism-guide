@@ -1,6 +1,86 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, X, RotateCcw, Loader2, Check } from "lucide-react";
+import { Camera, X, RotateCcw, Loader2, Check, Zap, ZapOff } from "lucide-react";
 import { logFailure } from "@/lib/failure-log";
+
+/**
+ * Tenta ajustar a câmera para o máximo de luz/qualidade que o hardware
+ * permite. Cada navegador expõe um subconjunto diferente — por isso
+ * aplicamos cada constraint em try/catch separado.
+ */
+async function tuneTrackForBrightness(track: MediaStreamTrack) {
+  const caps = (track.getCapabilities?.() ?? {}) as MediaTrackCapabilities & {
+    exposureMode?: string[];
+    exposureCompensation?: { min: number; max: number; step: number };
+    whiteBalanceMode?: string[];
+    focusMode?: string[];
+    iso?: { min: number; max: number };
+    brightness?: { min: number; max: number };
+    contrast?: { min: number; max: number };
+  };
+
+  const tryApply = async (c: MediaTrackConstraints) => {
+    try {
+      await track.applyConstraints(c);
+    } catch {
+      /* ignora — capability não suportada nesse device */
+    }
+  };
+
+  if (caps.exposureMode?.includes("continuous")) {
+    await tryApply({ advanced: [{ exposureMode: "continuous" } as never] });
+  }
+  if (caps.whiteBalanceMode?.includes("continuous")) {
+    await tryApply({ advanced: [{ whiteBalanceMode: "continuous" } as never] });
+  }
+  if (caps.focusMode?.includes("continuous")) {
+    await tryApply({ advanced: [{ focusMode: "continuous" } as never] });
+  }
+  if (caps.exposureCompensation) {
+    // valor positivo = imagem mais clara
+    const target = Math.min(caps.exposureCompensation.max, 2);
+    await tryApply({ advanced: [{ exposureCompensation: target } as never] });
+  }
+  if (caps.brightness) {
+    const target = caps.brightness.min + (caps.brightness.max - caps.brightness.min) * 0.65;
+    await tryApply({ advanced: [{ brightness: target } as never] });
+  }
+  if (caps.contrast) {
+    const target = caps.contrast.min + (caps.contrast.max - caps.contrast.min) * 0.55;
+    await tryApply({ advanced: [{ contrast: target } as never] });
+  }
+}
+
+/** Pós-processamento leve: estica o histograma e aplica gamma para clarear sombras. */
+function brightenCanvas(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  try {
+    const img = ctx.getImageData(0, 0, w, h);
+    const d = img.data;
+    // amostra para achar percentis aproximados (passo grande p/ performance)
+    let min = 255;
+    let max = 0;
+    const step = 40;
+    for (let i = 0; i < d.length; i += step * 4) {
+      const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      if (lum < min) min = lum;
+      if (lum > max) max = lum;
+    }
+    const range = Math.max(40, max - min);
+    const gamma = 0.78; // < 1 clareia médios-tons
+    const lut = new Uint8ClampedArray(256);
+    for (let v = 0; v < 256; v++) {
+      const norm = Math.min(1, Math.max(0, (v - min) / range));
+      lut[v] = Math.round(Math.pow(norm, gamma) * 255);
+    }
+    for (let i = 0; i < d.length; i += 4) {
+      d[i] = lut[d[i]];
+      d[i + 1] = lut[d[i + 1]];
+      d[i + 2] = lut[d[i + 2]];
+    }
+    ctx.putImageData(img, 0, 0);
+  } catch {
+    /* ignora — imagem segue sem ajuste */
+  }
+}
 
 interface CameraCaptureProps {
   open: boolean;
