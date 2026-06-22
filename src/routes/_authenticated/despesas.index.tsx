@@ -39,7 +39,11 @@ import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
 import { useSharedCategory } from "@/hooks/use-shared-category";
 import { SubscriptionDialog } from "@/components/subscription-dialog";
-import { Repeat } from "lucide-react";
+import { Repeat, CalendarClock } from "lucide-react";
+import {
+  projectSubscriptionOccurrences,
+  type SubscriptionRow,
+} from "@/lib/subscriptions";
 
 export const Route = createFileRoute("/_authenticated/despesas/")({
   component: DespesasIndex,
@@ -70,6 +74,8 @@ function DespesasIndex() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkCat, setBulkCat] = useState<string>("");
   const [bulkSaving, setBulkSaving] = useState(false);
+  const [subs, setSubs] = useState<SubscriptionRow[]>([]);
+  const [showProjected, setShowProjected] = useState(true);
 
   const load = () => {
     setLoading(true);
@@ -81,6 +87,10 @@ function DespesasIndex() {
         setRows((data ?? []) as Row[]);
         setLoading(false);
       });
+    supabase
+      .from("subscriptions")
+      .select("id,name,amount,frequency,next_due_date")
+      .then(({ data }) => setSubs((data ?? []) as SubscriptionRow[]));
   };
 
   useEffect(() => {
@@ -190,6 +200,26 @@ function DespesasIndex() {
   }, [rows, filter, period]);
 
   const uncategorizedCount = useMemo(() => rows.filter((r) => !r.category).length, [rows]);
+
+  const projectedOccurrences = useMemo(() => {
+    const { start, end } = periodRange(period);
+    const all = projectSubscriptionOccurrences(subs);
+    const todayIso = new Date().toISOString().slice(0, 10);
+    return all.filter((o) => {
+      const iso = `${o.date.getFullYear()}-${String(o.date.getMonth() + 1).padStart(2, "0")}-${String(o.date.getDate()).padStart(2, "0")}`;
+      if (iso < todayIso) return false;
+      const s = isoDate(start);
+      const e = isoDate(end);
+      if (s && iso < s) return false;
+      if (e && iso > e) return false;
+      return true;
+    });
+  }, [subs, period]);
+
+  const projectedTotal = useMemo(
+    () => projectedOccurrences.reduce((acc, o) => acc + o.amount, 0),
+    [projectedOccurrences],
+  );
 
   return (
     <>
@@ -345,6 +375,54 @@ function DespesasIndex() {
           })}
         </div>
       )}
+
+      {projectedOccurrences.length > 0 && (
+        <section className="mt-6 pb-24">
+          <button
+            type="button"
+            onClick={() => setShowProjected((v) => !v)}
+            className="w-full flex items-center justify-between px-1 mb-2"
+          >
+            <span className="flex items-center gap-2">
+              <CalendarClock className="size-4 text-primary" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Assinaturas previstas ({projectedOccurrences.length})
+              </span>
+            </span>
+            <span className="text-[11px] font-bold tabular-nums text-muted-foreground">
+              {brl(projectedTotal)} {showProjected ? "▾" : "▸"}
+            </span>
+          </button>
+          {showProjected && (
+            <div className="bg-card border border-dashed border-border rounded-2xl overflow-hidden">
+              <ul className="divide-y divide-border">
+                {projectedOccurrences.map((o, i) => (
+                  <li
+                    key={`${o.subId}-${i}`}
+                    className="grid grid-cols-[auto_minmax(0,1fr)_auto] gap-3 items-center px-4 py-2.5"
+                  >
+                    <span className="text-[10px] font-semibold tabular-nums text-muted-foreground w-12">
+                      {String(o.date.getDate()).padStart(2, "0")}/
+                      {String(o.date.getMonth() + 1).padStart(2, "0")}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="text-sm font-medium block truncate">{o.name}</span>
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Assinatura • previsto
+                      </span>
+                    </span>
+                    <span className="text-sm font-semibold tabular-nums text-muted-foreground">
+                      {brl(o.amount)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
+
+
 
       {selected.size > 0 && (
         <div className="fixed bottom-24 md:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-md bg-card border border-border rounded-2xl shadow-[var(--shadow-elevated)] p-3 flex items-center gap-2">
