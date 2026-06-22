@@ -7,7 +7,7 @@ import { TOURS } from "@/lib/tours";
 import { PeriodFilter } from "@/components/period-filter";
 import { periodRange, type PeriodKey } from "@/lib/period";
 import { brl, brlCompact, fmtDate } from "@/lib/format";
-import { Sparkles, TrendingDown, Store, Package as PackageIcon } from "lucide-react";
+import { Sparkles, TrendingDown, Store, Package as PackageIcon, Wallet } from "lucide-react";
 import { DashboardSummaryCard } from "@/components/dashboard-summary-card";
 import { DashboardCardsSkeleton, RecentExpensesSkeleton } from "@/components/dashboard-skeleton";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
