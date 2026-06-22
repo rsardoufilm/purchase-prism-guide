@@ -10,6 +10,7 @@ import {
   LogOut,
   ScanLine,
   Settings,
+  Brain,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
