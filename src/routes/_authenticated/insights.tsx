@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
+import { PeriodFilter } from "@/components/period-filter";
+import { periodRange, type PeriodKey } from "@/lib/period";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/format";
@@ -15,7 +17,9 @@ export const Route = createFileRoute("/_authenticated/insights")({
   head: () => ({ meta: [{ title: "Insights — AURA Consumo" }] }),
 });
 
-interface E { merchant_name: string; total_amount: number; category: string | null; expense_date: string }
+const PERIOD_KEY = "aura:insights:period";
+
+interface E { id: string; merchant_name: string; total_amount: number; category: string | null; expense_date: string }
 interface I { normalized_name: string | null; raw_name: string; total_price: number; category: string | null; expense_id: string }
 interface P { normalized_name: string; merchant_name: string; unit_price: number; purchase_date: string }
 interface Msg { role: "user" | "aura"; text: string }
@@ -27,17 +31,27 @@ const SUGGESTIONS = [
   "Onde posso economizar?",
 ];
 
+function isoDate(d: Date | null) { return d ? d.toISOString().slice(0, 10) : null; }
+
 function Insights() {
-  const [expenses, setExpenses] = useState<E[]>([]);
-  const [items, setItems] = useState<I[]>([]);
+  const [period, setPeriod] = useState<PeriodKey>(() => {
+    if (typeof window === "undefined") return "este_mes";
+    return (window.localStorage.getItem(PERIOD_KEY) as PeriodKey) || "este_mes";
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") window.localStorage.setItem(PERIOD_KEY, period);
+  }, [period]);
+
+  const [allExpenses, setAllExpenses] = useState<E[]>([]);
+  const [allItems, setAllItems] = useState<I[]>([]);
   const [prices, setPrices] = useState<P[]>([]);
 
   useEffect(() => {
     const load = () => {
       supabase.from("expenses").select("id,merchant_name,total_amount,category,expense_date")
-        .then(({ data }) => setExpenses((data ?? []) as E[]));
+        .then(({ data }) => setAllExpenses((data ?? []) as E[]));
       supabase.from("expense_items").select("normalized_name,raw_name,total_price,category,expense_id")
-        .then(({ data }) => setItems((data ?? []) as I[]));
+        .then(({ data }) => setAllItems((data ?? []) as I[]));
       supabase.from("product_prices").select("normalized_name,merchant_name,unit_price,purchase_date")
         .order("purchase_date", { ascending: true })
         .then(({ data }) => setPrices((data ?? []) as P[]));
@@ -46,6 +60,22 @@ function Insights() {
     window.addEventListener("aura:data-changed", load);
     return () => window.removeEventListener("aura:data-changed", load);
   }, []);
+
+  // Filtra por período (expenses + items vinculados)
+  const { expenses, items } = useMemo(() => {
+    const { start, end } = periodRange(period);
+    const s = isoDate(start);
+    const e = isoDate(end);
+    const filteredExp = allExpenses.filter((r) => {
+      if (s && r.expense_date < s) return false;
+      if (e && r.expense_date > e) return false;
+      return true;
+    });
+    const ids = new Set(filteredExp.map((x) => x.id));
+    const filteredItems = allItems.filter((it) => ids.has(it.expense_id));
+    return { expenses: filteredExp, items: filteredItems };
+  }, [allExpenses, allItems, period]);
+
 
   const generalInsights = useMemo(() => {
     const out: { icon: React.ReactNode; title: string; desc: string }[] = [];
@@ -185,6 +215,10 @@ function Insights() {
   return (
     <>
       <PageHeader eyebrow="Insights" title="Sua inteligência" />
+
+      <div className="mb-4">
+        <PeriodFilter value={period} onChange={setPeriod} />
+      </div>
 
       <section className="mb-5 space-y-3">
         {generalInsights.map((ins, i) => (

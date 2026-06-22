@@ -1,12 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Filter } from "lucide-react";
+import { Filter, Tag, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { brl } from "@/lib/format";
+import { MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/consumo")({
   component: Consumo,
@@ -38,10 +45,36 @@ function Consumo() {
     if (typeof window === "undefined") return "all";
     return window.localStorage.getItem(CONSUMO_FILTER_KEY) ?? "all";
   });
+  const [bulkTarget, setBulkTarget] = useState<{ from: string; count: number } | null>(null);
+  const [bulkNewCat, setBulkNewCat] = useState<string>("");
+  const [bulkSaving, setBulkSaving] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") window.localStorage.setItem(CONSUMO_FILTER_KEY, filter);
   }, [filter]);
+
+  const reclassifyCategory = async () => {
+    if (!bulkTarget || !bulkNewCat) return;
+    setBulkSaving(true);
+    const fromCat = bulkTarget.from;
+    const isUncat = fromCat === "Sem categoria";
+    const query = supabase.from("expenses").update({ category: bulkNewCat });
+    const { error } = isUncat
+      ? await query.is("category", null)
+      : await query.eq("category", fromCat);
+    if (error) {
+      toast.error("Falha ao reclassificar.");
+    } else {
+      toast.success(`${bulkTarget.count} ${bulkTarget.count === 1 ? "despesa movida" : "despesas movidas"} para ${bulkNewCat}.`);
+      setExpenses((prev) =>
+        prev.map((e) => ((isUncat ? !e.category : e.category === fromCat) ? { ...e, category: bulkNewCat } : e)),
+      );
+      window.dispatchEvent(new CustomEvent("aura:data-changed"));
+    }
+    setBulkSaving(false);
+    setBulkTarget(null);
+    setBulkNewCat("");
+  };
 
   useEffect(() => {
     const load = () => {
@@ -133,14 +166,31 @@ function Consumo() {
 
 
       <section className="mb-4">
-        <h2 className="font-display font-semibold mb-2 text-sm">Por tipo de estabelecimento</h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="font-display font-semibold text-sm">Por tipo de estabelecimento</h2>
+          <span className="text-[10px] text-muted-foreground">toque em <Tag className="inline size-3" /> para reclassificar</span>
+        </div>
         <div className="space-y-2">
-          {byExpenseCategory.slice(0, 6).map(([cat, total]) => (
-            <div key={cat} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-3 sm:p-4">
-              <p className="text-sm font-semibold truncate">{cat}</p>
-              <p className="text-sm font-bold">{brl(total)}</p>
-            </div>
-          ))}
+          {byExpenseCategory.slice(0, 8).map(([cat, total]) => {
+            const count = filteredExpenses.filter((e) => (e.category || "Sem categoria") === cat).length;
+            return (
+              <div key={cat} className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2 items-center bg-card border border-border rounded-2xl p-3 sm:p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">{cat}</p>
+                  <p className="text-[10px] text-muted-foreground">{count} {count === 1 ? "despesa" : "despesas"}</p>
+                </div>
+                <p className="text-sm font-bold whitespace-nowrap">{brl(total)}</p>
+                <button
+                  type="button"
+                  onClick={() => { setBulkTarget({ from: cat, count }); setBulkNewCat(""); }}
+                  aria-label={`Reclassificar ${cat}`}
+                  className="size-8 grid place-items-center rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+                >
+                  <Tag className="size-3.5" />
+                </button>
+              </div>
+            );
+          })}
           {byExpenseCategory.length === 0 && (
             <p className="text-sm text-muted-foreground">Nenhuma despesa registrada ainda.</p>
           )}
@@ -178,6 +228,38 @@ function Consumo() {
           ))}
         </div>
       </section>
+
+      <AlertDialog open={!!bulkTarget} onOpenChange={(o) => !o && !bulkSaving && setBulkTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reclassificar “{bulkTarget?.from}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkTarget?.count} {bulkTarget?.count === 1 ? "despesa será movida" : "despesas serão movidas"} para a nova categoria escolhida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Select value={bulkNewCat} onValueChange={setBulkNewCat}>
+            <SelectTrigger className="rounded-xl h-10 text-sm">
+              <SelectValue placeholder="Escolher nova categoria…" />
+            </SelectTrigger>
+            <SelectContent>
+              {MERCHANT_CATEGORY_OPTIONS.filter((c) => c !== bulkTarget?.from).map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkSaving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); reclassifyCategory(); }}
+              disabled={bulkSaving || !bulkNewCat}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {bulkSaving && <Loader2 className="size-4 mr-2 animate-spin" />}
+              Aplicar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
