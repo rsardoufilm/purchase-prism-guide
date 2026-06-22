@@ -93,7 +93,8 @@ function Dashboard() {
       const k = r.category || "Sem categoria";
       byCat.set(k, (byCat.get(k) ?? 0) + Number(r.total_amount));
     }
-    const topCat = [...byCat.entries()].sort((a, b) => b[1] - a[1])[0];
+    const catList = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
+    const topCat = catList[0];
 
     const byProd = new Map<string, number>();
     for (const it of items) {
@@ -126,7 +127,7 @@ function Dashboard() {
       if (Number(it.unit_price) < avg) savings += (avg - Number(it.unit_price)) * 1;
     }
 
-    return { total, topCat, topProd, topStore, savings };
+    return { total, topCat, topProd, topStore, savings, catList };
   }, [expenses, items]);
 
   return (
