@@ -156,7 +156,7 @@ export function NotificationBell() {
               return (
                 <li key={n.id}>
                   <button
-                    onClick={() => markOne(n.id)}
+                    onClick={() => handleClick(n)}
                     className={cn(
                       "w-full text-left flex gap-3 px-3 py-3 hover:bg-accent transition-colors",
                       !n.read && "bg-primary-soft/30",
