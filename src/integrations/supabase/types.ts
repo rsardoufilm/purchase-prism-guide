@@ -115,6 +115,42 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          enabled_daily_summary: boolean
+          enabled_health_alert: boolean
+          enabled_recurring: boolean
+          enabled_subscription: boolean
+          enabled_weekly_summary: boolean
+          lead_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled_daily_summary?: boolean
+          enabled_health_alert?: boolean
+          enabled_recurring?: boolean
+          enabled_subscription?: boolean
+          enabled_weekly_summary?: boolean
+          lead_days?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled_daily_summary?: boolean
+          enabled_health_alert?: boolean
+          enabled_recurring?: boolean
+          enabled_subscription?: boolean
+          enabled_weekly_summary?: boolean
+          lead_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_normalization: {
         Row: {
           confidence: number
