@@ -642,54 +642,37 @@ function NovaDespesa() {
           </Field>
 
           {draft.items.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Itens ({draft.items.length})
-              </p>
-              <div className="space-y-2">
-                {draft.items.map((it, i) => (
-                  <div key={i} className="bg-card border border-border rounded-xl p-3 space-y-2">
-                    <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{it.raw_name}</p>
-                        <p className="text-[10px] text-muted-foreground truncate">
-                          {it.normalized_name ?? "—"} • {it.quantity ?? 1} {it.unit ?? ""}
-                        </p>
-                      </div>
-                      <p className="text-sm font-semibold">{brl(Number(it.total_price ?? 0))}</p>
-                      <button
-                        onClick={() =>
-                          setDraft({ ...draft, items: draft.items.filter((_, j) => j !== i) })
-                        }
-                        className="text-muted-foreground hover:text-destructive p-1"
-                        aria-label="Remover"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                    <Select
-                      value={it.category ?? "Outros"}
-                      onValueChange={(v) => {
-                        const next = [...draft.items];
-                        next[i] = { ...next[i], category: v };
-                        setDraft({ ...draft, items: next });
-                      }}
-                    >
-                      <SelectTrigger className="rounded-lg h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CATEGORY_OPTIONS.map((c) => (
-                          <SelectItem key={c} value={c} className="text-xs">
-                            {c}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <ItemsEditor
+              items={draft.items}
+              total={Number(draft.total_amount) || 0}
+              onChange={(items) => setDraft({ ...draft, items })}
+            />
+          )}
+
+          {draft && (
+            <button
+              type="button"
+              onClick={() =>
+                setDraft({
+                  ...draft,
+                  items: [
+                    ...draft.items,
+                    {
+                      raw_name: "Novo item",
+                      normalized_name: null,
+                      category: "Outros",
+                      quantity: 1,
+                      unit: "un",
+                      unit_price: 0,
+                      total_price: 0,
+                    },
+                  ],
+                })
+              }
+              className="w-full text-xs text-primary border border-dashed border-primary/40 rounded-xl py-2 hover:bg-primary-soft"
+            >
+              + Adicionar item manualmente
+            </button>
           )}
 
           <div className="flex gap-2 pt-2">
