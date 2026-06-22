@@ -54,6 +54,24 @@ function isoDate(d: Date | null) {
   return d ? d.toISOString().slice(0, 10) : null;
 }
 
+function formatQty(qty: number, unit: string): string {
+  const nf = (n: number, d: number) =>
+    n.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+  if (unit === "kg") {
+    if (qty < 1) return `${nf(qty * 1000, 0)} g`;
+    return `${nf(qty, 3)} kg`;
+  }
+  if (unit === "L") {
+    if (qty < 1) return `${nf(qty * 1000, 0)} ml`;
+    return `${nf(qty, 3)} L`;
+  }
+  if (unit === "un") {
+    const rounded = Math.round(qty);
+    return `${rounded} ${rounded === 1 ? "unidade" : "unidades"}`;
+  }
+  return `${nf(qty, 2)} ${unit}`;
+}
+
 function Dashboard() {
   const [period, setPeriod] = useSharedPeriod();
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
