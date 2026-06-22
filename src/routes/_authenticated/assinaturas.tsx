@@ -104,7 +104,7 @@ function Assinaturas() {
             {rows.map((r) => (
               <div
                 key={r.id}
-                className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-4"
+                className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center bg-card border border-border rounded-2xl p-4"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{r.name}</p>
@@ -116,6 +116,23 @@ function Assinaturas() {
                   </p>
                 </div>
                 <p className="text-sm font-bold">{brl(Number(r.amount))}</p>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(r.id, r.name)}
+                  disabled={deleting.has(r.id)}
+                  aria-label={`Excluir assinatura ${r.name}`}
+                  className={cn(
+                    "p-2 rounded-xl transition-colors",
+                    "text-muted-foreground hover:text-destructive hover:bg-destructive/10",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  )}
+                >
+                  {deleting.has(r.id) ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="size-4" />
+                  )}
+                </button>
               </div>
             ))}
           </div>
