@@ -76,7 +76,7 @@ Regras CRÍTICAS para ITENS (papel térmico costuma estar borrado — siga à ri
 1. raw_name = texto EXATAMENTE como aparece, PRESERVANDO espaços entre palavras. Se vir "COCACOLA2L" reconstrua para "COCA COLA 2L". NUNCA grude palavras nem invente caracteres.
 2. Remova códigos numéricos longos (EAN/SKU com 8+ dígitos seguidos) do raw_name — não fazem parte do nome do produto.
 3. Cada linha de item geralmente tem "Qtd X UN Vl.Unit Y Vl.Total Z". Extraia quantity, unit_price e total_price desses números. Valide: quantity * unit_price ≈ total_price (tolerância R$ 0,02). Se não bater, releia a linha antes de responder.
-4. normalized_name agrupa equivalentes: "ARROZ TIPO 1 5KG TIO JOÃO" → "Arroz"; "COCA COLA 2L" → "Refrigerante"; "PÃO FRANCÊS UN" → "Pães"; "LEITE INTEGRAL UHT 1L" → "Leite"; "FEIJÃO CARIOCA 1KG" → "Feijão".
+4. normalized_name agrupa equivalentes: "ARROZ TIPO 1 5KG TIO JOÃO" → "Arroz"; "COCA COLA 2L" → "Refrigerante"; "PÃO FRANCÊS UN" → "Pães"; "LEITE INTEGRAL UHT 1L" → "Leite"; "FEIJÃO CARIOCA 1KG" → "Feijão"; "CREME DENTAL COLGATE 90G" → "Creme dental" (NUNCA confunda com "Creme de leite"); "CREME DE LEITE NESTLÉ 200G" → "Creme de leite". Leia o raw_name com atenção: "DENTAL" ≠ "DE LEITE".
 5. unit infira pelo sufixo: "5KG"→kg, "500G"→g, "2L"→l, "350ML"→ml; sem sufixo → "un".
 6. NUNCA invente itens. Se a linha está ilegível, OMITA — é melhor faltar do que alucinar.
 7. RECONCILIAÇÃO: a soma dos total_price dos itens deve ficar a ≤2% do total_amount. Se a diferença for maior, releia antes de responder (provavelmente confundiu quantidade ou preço).
