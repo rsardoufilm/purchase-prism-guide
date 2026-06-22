@@ -9,7 +9,12 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify:routes": "node scripts/verify-routes.mjs",
+    "verify:camera": "node scripts/check-camera-thresholds.mjs",
+    "verify:all": "bun run format:check && bunx tsc --noEmit && bun run lint && bun run verify:routes && bun run verify:camera",
+    "prepare": "node scripts/setup-hooks.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",

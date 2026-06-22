@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Pipeline pré-commit — barreira local que reflete o gate do CI.
+# Pula etapas lentas (typecheck completo, build) — esses ficam no CI.
+set -e
+
+echo "▶ pre-commit: format check"
+bun run format:check >/dev/null
+
+echo "▶ pre-commit: verify routes"
+bun run verify:routes >/dev/null
+
+echo "▶ pre-commit: camera regression"
+bun run verify:camera >/dev/null
+
+echo "✅ pre-commit ok"
