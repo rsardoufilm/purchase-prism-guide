@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
+import { TourGuide } from "@/components/tour-guide";
+import { TOURS } from "@/lib/tours";
 import { SubscriptionDialog } from "@/components/subscription-dialog";
 import { brl } from "@/lib/format";
 import { CalendarClock, Loader2, Trash2 } from "lucide-react";
