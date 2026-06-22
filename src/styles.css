@@ -153,3 +153,8 @@
 @utility animate-aura-in {
   animation: aura-slide-up 500ms var(--ease-aura) both;
 }
+
+/* Globally hide the Lovable badge */
+#lovable-badge {
+  display: none !important;
+}
