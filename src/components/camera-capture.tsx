@@ -1,6 +1,86 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, X, RotateCcw, Loader2, Check } from "lucide-react";
+import { Camera, X, RotateCcw, Loader2, Check, Zap, ZapOff } from "lucide-react";
 import { logFailure } from "@/lib/failure-log";
+
+/**
+ * Tenta ajustar a câmera para o máximo de luz/qualidade que o hardware
+ * permite. Cada navegador expõe um subconjunto diferente — por isso
+ * aplicamos cada constraint em try/catch separado.
+ */
+async function tuneTrackForBrightness(track: MediaStreamTrack) {
+  const caps = (track.getCapabilities?.() ?? {}) as MediaTrackCapabilities & {
+    exposureMode?: string[];
+    exposureCompensation?: { min: number; max: number; step: number };
+    whiteBalanceMode?: string[];
+    focusMode?: string[];
+    iso?: { min: number; max: number };
+    brightness?: { min: number; max: number };
+    contrast?: { min: number; max: number };
+  };
+
+  const tryApply = async (c: MediaTrackConstraints) => {
+    try {
+      await track.applyConstraints(c);
+    } catch {
+      /* ignora — capability não suportada nesse device */
+    }
+  };
+
+  if (caps.exposureMode?.includes("continuous")) {
+    await tryApply({ advanced: [{ exposureMode: "continuous" } as never] });
+  }
+  if (caps.whiteBalanceMode?.includes("continuous")) {
+    await tryApply({ advanced: [{ whiteBalanceMode: "continuous" } as never] });
+  }
+  if (caps.focusMode?.includes("continuous")) {
+    await tryApply({ advanced: [{ focusMode: "continuous" } as never] });
+  }
+  if (caps.exposureCompensation) {
+    // valor positivo = imagem mais clara
+    const target = Math.min(caps.exposureCompensation.max, 2);
+    await tryApply({ advanced: [{ exposureCompensation: target } as never] });
+  }
+  if (caps.brightness) {
+    const target = caps.brightness.min + (caps.brightness.max - caps.brightness.min) * 0.65;
+    await tryApply({ advanced: [{ brightness: target } as never] });
+  }
+  if (caps.contrast) {
+    const target = caps.contrast.min + (caps.contrast.max - caps.contrast.min) * 0.55;
+    await tryApply({ advanced: [{ contrast: target } as never] });
+  }
+}
+
+/** Pós-processamento leve: estica o histograma e aplica gamma para clarear sombras. */
+function brightenCanvas(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  try {
+    const img = ctx.getImageData(0, 0, w, h);
+    const d = img.data;
+    // amostra para achar percentis aproximados (passo grande p/ performance)
+    let min = 255;
+    let max = 0;
+    const step = 40;
+    for (let i = 0; i < d.length; i += step * 4) {
+      const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      if (lum < min) min = lum;
+      if (lum > max) max = lum;
+    }
+    const range = Math.max(40, max - min);
+    const gamma = 0.78; // < 1 clareia médios-tons
+    const lut = new Uint8ClampedArray(256);
+    for (let v = 0; v < 256; v++) {
+      const norm = Math.min(1, Math.max(0, (v - min) / range));
+      lut[v] = Math.round(Math.pow(norm, gamma) * 255);
+    }
+    for (let i = 0; i < d.length; i += 4) {
+      d[i] = lut[d[i]];
+      d[i + 1] = lut[d[i + 1]];
+      d[i + 2] = lut[d[i + 2]];
+    }
+    ctx.putImageData(img, 0, 0);
+  } catch {
+    /* ignora — imagem segue sem ajuste */
+  }
+}
 
 interface CameraCaptureProps {
   open: boolean;
@@ -58,6 +138,8 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
   const [tipIndex, setTipIndex] = useState(0);
   const [frameStatus, setFrameStatus] = useState<FrameStatus>("searching");
   const [autoCapture, setAutoCapture] = useState(true);
+  const [torchAvailable, setTorchAvailable] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
 
   // Rotaciona dicas a cada 3,5 s.
   useEffect(() => {
@@ -88,8 +170,16 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
         return;
       }
 
+      // Pedimos resolução alta para aproveitar o sensor + modos contínuos
+      // (foco/exposição/WB) que ajudam o ISP a clarear a cena.
+      const hiRes = {
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30 },
+      };
       const constraintsAttempts: MediaStreamConstraints[] = [
-        { video: { facingMode: { exact: "environment" } }, audio: false },
+        { video: { facingMode: { exact: "environment" }, ...hiRes }, audio: false },
+        { video: { facingMode: { ideal: "environment" }, ...hiRes }, audio: false },
         { video: { facingMode: { ideal: "environment" } }, audio: false },
         { video: true, audio: false },
       ];
@@ -126,6 +216,17 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
       }
 
       streamRef.current = stream;
+
+      // Ajusta exposição/WB/foco contínuos para clarear a cena.
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        await tuneTrackForBrightness(videoTrack);
+        const caps = (videoTrack.getCapabilities?.() ?? {}) as MediaTrackCapabilities & {
+          torch?: boolean;
+        };
+        setTorchAvailable(Boolean(caps.torch));
+      }
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         try {
@@ -278,8 +379,10 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Canvas sem contexto 2D.");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // pós-processamento: estica histograma + gamma p/ aproveitar todo o sensor
+      brightenCanvas(ctx, canvas.width, canvas.height);
       const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92),
+        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.95),
       );
       if (!blob) throw new Error("Falha ao gerar imagem.");
       const file = new File([blob], `nota-${Date.now()}.jpg`, { type: "image/jpeg" });
@@ -291,6 +394,18 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
       setStatus("error");
     } finally {
       setShooting(false);
+    }
+  };
+
+  const toggleTorch = async () => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    const next = !torchOn;
+    try {
+      await track.applyConstraints({ advanced: [{ torch: next } as never] });
+      setTorchOn(next);
+    } catch {
+      setTorchAvailable(false);
     }
   };
 
@@ -310,17 +425,32 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
           <X className="size-5" />
         </button>
         <p className="text-sm font-medium">Escanear nota</p>
-        <button
-          type="button"
-          onClick={() => setAutoCapture((v) => !v)}
-          className={`text-[11px] px-2.5 py-1 rounded-full border ${
-            autoCapture ? "border-emerald-400/70 text-emerald-300" : "border-white/30 text-white/70"
-          }`}
-          aria-pressed={autoCapture}
-          aria-label="Alternar captura automática"
-        >
-          Auto {autoCapture ? "on" : "off"}
-        </button>
+        <div className="flex items-center gap-2">
+          {torchAvailable && (
+            <button
+              type="button"
+              onClick={toggleTorch}
+              className={`size-9 grid place-items-center rounded-full border ${
+                torchOn ? "bg-amber-300 text-black border-amber-200" : "border-white/30 text-white/80"
+              }`}
+              aria-pressed={torchOn}
+              aria-label="Alternar lanterna"
+            >
+              {torchOn ? <Zap className="size-4" /> : <ZapOff className="size-4" />}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setAutoCapture((v) => !v)}
+            className={`text-[11px] px-2.5 py-1 rounded-full border ${
+              autoCapture ? "border-emerald-400/70 text-emerald-300" : "border-white/30 text-white/70"
+            }`}
+            aria-pressed={autoCapture}
+            aria-label="Alternar captura automática"
+          >
+            Auto {autoCapture ? "on" : "off"}
+          </button>
+        </div>
       </div>
 
       <div className="relative flex-1 overflow-hidden">
@@ -330,15 +460,14 @@ export function CameraCapture({ open, onCapture, onClose }: CameraCaptureProps) 
           muted
           autoPlay
           className="absolute inset-0 w-full h-full object-cover"
+          style={{ filter: "brightness(1.15) contrast(1.08) saturate(1.05)" }}
         />
 
-        {/* Guia de enquadramento: máscara escura + retângulo central com cantos */}
+        {/* Guia de enquadramento sem máscara escura (preserva luz do preview) */}
         {status === "ready" && (
           <div className="pointer-events-none absolute inset-0">
-            {/* máscara MUITO leve ao redor — preserva a luz da câmera */}
             <div
               className={`absolute left-[6%] right-[6%] top-[12%] bottom-[12%] rounded-2xl border-2 transition-colors duration-200 ${borderColor}`}
-              style={{ boxShadow: "0 0 0 9999px rgba(0,0,0,0.22)" }}
             >
               {/* cantos destacados */}
               <span className={`absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 rounded-tl-2xl ${borderColor}`} />
