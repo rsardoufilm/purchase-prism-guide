@@ -36,6 +36,8 @@ interface ItemRow {
   total_price: number;
   unit_price: number;
   category: string | null;
+  quantity: number;
+  unit: string | null;
 }
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -50,6 +52,24 @@ const PAYMENT_LABELS: Record<string, string> = {
 
 function isoDate(d: Date | null) {
   return d ? d.toISOString().slice(0, 10) : null;
+}
+
+function formatQty(qty: number, unit: string): string {
+  const nf = (n: number, d: number) =>
+    n.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+  if (unit === "kg") {
+    if (qty < 1) return `${nf(qty * 1000, 0)} g`;
+    return `${nf(qty, 3)} kg`;
+  }
+  if (unit === "L") {
+    if (qty < 1) return `${nf(qty * 1000, 0)} ml`;
+    return `${nf(qty, 3)} L`;
+  }
+  if (unit === "un") {
+    const rounded = Math.round(qty);
+    return `${rounded} ${rounded === 1 ? "unidade" : "unidades"}`;
+  }
+  return `${nf(qty, 2)} ${unit}`;
 }
 
 function Dashboard() {
@@ -86,7 +106,7 @@ function Dashboard() {
       if (ids.length) {
         const { data: it } = await supabase
           .from("expense_items")
-          .select("normalized_name,raw_name,total_price,unit_price,category")
+          .select("normalized_name,raw_name,total_price,unit_price,category,quantity,unit")
           .in("expense_id", ids);
         itRows = (it ?? []) as ItemRow[];
       }
@@ -150,8 +170,60 @@ function Dashboard() {
       if (Number(it.unit_price) < avg) savings += (avg - Number(it.unit_price)) * 1;
     }
 
-    return { total, topCat, topProd, topStore, topPay, savings, catList };
+    // Acúmulo por produto: soma das quantidades agrupadas por produto + unidade canônica
+    type Acc = { qty: number; display: string; baseUnit: string };
+    const accMap = new Map<string, Acc>();
+    for (const it of items) {
+      const name = (it.normalized_name || it.raw_name || "").trim();
+      if (!name) continue;
+      const q = Number(it.quantity) || 0;
+      if (q <= 0) continue;
+      const rawUnit = (it.unit || "").toLowerCase().trim();
+      let baseUnit = "un";
+      let qtyBase = q;
+      if (["kg", "kgr", "kgs", "quilo", "quilos"].includes(rawUnit)) {
+        baseUnit = "kg";
+      } else if (["g", "gr", "grama", "gramas"].includes(rawUnit)) {
+        baseUnit = "kg";
+        qtyBase = q / 1000;
+      } else if (["l", "lt", "litro", "litros"].includes(rawUnit)) {
+        baseUnit = "L";
+      } else if (["ml"].includes(rawUnit)) {
+        baseUnit = "L";
+        qtyBase = q / 1000;
+      } else if (["un", "und", "unid", "unidade", "pc", "pç", ""].includes(rawUnit)) {
+        baseUnit = "un";
+      } else {
+        baseUnit = rawUnit;
+      }
+      const key = `${name}__${baseUnit}`;
+      const cur = accMap.get(key) ?? { qty: 0, display: name, baseUnit };
+      cur.qty += qtyBase;
+      accMap.set(key, cur);
+    }
+    const productAccum = [...accMap.values()]
+      .filter((a) => a.qty > 0)
+      .sort((a, b) => b.qty - a.qty);
+
+    return { total, topCat, topProd, topStore, topPay, savings, catList, productAccum };
   }, [expenses, items]);
+
+  const periodLabel = useMemo(() => {
+    if (typeof period === "string" && period.startsWith("month:")) return "neste mês";
+    switch (period) {
+      case "hoje": return "hoje";
+      case "ontem": return "ontem";
+      case "7d": return "nos últimos 7 dias";
+      case "15d": return "nos últimos 15 dias";
+      case "30d": return "nos últimos 30 dias";
+      case "este_mes": return "este mês";
+      case "90d": return "nos últimos 90 dias";
+      case "este_ano": return "este ano";
+      case "ultimo_ano": return "no último ano";
+      case "tudo": return "no total";
+      default: return "no período";
+    }
+  }, [period]);
 
   return (
     <>
@@ -260,6 +332,35 @@ function Dashboard() {
           </div>
         </section>
       )}
+
+      {!loading && kpis.productAccum.length > 0 && (
+        <section className="mb-3 animate-aura-in">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-display font-semibold text-sm">Acumulado por produto</h3>
+            <span className="text-[10px] text-muted-foreground">
+              {kpis.productAccum.length} {kpis.productAccum.length === 1 ? "produto" : "produtos"}
+            </span>
+          </div>
+          <p className="text-[11px] text-muted-foreground mb-2">
+            Quanto você já comprou de cada produto {periodLabel}.
+          </p>
+          <div className="space-y-1.5">
+            {kpis.productAccum.slice(0, 8).map((a) => (
+              <div
+                key={`${a.display}-${a.baseUnit}`}
+                className="bg-card border border-border rounded-2xl p-3 flex items-center justify-between gap-3"
+              >
+                <p className="text-xs font-semibold truncate capitalize">{a.display}</p>
+                <p className="text-xs font-bold whitespace-nowrap text-primary">
+                  {formatQty(a.qty, a.baseUnit)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+
 
       <section className="mb-3 animate-aura-in">
         <div className="bg-secondary text-secondary-foreground p-4 rounded-3xl relative overflow-hidden">
