@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { prepareFileForUpload } from "@/utils/fileCompressor";
 import { PageHeader } from "@/components/page-header";
 import { TourGuide } from "@/components/tour-guide";
 import { TOURS } from "@/lib/tours";
@@ -108,11 +109,16 @@ function Configuracoes() {
     }
     setUploadingAvatar(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
+      const { file: readyFile, wasCompressed, originalSizeKB, finalSizeKB } =
+        await prepareFileForUpload(file, 100);
+      if (wasCompressed) {
+        console.log(`Arquivo comprimido: ${originalSizeKB}KB → ${finalSizeKB}KB`);
+      }
+      const ext = readyFile.name.split(".").pop() || "jpg";
       const path = `${userId}/avatar-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("avatars")
-        .upload(path, file, { contentType: file.type, upsert: true });
+        .upload(path, readyFile, { contentType: readyFile.type, upsert: true });
       if (upErr) throw upErr;
       const { error: pErr } = await supabase
         .from("profiles")
