@@ -267,14 +267,23 @@ function NovaDespesa() {
       if (!userId) throw new Error("Sessão expirada");
 
       const now = new Date();
-      const ext = file.name.split(".").pop() || (file.type === "application/pdf" ? "pdf" : "jpg");
+
+      const { file: readyFile, wasCompressed, originalSizeKB, finalSizeKB } =
+        await prepareFileForUpload(file, 100);
+      if (wasCompressed) {
+        console.log(`Arquivo comprimido: ${originalSizeKB}KB → ${finalSizeKB}KB`);
+      }
+
+      const ext =
+        readyFile.name.split(".").pop() ||
+        (readyFile.type === "application/pdf" ? "pdf" : "jpg");
       const path = `${userId}/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}/${crypto.randomUUID()}.${ext}`;
 
       const dataUrl: string = await new Promise((res, rej) => {
         const fr = new FileReader();
         fr.onload = () => res(fr.result as string);
         fr.onerror = () => rej(fr.error);
-        fr.readAsDataURL(file);
+        fr.readAsDataURL(readyFile);
       });
 
       setStep("upload", "running");
@@ -282,8 +291,8 @@ function NovaDespesa() {
       const [{ error: upErr }, result] = await Promise.all([
         supabase.storage
           .from("receipts")
-          .upload(path, file, { contentType: file.type, upsert: false }),
-        runOcr({ data: { fileDataUrl: dataUrl, mimeType: file.type, source: origin } }),
+          .upload(path, readyFile, { contentType: readyFile.type, upsert: false }),
+        runOcr({ data: { fileDataUrl: dataUrl, mimeType: readyFile.type, source: origin } }),
       ]);
       if (upErr) {
         setStep("upload", "error");
