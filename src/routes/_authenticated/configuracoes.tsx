@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { prepareFileForUpload } from "@/utils/fileCompressor";
 import { PageHeader } from "@/components/page-header";
 import { TourGuide } from "@/components/tour-guide";
 import { TOURS } from "@/lib/tours";
