@@ -344,8 +344,31 @@ function Insights() {
         title: `${priceUp.name} subiu ${priceUp.pct.toFixed(0)}%`,
         desc: `De ${brl(priceUp.first)}/${priceUp.unit} para ${brl(priceUp.last)}/${priceUp.unit} no histórico.`,
       });
+
+    // Embalagens (sacolas, descartáveis) — gasto evitável. Mostra total
+    // do período + loja que mais cobra para o usuário decidir levar sacola
+    // reutilizável. Só aparece quando há registros, para não poluir.
+    const embalagensItems = items.filter((it) => (it.category ?? "") === "Embalagens");
+    if (embalagensItems.length > 0) {
+      const totalEmb = embalagensItems.reduce((s, it) => s + Number(it.total_price ?? 0), 0);
+      const byStoreEmb = new Map<string, number>();
+      for (const it of embalagensItems) {
+        const exp = expenses.find((e) => e.id === it.expense_id);
+        if (!exp) continue;
+        byStoreEmb.set(exp.merchant_name, (byStoreEmb.get(exp.merchant_name) ?? 0) + Number(it.total_price ?? 0));
+      }
+      const topStoreEmb = [...byStoreEmb.entries()].sort((a, b) => b[1] - a[1])[0];
+      out.push({
+        icon: <Tag className="size-5" />,
+        title: `Embalagens custaram ${brl(totalEmb)} no período`,
+        desc: topStoreEmb
+          ? `Maior gasto em ${topStoreEmb[0]} (${brl(topStoreEmb[1])}). Levar sacola reutilizável zera esse custo.`
+          : `Levar sacola reutilizável evita esse gasto recorrente.`,
+      });
+    }
+
     return out;
-  }, [expenses, prices, canon, rawNameByItemId]);
+  }, [expenses, items, prices, canon, rawNameByItemId]);
 
 
   // Insights por categoria

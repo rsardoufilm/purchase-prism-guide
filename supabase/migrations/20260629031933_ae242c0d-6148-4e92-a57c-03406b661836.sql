@@ -1,0 +1,1 @@
+ALTER TABLE public.user_notifications DROP CONSTRAINT user_notifications_type_check; ALTER TABLE public.user_notifications ADD CONSTRAINT user_notifications_type_check CHECK (type = ANY (ARRAY['subscription_due','recurring_due','daily_summary','weekly_summary','health_alert','announcement']));
