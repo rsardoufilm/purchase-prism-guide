@@ -84,6 +84,8 @@ function DespesasIndex() {
   const [bulkSaving, setBulkSaving] = useState(false);
   const [subs, setSubs] = useState<SubscriptionRow[]>([]);
   const [showProjected, setShowProjected] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(20);
+
 
   const load = () => {
     setLoading(true);
