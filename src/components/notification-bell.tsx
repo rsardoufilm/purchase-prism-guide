@@ -8,6 +8,7 @@ import {
   Repeat,
   Receipt,
   Apple,
+  Megaphone,
   CheckCheck,
   Trash2,
 } from "lucide-react";
@@ -37,6 +38,7 @@ const ICONS: Record<string, typeof Bell> = {
   daily_summary: Receipt,
   weekly_summary: Receipt,
   health_alert: Apple,
+  announcement: Megaphone,
 };
 
 type AppRoute = "/assinaturas" | "/recorrentes" | "/dashboard" | "/consumo";
@@ -55,6 +57,7 @@ const TYPE_LABELS: Record<string, string> = {
   daily_summary: "Resumo diário",
   weekly_summary: "Resumo semanal",
   health_alert: "Saúde",
+  announcement: "Novidades",
 };
 
 type Filter = "all" | "unread" | string; // string = tipo específico
