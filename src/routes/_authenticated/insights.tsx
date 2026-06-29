@@ -344,47 +344,27 @@ function Insights() {
   //     misturar "por kg" com "por unidade" é maçãs com laranjas.
   //  4. Exibe a média do produto e quanto cada extremo se desvia dela.
   const marketCompare = useMemo(() => {
-    // Converte (unit, quantity, unit_price) em (basePrice, baseUnit).
-    // unit_price na base é o "preço por unidade de embalagem" (ex.: por kg quando vendido a kg).
-    // Quando a unidade é g/ml, convertemos para kg/L para padronizar.
-    const toBase = (
-      unitPrice: number,
-      qtyRaw: number | null,
-      unitRaw: string | null,
-    ): { basePrice: number; baseUnit: "kg" | "L" | "un" } | null => {
-      if (!Number.isFinite(unitPrice) || unitPrice <= 0) return null;
-      const u = (unitRaw ?? "").trim().toLowerCase();
-      const qty = Number(qtyRaw);
-      // Casos vendidos a granel — unit_price JÁ é por kg/L.
-      if (u === "kg" || u === "quilo" || u === "kilo") return { basePrice: unitPrice, baseUnit: "kg" };
-      if (u === "l" || u === "lt" || u === "litro") return { basePrice: unitPrice, baseUnit: "L" };
-      // Embalagens em gramas/ml: extrapola para a unidade base padrão.
-      if ((u === "g" || u === "grama") && Number.isFinite(qty) && qty > 0) {
-        return { basePrice: (unitPrice * 1000) / qty, baseUnit: "kg" };
-      }
-      if ((u === "ml" || u === "mililitro") && Number.isFinite(qty) && qty > 0) {
-        return { basePrice: (unitPrice * 1000) / qty, baseUnit: "L" };
-      }
-      // Por unidade (un, pct, cx, etc.): mantém preço da embalagem.
-      return { basePrice: unitPrice, baseUnit: "un" };
-    };
-
-    // produto → unidade base → mercado → { sum, n } (média de preço/unidade base).
+    // produto canônico → unidade base → mercado → { sum, n }
+    // Aplica aliases confirmados: somar leituras do mesmo item sob nomes diferentes
+    // (ex.: "Coração da Alcatra bovino" + "Coração bovino") só ocorre depois que o
+    // usuário confirmou a equivalência no fluxo de salvamento da nota.
     type Agg = { sum: number; n: number };
     const byProduct = new Map<string, Map<"kg" | "L" | "un", Map<string, Agg>>>();
     for (const p of prices) {
       if (!p.normalized_name || !p.merchant_name) continue;
-      const base = toBase(Number(p.unit_price), p.quantity, p.unit);
+      const base = toBaseUnitPrice(Number(p.unit_price), p.quantity, p.unit);
       if (!base) continue;
-      const byUnit = byProduct.get(p.normalized_name) ?? new Map();
+      const product = canon(p.normalized_name);
+      const byUnit = byProduct.get(product) ?? new Map();
       const byStore = byUnit.get(base.baseUnit) ?? new Map<string, Agg>();
       const cur = byStore.get(p.merchant_name) ?? { sum: 0, n: 0 };
       cur.sum += base.basePrice;
       cur.n += 1;
       byStore.set(p.merchant_name, cur);
       byUnit.set(base.baseUnit, byStore);
-      byProduct.set(p.normalized_name, byUnit);
+      byProduct.set(product, byUnit);
     }
+
 
     const rows: Array<{
       product: string;
