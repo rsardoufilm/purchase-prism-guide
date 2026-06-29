@@ -51,6 +51,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           Algo não carregou
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">Tente novamente em instantes.</p>
+        {error?.message && (
+          <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-muted px-3 py-2 text-left text-[11px] leading-snug text-muted-foreground">
+            {error.message}
+            {error.stack ? `\n\n${error.stack.split("\n").slice(0, 4).join("\n")}` : ""}
+          </pre>
+        )}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
