@@ -54,6 +54,8 @@ import { CameraCapture } from "@/components/camera-capture";
 import { logFailure, readFailures, clearFailures, type FailureEntry } from "@/lib/failure-log";
 import { useEffect } from "react";
 import { Sparkles, UserCheck } from "lucide-react";
+import { detectPriceAnomalies, type PriceAnomaly } from "@/lib/price-anomaly";
+import { PriceAnomalyDialog } from "@/components/price-anomaly-dialog";
 
 type CategorySource = "ocr" | "learned" | "rule" | "user" | null;
 
