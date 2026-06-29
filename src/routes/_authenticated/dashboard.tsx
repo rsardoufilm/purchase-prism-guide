@@ -13,6 +13,7 @@ import { DashboardCardsSkeleton, RecentExpensesSkeleton } from "@/components/das
 import { useSharedPeriod } from "@/hooks/use-shared-period";
 import { useCurrentGroup } from "@/hooks/use-current-group";
 import { MemberAvatar } from "@/components/member-avatar";
+import { loadHighlightFilters, isHighlightable, type HighlightFilters } from "@/lib/highlight-filters";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -82,6 +83,17 @@ function Dashboard() {
   const [items, setItems] = useState<ItemRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [reloadTick, setReloadTick] = useState(0);
+  const [highlightFilters, setHighlightFilters] = useState<HighlightFilters>({
+    ignoredCategories: new Set(),
+    ignoredProducts: new Set(),
+  });
+
+  useEffect(() => {
+    loadHighlightFilters().then(setHighlightFilters);
+    const reload = () => loadHighlightFilters().then(setHighlightFilters);
+    window.addEventListener("aura:data-changed", reload);
+    return () => window.removeEventListener("aura:data-changed", reload);
+  }, []);
 
   useEffect(() => {
     const onChange = () => setReloadTick((t) => t + 1);
@@ -138,8 +150,9 @@ function Dashboard() {
 
     const byProd = new Map<string, number>();
     for (const it of items) {
-      const k = it.normalized_name || it.raw_name;
-      byProd.set(k, (byProd.get(k) ?? 0) + 1);
+      const name = it.normalized_name || it.raw_name;
+      if (!isHighlightable(highlightFilters, name, it.category)) continue;
+      byProd.set(name, (byProd.get(name) ?? 0) + 1);
     }
     const topProd = [...byProd.entries()].sort((a, b) => b[1] - a[1])[0];
 
@@ -180,6 +193,7 @@ function Dashboard() {
     for (const it of items) {
       const name = (it.normalized_name || it.raw_name || "").trim();
       if (!name) continue;
+      if (!isHighlightable(highlightFilters, name, it.category)) continue;
       const q = Number(it.quantity) || 0;
       if (q <= 0) continue;
       const rawUnit = (it.unit || "").toLowerCase().trim();
@@ -210,7 +224,7 @@ function Dashboard() {
       .sort((a, b) => b.qty - a.qty);
 
     return { total, topCat, topProd, topStore, topPay, savings, catList, productAccum };
-  }, [expenses, items]);
+  }, [expenses, items, highlightFilters]);
 
   const periodLabel = useMemo(() => {
     if (typeof period === "string" && period.startsWith("month:")) return "neste mês";

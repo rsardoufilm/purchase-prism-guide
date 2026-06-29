@@ -14,6 +14,7 @@ import { askAura } from "@/lib/chat.functions";
 import { Sparkles, TrendingUp, TrendingDown, Store, Loader2, Send, Tag, ArrowUp, ArrowDown, Scale } from "lucide-react";
 import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
+import { loadHighlightFilters, isHighlightable, type HighlightFilters } from "@/lib/highlight-filters";
 
 export const Route = createFileRoute("/_authenticated/insights")({
   component: Insights,
@@ -115,6 +116,17 @@ function Insights() {
   // Usado para SOMAR no comparativo registros que o usuário já confirmou
   // serem o mesmo produto (ex.: "Coração da Alcatra bovino" ≡ "Coração bovino").
   const [aliasMap, setAliasMap] = useState<Map<string, string>>(new Map());
+  const [highlightFilters, setHighlightFilters] = useState<HighlightFilters>({
+    ignoredCategories: new Set(),
+    ignoredProducts: new Set(),
+  });
+
+  useEffect(() => {
+    loadHighlightFilters().then(setHighlightFilters);
+    const reload = () => loadHighlightFilters().then(setHighlightFilters);
+    window.addEventListener("aura:data-changed", reload);
+    return () => window.removeEventListener("aura:data-changed", reload);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -454,8 +466,9 @@ function Insights() {
     const itemsByCat = new Map<string, Map<string, number>>();
     for (const it of items) {
       const k = it.category || "Outros";
-      const prodMap = itemsByCat.get(k) ?? new Map<string, number>();
       const name = it.normalized_name || it.raw_name;
+      if (!isHighlightable(highlightFilters, name, it.category)) continue;
+      const prodMap = itemsByCat.get(k) ?? new Map<string, number>();
       prodMap.set(name, (prodMap.get(name) ?? 0) + Number(it.total_price ?? 0));
       itemsByCat.set(k, prodMap);
     }
@@ -474,7 +487,7 @@ function Insights() {
       all.push({ category: cat, total: v.total, count: v.count, topMerchant, topProduct });
     }
     return all.sort((a, b) => b.total - a.total);
-  }, [expenses, items]);
+  }, [expenses, items, highlightFilters]);
 
   // Comparativo de mercados — INTELIGENTE
   //
