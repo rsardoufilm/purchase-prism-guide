@@ -13,7 +13,8 @@
     "format:check": "prettier --check .",
     "verify:routes": "node scripts/verify-routes.mjs",
     "verify:camera": "node scripts/check-camera-thresholds.mjs",
-    "verify:all": "bun run format:check && bunx tsc --noEmit && bun run lint && bun run verify:routes && bun run verify:camera",
+    "verify:invite": "node scripts/test-invite-normalization.mjs",
+    "verify:all": "bun run format:check && bunx tsc --noEmit && bun run lint && bun run verify:routes && bun run verify:camera && bun run verify:invite",
     "prepare": "node scripts/setup-hooks.mjs"
   },
   "dependencies": {
