@@ -826,7 +826,7 @@ function NovaDespesa() {
               Cancelar
             </Button>
             <Button
-              onClick={save}
+              onClick={() => void save()}
               disabled={saving}
               className="flex-1 h-12 rounded-2xl bg-primary text-primary-foreground font-semibold"
             >
@@ -836,6 +836,35 @@ function NovaDespesa() {
           </div>
         </div>
       )}
+
+      <PriceAnomalyDialog
+        open={!!currentAnomaly}
+        anomaly={currentAnomaly}
+        onConfirm={() => {
+          if (!currentAnomaly) return;
+          const next = new Set(priceConfirmedIdx);
+          next.add(currentAnomaly.index);
+          setPriceConfirmedIdx(next);
+          advanceAnomalyQueue(next);
+        }}
+        onCorrect={(newPrice) => {
+          if (!currentAnomaly || !draft) return;
+          const items = [...draft.items];
+          const it = { ...items[currentAnomaly.index] };
+          it.unit_price = newPrice;
+          it.total_price = Math.round(Number(it.quantity ?? 1) * newPrice * 100) / 100;
+          items[currentAnomaly.index] = it;
+          setDraft({ ...draft, items });
+          const next = new Set(priceConfirmedIdx);
+          next.add(currentAnomaly.index);
+          setPriceConfirmedIdx(next);
+          advanceAnomalyQueue(next);
+        }}
+        onCancel={() => {
+          setCurrentAnomaly(null);
+          setAnomalyQueue([]);
+        }}
+      />
     </>
   );
 }
