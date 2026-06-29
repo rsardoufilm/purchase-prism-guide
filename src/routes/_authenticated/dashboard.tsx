@@ -13,6 +13,7 @@ import { DashboardCardsSkeleton, RecentExpensesSkeleton } from "@/components/das
 import { useSharedPeriod } from "@/hooks/use-shared-period";
 import { useCurrentGroup } from "@/hooks/use-current-group";
 import { MemberAvatar } from "@/components/member-avatar";
+import { loadHighlightFilters, isHighlightable, type HighlightFilters } from "@/lib/highlight-filters";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
