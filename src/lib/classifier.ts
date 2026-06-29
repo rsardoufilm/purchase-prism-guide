@@ -17,7 +17,8 @@ export type ConsumoCategory =
   | "Iogurtes"
   | "Pães"
   | "Massas"
-  | "Óleos"
+  | "Óleos e Condimentos"
+  | "Farinhas e Cereais"
   | "Açúcar"
   | "Café"
   | "Bebidas"
@@ -124,7 +125,16 @@ const ITEM_RULES: Rule[] = [
   { cat: "Iogurtes", patterns: /\b(iogurte|danone|activia|yopro|petit suisse|danoninho)\b/i },
   { cat: "Pães", patterns: /\b(p[aã]o|broa|bisnaga|baguete|rosca|pão de queijo|croissant)\b/i },
   { cat: "Massas", patterns: /\b(macarr[aã]o|espaguete|talharim|penne|lasanha|nhoque)\b/i },
-  { cat: "Óleos", patterns: /\b([oó]leo|azeite|manteiga|margarina)\b/i },
+  {
+    cat: "Óleos e Condimentos",
+    patterns:
+      /\b([oó]leo|azeite|vinagre|shoyu|sho?yu|ketchup|catchup|mostarda|maionese|molho(?:s)?|tempero|condimento|sal(?:\s|$)|pimenta|or[eé]gano|cominho|colorau|p[aá]prica)\b/i,
+  },
+  {
+    cat: "Farinhas e Cereais",
+    patterns:
+      /\b(farinha|f[eé]cula|amido(?:\s+de\s+milho)?|maizena|fub[aá]|aveia|granola|cereal|cereais|flocos|creme de arroz|tapioca|polvilho|trigo para|trigo integral)\b/i,
+  },
   { cat: "Açúcar", patterns: /\b(a[cç][uú]car|adoçante|adocante)\b/i },
   { cat: "Café", patterns: /\b(caf[eé]|p[oó] de caf[eé]|3 cora[cç][oõ]es|melitta|pil[aã]o)\b/i },
 
