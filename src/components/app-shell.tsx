@@ -10,13 +10,16 @@ import {
   LogOut,
   ScanLine,
   Settings,
+  MoreHorizontal,
+  HelpCircle,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { BrandLogo } from "@/components/brand-logo";
 import { PullToRefresh } from "@/components/pull-to-refresh";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -27,7 +30,11 @@ const NAV = [
   { to: "/assinaturas", label: "Assinaturas", icon: CreditCard },
   { to: "/recorrentes", label: "Recorrentes", icon: Repeat },
   { to: "/configuracoes", label: "Ajustes", icon: Settings },
+  { to: "/ajuda", label: "Ajuda", icon: HelpCircle },
 ] as const;
+
+const MOBILE_MORE = NAV.filter((n) => !["/dashboard", "/despesas"].includes(n.to));
+
 
 export function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation();
