@@ -164,9 +164,9 @@ function NovaDespesa() {
   // Origem da categoria por item (paralelo a draft.items por posição).
   const [itemSources, setItemSources] = useState<CategorySource[]>([]);
   const [expenseCategorySource, setExpenseCategorySource] = useState<CategorySource>(null);
-  // Marca itens cujo preço fora-do-padrão já foi confirmado manualmente pelo usuário.
-  const [priceConfirmed, setPriceConfirmed] = useState<boolean[]>([]);
-  // Fila de anomalias detectadas pendentes de revisão pelo usuário.
+  // Índices de itens cujo preço fora-do-padrão já foi confirmado manualmente
+  // pelo usuário no diálogo de anomalia — não voltam a alertar nesta sessão.
+  const [priceConfirmedIdx, setPriceConfirmedIdx] = useState<Set<number>>(new Set());
   const [anomalyQueue, setAnomalyQueue] = useState<PriceAnomaly[]>([]);
   const [currentAnomaly, setCurrentAnomaly] = useState<PriceAnomaly | null>(null);
 
