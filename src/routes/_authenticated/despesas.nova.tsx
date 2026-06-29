@@ -833,6 +833,7 @@ function NovaDespesa() {
                 setDraft(null);
                 setStoragePath(null);
                 setSteps(STEP_TEMPLATE);
+                setPriceConfirmedIdx(new Set());
               }}
               className="flex-1 h-12 rounded-2xl"
             >
