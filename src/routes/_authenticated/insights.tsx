@@ -442,22 +442,31 @@ function Insights() {
         {marketCompare.length === 0 ? (
           <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 text-center">
             <p className="text-sm text-muted-foreground text-pretty">
-              Compre o mesmo produto em mais de um mercado para ver comparativos aqui.
+              Compre o mesmo produto em mais de um mercado, na mesma unidade
+              (kg, L ou unidade), para ver comparativos aqui.
             </p>
           </div>
         ) : (
           <div className="space-y-2">
             {marketCompare.slice(0, 12).map((row) => (
               <div
-                key={row.product}
+                key={`${row.product}__${row.baseUnit}`}
                 className="bg-card border border-border rounded-2xl p-3 sm:p-4"
               >
-                <div className="flex items-baseline justify-between gap-2 mb-2">
+                <div className="flex items-baseline justify-between gap-2 mb-1">
                   <p className="text-sm font-semibold truncate">{row.product}</p>
                   <span className="text-xs font-bold whitespace-nowrap px-2 py-0.5 rounded-full bg-primary-soft text-primary">
                     {row.diffPct.toFixed(0)}% de diferença
                   </span>
                 </div>
+                <p className="text-[11px] text-muted-foreground mb-2">
+                  Comparado por <span className="font-medium">{brlPerUnit(row.avgPrice, row.baseUnit)}</span>{" "}
+                  (média entre {row.stores} mercados) • economiza até{" "}
+                  <span className="font-semibold text-emerald-700">
+                    {row.savingsPct.toFixed(0)}%
+                  </span>{" "}
+                  no mais barato
+                </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
                     <ArrowDown className="size-4 text-emerald-600 shrink-0" />
@@ -470,7 +479,7 @@ function Insights() {
                       </p>
                     </div>
                     <p className="text-sm font-bold text-emerald-700 whitespace-nowrap">
-                      {brl(row.cheapestPrice)}
+                      {brlPerUnit(row.cheapestPrice, row.baseUnit)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2">
@@ -484,7 +493,7 @@ function Insights() {
                       </p>
                     </div>
                     <p className="text-sm font-bold text-red-700 whitespace-nowrap">
-                      {brl(row.priciestPrice)}
+                      {brlPerUnit(row.priciestPrice, row.baseUnit)}
                     </p>
                   </div>
                 </div>
