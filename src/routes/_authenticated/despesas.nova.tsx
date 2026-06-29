@@ -425,6 +425,18 @@ function NovaDespesa() {
     }
   };
 
+  const advanceAliasQueue = () => {
+    const remaining = aliasQueue;
+    if (remaining.length === 0) {
+      setCurrentAlias(null);
+      setAliasQueue([]);
+      void save();
+    } else {
+      setCurrentAlias(remaining[0]);
+      setAliasQueue(remaining.slice(1));
+    }
+  };
+
   const save = async (confirmedOverride?: Set<number>) => {
     if (!draft) return;
     if (!draft.merchant_name.trim()) {
