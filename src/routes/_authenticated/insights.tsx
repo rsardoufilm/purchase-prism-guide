@@ -116,6 +116,17 @@ function Insights() {
   // Usado para SOMAR no comparativo registros que o usuário já confirmou
   // serem o mesmo produto (ex.: "Coração da Alcatra bovino" ≡ "Coração bovino").
   const [aliasMap, setAliasMap] = useState<Map<string, string>>(new Map());
+  const [highlightFilters, setHighlightFilters] = useState<HighlightFilters>({
+    ignoredCategories: new Set(),
+    ignoredProducts: new Set(),
+  });
+
+  useEffect(() => {
+    loadHighlightFilters().then(setHighlightFilters);
+    const reload = () => loadHighlightFilters().then(setHighlightFilters);
+    window.addEventListener("aura:data-changed", reload);
+    return () => window.removeEventListener("aura:data-changed", reload);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
