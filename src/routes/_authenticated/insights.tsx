@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/format";
 import { askAura } from "@/lib/chat.functions";
-import { Sparkles, TrendingUp, TrendingDown, Store, Loader2, Send, Tag } from "lucide-react";
+import { Sparkles, TrendingUp, TrendingDown, Store, Loader2, Send, Tag, ArrowUp, ArrowDown, Scale } from "lucide-react";
 import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
 
@@ -249,6 +249,49 @@ function Insights() {
     return all.sort((a, b) => b.total - a.total);
   }, [expenses, items]);
 
+  // Comparativo de mercados: produtos comprados em ≥ 2 estabelecimentos
+  const marketCompare = useMemo(() => {
+    // agrupa preços por produto → por estabelecimento (média de unit_price)
+    const byProduct = new Map<string, Map<string, { sum: number; n: number }>>();
+    for (const p of prices) {
+      if (!p.normalized_name || !p.merchant_name) continue;
+      const price = Number(p.unit_price);
+      if (!Number.isFinite(price) || price <= 0) continue;
+      const merchants = byProduct.get(p.normalized_name) ?? new Map();
+      const cur = merchants.get(p.merchant_name) ?? { sum: 0, n: 0 };
+      cur.sum += price;
+      cur.n += 1;
+      merchants.set(p.merchant_name, cur);
+      byProduct.set(p.normalized_name, merchants);
+    }
+    const rows: Array<{
+      product: string;
+      cheapestStore: string;
+      cheapestPrice: number;
+      priciestStore: string;
+      priciestPrice: number;
+      diffPct: number;
+    }> = [];
+    for (const [product, merchants] of byProduct) {
+      if (merchants.size < 2) continue;
+      const avgs = [...merchants.entries()]
+        .map(([store, v]) => ({ store, avg: v.sum / v.n }))
+        .sort((a, b) => a.avg - b.avg);
+      const min = avgs[0];
+      const max = avgs[avgs.length - 1];
+      if (min.avg <= 0) continue;
+      rows.push({
+        product,
+        cheapestStore: min.store,
+        cheapestPrice: min.avg,
+        priciestStore: max.store,
+        priciestPrice: max.avg,
+        diffPct: ((max.avg - min.avg) / min.avg) * 100,
+      });
+    }
+    return rows.sort((a, b) => b.diffPct - a.diffPct);
+  }, [prices]);
+
   // Chat
   const ask = useServerFn(askAura);
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -333,6 +376,67 @@ function Insights() {
           </div>
         </section>
       )}
+
+      <section className="mb-5">
+        <h2 className="font-display font-semibold text-sm mb-2 flex items-center gap-2">
+          <Scale className="size-4 text-primary" /> Comparativo de mercados
+        </h2>
+        {marketCompare.length === 0 ? (
+          <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 text-center">
+            <p className="text-sm text-muted-foreground text-pretty">
+              Compre o mesmo produto em mais de um mercado para ver comparativos aqui.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {marketCompare.slice(0, 12).map((row) => (
+              <div
+                key={row.product}
+                className="bg-card border border-border rounded-2xl p-3 sm:p-4"
+              >
+                <div className="flex items-baseline justify-between gap-2 mb-2">
+                  <p className="text-sm font-semibold truncate">{row.product}</p>
+                  <span className="text-xs font-bold whitespace-nowrap px-2 py-0.5 rounded-full bg-primary-soft text-primary">
+                    {row.diffPct.toFixed(0)}% de diferença
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                    <ArrowDown className="size-4 text-emerald-600 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] uppercase tracking-wide text-emerald-700 font-semibold">
+                        Mais barato
+                      </p>
+                      <p className="text-xs font-medium truncate text-emerald-900">
+                        {row.cheapestStore}
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold text-emerald-700 whitespace-nowrap">
+                      {brl(row.cheapestPrice)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2">
+                    <ArrowUp className="size-4 text-red-600 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] uppercase tracking-wide text-red-700 font-semibold">
+                        Mais caro
+                      </p>
+                      <p className="text-xs font-medium truncate text-red-900">
+                        {row.priciestStore}
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold text-red-700 whitespace-nowrap">
+                      {brl(row.priciestPrice)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+
 
       <section className="mb-3">
         <h2 className="font-display font-semibold text-sm mb-2 flex items-center gap-2">
