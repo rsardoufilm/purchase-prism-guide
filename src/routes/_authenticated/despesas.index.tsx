@@ -47,6 +47,8 @@ import {
   projectSubscriptionOccurrences,
   type SubscriptionRow,
 } from "@/lib/subscriptions";
+import { useCurrentGroup } from "@/hooks/use-current-group";
+import { MemberAvatar } from "@/components/member-avatar";
 
 export const Route = createFileRoute("/_authenticated/despesas/")({
   component: DespesasIndex,
@@ -60,6 +62,7 @@ interface Row {
   expense_date: string;
   total_amount: number;
   payment_method: string;
+  user_id: string;
 }
 
 function isoDate(d: Date | null) {
@@ -69,6 +72,7 @@ function isoDate(d: Date | null) {
 function DespesasIndex() {
   const navigate = useNavigate();
   const [period, setPeriod] = useSharedPeriod();
+  const { isInGroup, membersById } = useCurrentGroup();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
@@ -84,7 +88,7 @@ function DespesasIndex() {
     setLoading(true);
     supabase
       .from("expenses")
-      .select("id,merchant_name,category,expense_date,total_amount,payment_method")
+      .select("id,merchant_name,category,expense_date,total_amount,payment_method,user_id")
       .order("expense_date", { ascending: true })
       .then(({ data }) => {
         setRows((data ?? []) as Row[]);
@@ -320,10 +324,22 @@ function DespesasIndex() {
                     )}
                   </button>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate">{r.merchant_name}</p>
+                    <div className="flex items-center gap-2 min-w-0">
+                      {isInGroup && (
+                        <MemberAvatar
+                          userId={r.user_id}
+                          name={membersById.get(r.user_id)?.display_name ?? null}
+                          size={20}
+                        />
+                      )}
+                      <p className="text-sm font-semibold truncate">{r.merchant_name}</p>
+                    </div>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">
                       {fmtDate(r.expense_date)} •{" "}
                       {paymentLabel[r.payment_method] ?? r.payment_method}
+                      {isInGroup && membersById.get(r.user_id)?.display_name
+                        ? ` • ${membersById.get(r.user_id)!.display_name!.split(" ")[0]}`
+                        : ""}
                     </p>
                   </div>
                   <p className="text-sm font-bold whitespace-nowrap">
