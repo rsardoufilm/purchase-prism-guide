@@ -249,6 +249,49 @@ function Insights() {
     return all.sort((a, b) => b.total - a.total);
   }, [expenses, items]);
 
+  // Comparativo de mercados: produtos comprados em ≥ 2 estabelecimentos
+  const marketCompare = useMemo(() => {
+    // agrupa preços por produto → por estabelecimento (média de unit_price)
+    const byProduct = new Map<string, Map<string, { sum: number; n: number }>>();
+    for (const p of prices) {
+      if (!p.normalized_name || !p.merchant_name) continue;
+      const price = Number(p.unit_price);
+      if (!Number.isFinite(price) || price <= 0) continue;
+      const merchants = byProduct.get(p.normalized_name) ?? new Map();
+      const cur = merchants.get(p.merchant_name) ?? { sum: 0, n: 0 };
+      cur.sum += price;
+      cur.n += 1;
+      merchants.set(p.merchant_name, cur);
+      byProduct.set(p.normalized_name, merchants);
+    }
+    const rows: Array<{
+      product: string;
+      cheapestStore: string;
+      cheapestPrice: number;
+      priciestStore: string;
+      priciestPrice: number;
+      diffPct: number;
+    }> = [];
+    for (const [product, merchants] of byProduct) {
+      if (merchants.size < 2) continue;
+      const avgs = [...merchants.entries()]
+        .map(([store, v]) => ({ store, avg: v.sum / v.n }))
+        .sort((a, b) => a.avg - b.avg);
+      const min = avgs[0];
+      const max = avgs[avgs.length - 1];
+      if (min.avg <= 0) continue;
+      rows.push({
+        product,
+        cheapestStore: min.store,
+        cheapestPrice: min.avg,
+        priciestStore: max.store,
+        priciestPrice: max.avg,
+        diffPct: ((max.avg - min.avg) / min.avg) * 100,
+      });
+    }
+    return rows.sort((a, b) => b.diffPct - a.diffPct);
+  }, [prices]);
+
   // Chat
   const ask = useServerFn(askAura);
   const [msgs, setMsgs] = useState<Msg[]>([]);
