@@ -165,33 +165,62 @@ function Produtos() {
         <p className="text-sm text-muted-foreground">Nenhum produto registrado ainda.</p>
       ) : (
         <div className="space-y-2">
-          {products.map((p) => (
-            <details
-              key={p.name}
-              className="bg-card border border-border rounded-2xl p-3 sm:p-4 group"
-            >
-              <summary className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 cursor-pointer list-none">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">{p.name}</p>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
-                    {p.qty.toLocaleString("pt-BR")} {p.unit ?? "un"} acumulado
-                  </p>
+          {products.map((p) => {
+            const ignored = filters.ignoredProducts.has(normalizeProductKey(p.name));
+            const handleToggle = async (e: React.MouseEvent) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!userId) return;
+              try {
+                await toggleProductIgnored(userId, p.name, ignored);
+                refreshFilters();
+                window.dispatchEvent(new CustomEvent("aura:data-changed"));
+                toast.success(ignored ? "Voltou a aparecer nos destaques" : "Oculto dos destaques");
+              } catch {
+                toast.error("Não foi possível atualizar.");
+              }
+            };
+            return (
+              <details
+                key={p.name}
+                className="bg-card border border-border rounded-2xl p-3 sm:p-4 group"
+              >
+                <summary className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 cursor-pointer list-none">
+                  <div className="min-w-0 flex items-center gap-2">
+                    {ignored && (
+                      <EyeOff className="size-3.5 text-muted-foreground shrink-0" aria-label="Oculto dos destaques" />
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate">{p.name}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+                        {p.qty.toLocaleString("pt-BR")} {p.unit ?? "un"} acumulado
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm font-bold">{brl(p.total)}</p>
+                </summary>
+                <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-border">
+                  <Mini label="Médio" value={brl(p.avg)} />
+                  <Mini label="Mín" value={brl(p.min)} />
+                  <Mini label="Máx" value={brl(p.max)} />
                 </div>
-                <p className="text-sm font-bold">{brl(p.total)}</p>
-              </summary>
-              <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-border">
-                <Mini label="Médio" value={brl(p.avg)} />
-                <Mini label="Mín" value={brl(p.min)} />
-                <Mini label="Máx" value={brl(p.max)} />
-              </div>
-              {p.cheapestStore && (
-                <p className="text-[11px] text-primary mt-2 font-medium truncate">
-                  Mais barato em <span className="font-semibold">{p.cheapestStore.s}</span> (
-                  {brl(p.cheapestStore.avg)})
-                </p>
-              )}
-            </details>
-          ))}
+                {p.cheapestStore && (
+                  <p className="text-[11px] text-primary mt-2 font-medium truncate">
+                    Mais barato em <span className="font-semibold">{p.cheapestStore.s}</span> (
+                    {brl(p.cheapestStore.avg)})
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={handleToggle}
+                  className="mt-3 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition"
+                >
+                  {ignored ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+                  {ignored ? "Mostrar nos destaques" : "Ignorar nos destaques"}
+                </button>
+              </details>
+            );
+          })}
         </div>
       )}
 
