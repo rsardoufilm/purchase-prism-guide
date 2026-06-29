@@ -33,6 +33,7 @@ export type ConsumoCategory =
   | "Snacks"
   | "Doces"
   | "Congelados"
+  | "Embalagens"
   // Tipos de estabelecimento / serviço
   | "Padaria"
   | "Farmácia"
