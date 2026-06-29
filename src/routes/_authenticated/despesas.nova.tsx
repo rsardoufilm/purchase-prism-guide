@@ -57,6 +57,12 @@ import { useEffect } from "react";
 import { Sparkles, UserCheck } from "lucide-react";
 import { detectPriceAnomalies, type PriceAnomaly } from "@/lib/price-anomaly";
 import { PriceAnomalyDialog } from "@/components/price-anomaly-dialog";
+import {
+  detectAliasCandidates,
+  saveAlias,
+  type AliasCandidate,
+} from "@/lib/product-aliases";
+import { ProductAliasDialog } from "@/components/product-alias-dialog";
 
 type CategorySource =
   | "ocr"
