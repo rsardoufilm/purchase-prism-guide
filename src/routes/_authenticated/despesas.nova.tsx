@@ -952,12 +952,28 @@ function Field({
 }
 
 function CategorySourceBadge({ source }: { source: CategorySource }) {
-  if (!source || source === "ocr") return null;
-  if (source === "learned") {
+  // Por especificação:
+  //  - "pessoal" → mostra tag discreta de feedback de aprendizado pessoal.
+  //  - "global"  → silencioso (parece que o app "já sabia").
+  //  - "ocr"     → silencioso (veio da própria nota).
+  if (!source || source === "ocr" || source === "global") return null;
+  if (source === "pessoal") {
     return (
       <span
         className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-1.5 py-0.5 text-[9px] font-semibold text-primary"
-        title="Categoria sugerida pelo seu histórico de compras"
+        title="Aplicado automaticamente a partir das suas correções anteriores"
+      >
+        <Sparkles className="size-2.5" />
+        Classificado com base no seu histórico ✓
+      </span>
+    );
+  }
+  if (source === "learned") {
+    // Aprendizado de categoria por estabelecimento (merchant), camada separada.
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-1.5 py-0.5 text-[9px] font-semibold text-primary"
+        title="Categoria sugerida pelo seu histórico de compras neste estabelecimento"
       >
         <Sparkles className="size-2.5" />
         Aprendido
