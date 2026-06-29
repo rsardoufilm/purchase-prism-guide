@@ -60,11 +60,6 @@ function Produtos() {
     window.addEventListener("aura:data-changed", load);
     return () => window.removeEventListener("aura:data-changed", load);
   }, [refreshFilters]);
-    };
-    load();
-    window.addEventListener("aura:data-changed", load);
-    return () => window.removeEventListener("aura:data-changed", load);
-  }, []);
 
   const runScan = useCallback(async (uid: string) => {
     try {
