@@ -41,7 +41,7 @@ function Assinaturas() {
   const load = () =>
     supabase
       .from("subscriptions")
-      .select("*")
+      .select("id,name,amount,frequency,next_due_date")
       .order("created_at", { ascending: false })
       .then(({ data }) => setRows((data ?? []) as Sub[]));
 

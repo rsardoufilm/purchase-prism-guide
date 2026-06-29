@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
+
 import {
   Plus,
   Pencil,
@@ -83,6 +84,8 @@ function DespesasIndex() {
   const [bulkSaving, setBulkSaving] = useState(false);
   const [subs, setSubs] = useState<SubscriptionRow[]>([]);
   const [showProjected, setShowProjected] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(20);
+
 
   const load = () => {
     setLoading(true);
@@ -212,6 +215,14 @@ function DespesasIndex() {
     );
   }, [rows, filter, period]);
 
+  // Paginação: reset ao mudar filtros/período.
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [filter, period]);
+
+  const pagedRows = useMemo(() => filteredRows.slice(0, visibleCount), [filteredRows, visibleCount]);
+
+
   const uncategorizedCount = useMemo(() => rows.filter((r) => !r.category).length, [rows]);
 
   const projectedOccurrences = useMemo(() => {
@@ -302,93 +313,30 @@ function DespesasIndex() {
         </div>
       ) : (
         <div className="space-y-2 pb-24">
-          {filteredRows.map((r) => {
-            const isSelected = selected.has(r.id);
-            const noCat = !r.category;
-            return (
-              <div
-                key={r.id}
-                className={`bg-card p-3 sm:p-4 rounded-2xl border space-y-2 ${isSelected ? "border-primary ring-1 ring-primary/40" : "border-border"}`}
-              >
-                <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] gap-2 items-center">
-                  <button
-                    type="button"
-                    onClick={() => toggleSelect(r.id)}
-                    aria-label={isSelected ? "Desmarcar" : "Selecionar"}
-                    className="size-7 grid place-items-center rounded-lg text-muted-foreground hover:text-foreground"
-                  >
-                    {isSelected ? (
-                      <CheckSquare className="size-4 text-primary" />
-                    ) : (
-                      <Square className="size-4" />
-                    )}
-                  </button>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {isInGroup && (
-                        <MemberAvatar
-                          userId={r.user_id}
-                          name={membersById.get(r.user_id)?.display_name ?? null}
-                          size={20}
-                        />
-                      )}
-                      <p className="text-sm font-semibold truncate">{r.merchant_name}</p>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">
-                      {fmtDate(r.expense_date)} •{" "}
-                      {paymentLabel[r.payment_method] ?? r.payment_method}
-                      {isInGroup && membersById.get(r.user_id)?.display_name
-                        ? ` • ${membersById.get(r.user_id)!.display_name!.split(" ")[0]}`
-                        : ""}
-                    </p>
-                  </div>
-                  <p className="text-sm font-bold whitespace-nowrap">
-                    {brl(Number(r.total_amount))}
-                  </p>
-                  <Link
-                    to="/despesas/nova"
-                    search={{ id: r.id }}
-                    aria-label={`Editar ${r.merchant_name}`}
-                    className="size-9 grid place-items-center rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                  >
-                    <Pencil className="size-4" />
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => setPendingDelete(r)}
-                    aria-label={`Excluir ${r.merchant_name}`}
-                    className="size-9 grid place-items-center rounded-xl border border-border text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/5 transition-colors"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                </div>
-                <div className="flex items-center gap-2 pl-9">
-                  {noCat && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
-                      <AlertTriangle className="size-3" /> Sem categoria
-                    </span>
-                  )}
-                  <Select value={r.category ?? ""} onValueChange={(v) => reclassify(r, v)}>
-                    <SelectTrigger
-                      className={`rounded-lg h-7 text-[11px] w-auto inline-flex gap-1 px-2 border-dashed ${noCat ? "border-amber-500/40 text-amber-700 dark:text-amber-400" : ""}`}
-                      aria-label="Reclassificar categoria"
-                    >
-                      <SelectValue placeholder="Definir categoria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MERCHANT_CATEGORY_OPTIONS.map((c) => (
-                        <SelectItem key={c} value={c} className="text-xs">
-                          {c}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            );
-          })}
+          {pagedRows.map((r) => (
+            <ExpenseRow
+              key={r.id}
+              row={r}
+              isSelected={selected.has(r.id)}
+              isInGroup={isInGroup}
+              memberName={membersById.get(r.user_id)?.display_name ?? null}
+              onToggleSelect={toggleSelect}
+              onAskDelete={setPendingDelete}
+              onReclassify={reclassify}
+            />
+          ))}
+          {filteredRows.length > pagedRows.length && (
+            <button
+              type="button"
+              onClick={() => setVisibleCount((c) => c + 20)}
+              className="w-full h-11 rounded-2xl border border-dashed border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              Carregar mais ({filteredRows.length - pagedRows.length} restantes)
+            </button>
+          )}
         </div>
       )}
+
 
       {projectedOccurrences.length > 0 && (
         <section className="mt-6 pb-24">
@@ -504,3 +452,105 @@ function DespesasIndex() {
     </>
   );
 }
+
+interface ExpenseRowProps {
+  row: Row;
+  isSelected: boolean;
+  isInGroup: boolean;
+  memberName: string | null;
+  onToggleSelect: (id: string) => void;
+  onAskDelete: (row: Row) => void;
+  onReclassify: (row: Row, newCat: string) => void;
+}
+
+/**
+ * Linha da lista de despesas isolada para evitar rerender de toda a lista
+ * quando filtros, período ou seleção mudam — só rerenderiza quando os
+ * próprios props dela mudam.
+ */
+const ExpenseRow = memo(function ExpenseRow({
+  row,
+  isSelected,
+  isInGroup,
+  memberName,
+  onToggleSelect,
+  onAskDelete,
+  onReclassify,
+}: ExpenseRowProps) {
+  const noCat = !row.category;
+  return (
+    <div
+      className={`bg-card p-3 sm:p-4 rounded-2xl border space-y-2 ${isSelected ? "border-primary ring-1 ring-primary/40" : "border-border"}`}
+    >
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] gap-2 items-center">
+        <button
+          type="button"
+          onClick={() => onToggleSelect(row.id)}
+          aria-label={isSelected ? "Desmarcar" : "Selecionar"}
+          className="size-7 grid place-items-center rounded-lg text-muted-foreground hover:text-foreground"
+        >
+          {isSelected ? (
+            <CheckSquare className="size-4 text-primary" />
+          ) : (
+            <Square className="size-4" />
+          )}
+        </button>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            {isInGroup && (
+              <MemberAvatar userId={row.user_id} name={memberName} size={20} />
+            )}
+            <p className="text-sm font-semibold truncate">{row.merchant_name}</p>
+          </div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">
+            {fmtDate(row.expense_date)} •{" "}
+            {paymentLabel[row.payment_method] ?? row.payment_method}
+            {isInGroup && memberName ? ` • ${memberName.split(" ")[0]}` : ""}
+          </p>
+        </div>
+        <p className="text-sm font-bold whitespace-nowrap">
+          {brl(Number(row.total_amount))}
+        </p>
+        <Link
+          to="/despesas/nova"
+          search={{ id: row.id }}
+          aria-label={`Editar ${row.merchant_name}`}
+          className="size-9 grid place-items-center rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <Pencil className="size-4" />
+        </Link>
+        <button
+          type="button"
+          onClick={() => onAskDelete(row)}
+          aria-label={`Excluir ${row.merchant_name}`}
+          className="size-9 grid place-items-center rounded-xl border border-border text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/5 transition-colors"
+        >
+          <Trash2 className="size-4" />
+        </button>
+      </div>
+      <div className="flex items-center gap-2 pl-9">
+        {noCat && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
+            <AlertTriangle className="size-3" /> Sem categoria
+          </span>
+        )}
+        <Select value={row.category ?? ""} onValueChange={(v) => onReclassify(row, v)}>
+          <SelectTrigger
+            className={`rounded-lg h-7 text-[11px] w-auto inline-flex gap-1 px-2 border-dashed ${noCat ? "border-amber-500/40 text-amber-700 dark:text-amber-400" : ""}`}
+            aria-label="Reclassificar categoria"
+          >
+            <SelectValue placeholder="Definir categoria" />
+          </SelectTrigger>
+          <SelectContent>
+            {MERCHANT_CATEGORY_OPTIONS.map((c) => (
+              <SelectItem key={c} value={c} className="text-xs">
+                {c}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+});
+

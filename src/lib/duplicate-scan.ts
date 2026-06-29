@@ -81,6 +81,83 @@ async function applyMerge(userId: string, canonical: string, other: string): Pro
 }
 
 /**
+ * Executa o cálculo de similaridade O(n²) num Web Worker quando o ambiente
+ * suportar — mantém a thread principal livre durante a varredura. Faz
+ * fallback síncrono no SSR ou em browsers antigos sem `Worker`.
+ */
+async function runPairScan(
+  unique: string[],
+  answered: Set<string>,
+): Promise<{
+  newRows: { nome_a: string; nome_b: string; similaridade: number }[];
+  autoMerges: { canonical: string; other: string; score: number }[];
+}> {
+  const answeredKeys = Array.from(answered);
+  const hasWorker = typeof window !== "undefined" && typeof Worker !== "undefined";
+
+  if (hasWorker) {
+    try {
+      const WorkerCtor = (
+        await import("@/workers/duplicate-scan.worker?worker")
+      ).default as new () => Worker;
+      const worker = new WorkerCtor();
+      const result = await new Promise<{
+        newRows: { nome_a: string; nome_b: string; similaridade: number }[];
+        autoMerges: { canonical: string; other: string; score: number }[];
+      }>((resolve, reject) => {
+        worker.onmessage = (
+          ev: MessageEvent<
+            | {
+                ok: true;
+                data: {
+                  newRows: { nome_a: string; nome_b: string; similaridade: number }[];
+                  autoMerges: { canonical: string; other: string; score: number }[];
+                };
+              }
+            | { ok: false; error: string }
+          >,
+        ) => {
+          if (ev.data.ok) resolve(ev.data.data);
+          else reject(new Error(ev.data.error));
+        };
+        worker.onerror = (e) => reject(e.error ?? new Error(e.message));
+        worker.postMessage({ unique, answeredKeys });
+      });
+      worker.terminate();
+      return result;
+    } catch {
+      /* fallback síncrono abaixo */
+    }
+  }
+
+  // Fallback síncrono (SSR, ambientes sem Worker).
+  const tokens = unique.map((n) => ({ n, t: tokenize(n) }));
+  const newRows: { nome_a: string; nome_b: string; similaridade: number }[] = [];
+  const autoMerges: { canonical: string; other: string; score: number }[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    for (let j = i + 1; j < tokens.length; j++) {
+      const a = tokens[i];
+      const b = tokens[j];
+      if (a.t.length === 0 || b.t.length === 0) continue;
+      const score = jaccard(a.t, b.t);
+      if (score < REVIEW_THRESHOLD || score >= 1) continue;
+      const k = [a.n, b.n].sort().join("|");
+      if (answered.has(k)) continue;
+      answered.add(k);
+      const [nome_a, nome_b] = [a.n, b.n].sort();
+      if (score >= AUTO_UNIFY_THRESHOLD) {
+        const canonical = nome_a.length <= nome_b.length ? nome_a : nome_b;
+        const other = canonical === nome_a ? nome_b : nome_a;
+        autoMerges.push({ canonical, other, score: Number(score.toFixed(3)) });
+      } else {
+        newRows.push({ nome_a, nome_b, similaridade: Number(score.toFixed(3)) });
+      }
+    }
+  }
+  return { newRows, autoMerges };
+}
+
+/**
  * Roda varredura no histórico, registra pares similares ainda não vistos
  * e auto-unifica os mais seguros. Retorna sugestões pendentes + contagem
  * dos itens unificados automaticamente.
@@ -114,32 +191,9 @@ export async function scanDuplicates(userId: string): Promise<ScanResult> {
   );
   (existing ?? []).forEach((s) => answered.add([s.nome_a, s.nome_b].sort().join("|")));
 
-  const tokens = unique.map((n) => ({ n, t: tokenize(n) }));
-  const newRows: { user_id: string; nome_a: string; nome_b: string; similaridade: number }[] = [];
-  const autoMerges: { canonical: string; other: string; score: number }[] = [];
-
-  for (let i = 0; i < tokens.length; i++) {
-    for (let j = i + 1; j < tokens.length; j++) {
-      const a = tokens[i];
-      const b = tokens[j];
-      if (a.t.length === 0 || b.t.length === 0) continue;
-      const score = jaccard(a.t, b.t);
-      if (score < REVIEW_THRESHOLD || score >= 1) continue;
-      const k = [a.n, b.n].sort().join("|");
-      if (answered.has(k)) continue;
-      answered.add(k);
-      const [nome_a, nome_b] = [a.n, b.n].sort();
-
-      if (score >= AUTO_UNIFY_THRESHOLD) {
-        // canônico = nome mais curto (geralmente o mais limpo)
-        const canonical = nome_a.length <= nome_b.length ? nome_a : nome_b;
-        const other = canonical === nome_a ? nome_b : nome_a;
-        autoMerges.push({ canonical, other, score: Number(score.toFixed(3)) });
-      } else {
-        newRows.push({ user_id: userId, nome_a, nome_b, similaridade: Number(score.toFixed(3)) });
-      }
-    }
-  }
+  // Off-main-thread: O(n²) tokenização + Jaccard num Web Worker.
+  const { newRows: scanNewRows, autoMerges } = await runPairScan(unique, answered);
+  const newRows = scanNewRows.map((r) => ({ user_id: userId, ...r }));
 
   // Auto-unify safe matches and record them as "aceita" for traceability
   for (const m of autoMerges) {
@@ -174,6 +228,7 @@ export async function scanDuplicates(userId: string): Promise<ScanResult> {
     autoUnified: autoMerges.length,
   };
 }
+
 
 /** Aceita: renomeia B → A em expense_items e product_prices, marca aceita. */
 export async function acceptUnification(
