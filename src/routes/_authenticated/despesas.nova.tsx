@@ -359,6 +359,7 @@ function NovaDespesa() {
       setSource(file.type === "application/pdf" ? "pdf" : "photo");
       setDraft(enriched);
       setItemSources(sources);
+      setPriceConfirmedIdx(new Set());
       setExpenseCategorySource(expSource);
       toast.success(
         `Nota lida! ${enriched.items.length} ${enriched.items.length === 1 ? "item" : "itens"} encontrados.`,
