@@ -47,8 +47,8 @@ function Produtos() {
 
   const runScan = useCallback(async (uid: string) => {
     try {
-      const pend = await scanDuplicates(uid);
-      setSuggestions(pend);
+      const { pending } = await scanDuplicates(uid);
+      setSuggestions(pending);
     } catch {
       /* silent */
     }

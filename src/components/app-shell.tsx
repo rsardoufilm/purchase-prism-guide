@@ -12,7 +12,9 @@ import {
   Settings,
   MoreHorizontal,
   HelpCircle,
+  GitMerge,
 } from "lucide-react";
+import { useContinuousScan } from "@/hooks/use-continuous-scan";
 import { useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -29,6 +31,7 @@ const NAV = [
   { to: "/insights", label: "Insights", icon: Sparkles },
   { to: "/assinaturas", label: "Assinaturas", icon: CreditCard },
   { to: "/recorrentes", label: "Recorrentes", icon: Repeat },
+  { to: "/excecoes", label: "Exceções", icon: GitMerge },
   { to: "/configuracoes", label: "Ajustes", icon: Settings },
   { to: "/ajuda", label: "Ajuda", icon: HelpCircle },
 ] as const;
@@ -40,6 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [moreOpen, setMoreOpen] = useState(false);
+  useContinuousScan();
 
   const isActive = (to: string) => location.pathname.startsWith(to);
   const moreActive = MOBILE_MORE.some((n) => isActive(n.to));

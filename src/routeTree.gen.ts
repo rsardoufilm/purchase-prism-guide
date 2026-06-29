@@ -19,6 +19,7 @@ import { Route as LegalExclusaoContaRouteImport } from './routes/legal.exclusao-
 import { Route as AuthenticatedRecorrentesRouteImport } from './routes/_authenticated/recorrentes'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticated/insights'
+import { Route as AuthenticatedExcecoesRouteImport } from './routes/_authenticated/excecoes'
 import { Route as AuthenticatedDespesasRouteImport } from './routes/_authenticated/despesas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConsumoRouteImport } from './routes/_authenticated/consumo'
@@ -78,6 +79,11 @@ const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
 const AuthenticatedInsightsRoute = AuthenticatedInsightsRouteImport.update({
   id: '/insights',
   path: '/insights',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedExcecoesRoute = AuthenticatedExcecoesRouteImport.update({
+  id: '/excecoes',
+  path: '/excecoes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDespesasRoute = AuthenticatedDespesasRouteImport.update({
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/consumo': typeof AuthenticatedConsumoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/despesas': typeof AuthenticatedDespesasRouteWithChildren
+  '/excecoes': typeof AuthenticatedExcecoesRoute
   '/insights': typeof AuthenticatedInsightsRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/recorrentes': typeof AuthenticatedRecorrentesRoute
@@ -167,6 +174,7 @@ export interface FileRoutesByTo {
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/consumo': typeof AuthenticatedConsumoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/excecoes': typeof AuthenticatedExcecoesRoute
   '/insights': typeof AuthenticatedInsightsRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/recorrentes': typeof AuthenticatedRecorrentesRoute
@@ -190,6 +198,7 @@ export interface FileRoutesById {
   '/_authenticated/consumo': typeof AuthenticatedConsumoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/despesas': typeof AuthenticatedDespesasRouteWithChildren
+  '/_authenticated/excecoes': typeof AuthenticatedExcecoesRoute
   '/_authenticated/insights': typeof AuthenticatedInsightsRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/recorrentes': typeof AuthenticatedRecorrentesRoute
@@ -213,6 +222,7 @@ export interface FileRouteTypes {
     | '/consumo'
     | '/dashboard'
     | '/despesas'
+    | '/excecoes'
     | '/insights'
     | '/produtos'
     | '/recorrentes'
@@ -233,6 +243,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/consumo'
     | '/dashboard'
+    | '/excecoes'
     | '/insights'
     | '/produtos'
     | '/recorrentes'
@@ -255,6 +266,7 @@ export interface FileRouteTypes {
     | '/_authenticated/consumo'
     | '/_authenticated/dashboard'
     | '/_authenticated/despesas'
+    | '/_authenticated/excecoes'
     | '/_authenticated/insights'
     | '/_authenticated/produtos'
     | '/_authenticated/recorrentes'
@@ -347,6 +359,13 @@ declare module '@tanstack/react-router' {
       path: '/insights'
       fullPath: '/insights'
       preLoaderRoute: typeof AuthenticatedInsightsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/excecoes': {
+      id: '/_authenticated/excecoes'
+      path: '/excecoes'
+      fullPath: '/excecoes'
+      preLoaderRoute: typeof AuthenticatedExcecoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/despesas': {
@@ -445,6 +464,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConsumoRoute: typeof AuthenticatedConsumoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDespesasRoute: typeof AuthenticatedDespesasRouteWithChildren
+  AuthenticatedExcecoesRoute: typeof AuthenticatedExcecoesRoute
   AuthenticatedInsightsRoute: typeof AuthenticatedInsightsRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedRecorrentesRoute: typeof AuthenticatedRecorrentesRoute
@@ -458,6 +478,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConsumoRoute: AuthenticatedConsumoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDespesasRoute: AuthenticatedDespesasRouteWithChildren,
+  AuthenticatedExcecoesRoute: AuthenticatedExcecoesRoute,
   AuthenticatedInsightsRoute: AuthenticatedInsightsRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedRecorrentesRoute: AuthenticatedRecorrentesRoute,
