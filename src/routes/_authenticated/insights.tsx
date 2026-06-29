@@ -243,22 +243,40 @@ function Insights() {
       });
     }
 
-    // Agrupa preços do MESMO produto canônico + MESMA unidade base.
-    // Converte para R$/kg, R$/L ou R$/un. NUNCA compara preço absoluto:
-    // 500 g a R$ 5 (= R$ 10/kg) é mais barato que 1 kg a R$ 12 — sem a
-    // normalização, o sinal vai pro lado errado.
-    type Norm = { basePrice: number; baseUnit: "kg" | "L" | "un"; date: string; store: string };
+    // Agrupa preços do MESMO SKU (produto canônico + MARCA + embalagem,
+    // via brandSignature do raw_name) e MESMA unidade base. Converte para
+    // R$/kg, R$/L ou R$/un. Comparar "Biscoito Oreo 90g" com "Biscoito
+    // Trakinas 100g" só porque ambos viram "Biscoito" é inválido — só o
+    // mesmo produto e mesma marca podem ser comparados entre lojas.
+    type Norm = {
+      name: string; // rótulo legível (raw_name preferido)
+      basePrice: number;
+      baseUnit: "kg" | "L" | "un";
+      date: string;
+      store: string;
+    };
     const prodNorm = new Map<string, Map<"kg" | "L" | "un", Norm[]>>();
     for (const p of prices) {
       if (!p.normalized_name) continue;
-      const name = canon(p.normalized_name);
+      const raw = p.expense_item_id ? rawNameByItemId.get(p.expense_item_id) ?? "" : "";
+      const sig = brandSignature(raw);
+      // Sem raw_name disponível NÃO podemos garantir mesma marca — ignora.
+      if (!sig) continue;
+      const canonical = canon(p.normalized_name);
+      const key = `${canonical}|${sig}`;
       const b = toBaseUnitPrice(Number(p.unit_price), p.quantity, p.unit);
       if (!b) continue;
-      const byUnit = prodNorm.get(name) ?? new Map<"kg" | "L" | "un", Norm[]>();
+      const byUnit = prodNorm.get(key) ?? new Map<"kg" | "L" | "un", Norm[]>();
       const arr = byUnit.get(b.baseUnit) ?? [];
-      arr.push({ basePrice: b.basePrice, baseUnit: b.baseUnit, date: p.purchase_date, store: p.merchant_name });
+      arr.push({
+        name: raw || canonical,
+        basePrice: b.basePrice,
+        baseUnit: b.baseUnit,
+        date: p.purchase_date,
+        store: p.merchant_name,
+      });
       byUnit.set(b.baseUnit, arr);
-      prodNorm.set(name, byUnit);
+      prodNorm.set(key, byUnit);
     }
 
     let biggestSwing: {
