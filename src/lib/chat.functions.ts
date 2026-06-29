@@ -132,6 +132,9 @@ export const askAura = createServerFn({ method: "POST" })
     for (const it of items) {
       const name = (it.normalized_name ?? it.raw_name ?? "").trim();
       if (!name) continue;
+      const cat = (it.category ?? "").trim().toLowerCase();
+      if (cat && ignoredCats.has(cat)) continue;
+      if (ignoredProds.has(normProdKey(name))) continue;
       prodMap.set(name, (prodMap.get(name) ?? 0) + Number(it.total_price ?? 0));
     }
     const topProdutos = [...prodMap.entries()]
