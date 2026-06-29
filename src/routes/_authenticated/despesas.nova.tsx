@@ -54,6 +54,8 @@ import { CameraCapture } from "@/components/camera-capture";
 import { logFailure, readFailures, clearFailures, type FailureEntry } from "@/lib/failure-log";
 import { useEffect } from "react";
 import { Sparkles, UserCheck } from "lucide-react";
+import { detectPriceAnomalies, type PriceAnomaly } from "@/lib/price-anomaly";
+import { PriceAnomalyDialog } from "@/components/price-anomaly-dialog";
 
 type CategorySource = "ocr" | "learned" | "rule" | "user" | null;
 
@@ -162,6 +164,11 @@ function NovaDespesa() {
   // Origem da categoria por item (paralelo a draft.items por posição).
   const [itemSources, setItemSources] = useState<CategorySource[]>([]);
   const [expenseCategorySource, setExpenseCategorySource] = useState<CategorySource>(null);
+  // Índices de itens cujo preço fora-do-padrão já foi confirmado manualmente
+  // pelo usuário no diálogo de anomalia — não voltam a alertar nesta sessão.
+  const [priceConfirmedIdx, setPriceConfirmedIdx] = useState<Set<number>>(new Set());
+  const [anomalyQueue, setAnomalyQueue] = useState<PriceAnomaly[]>([]);
+  const [currentAnomaly, setCurrentAnomaly] = useState<PriceAnomaly | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -352,6 +359,7 @@ function NovaDespesa() {
       setSource(file.type === "application/pdf" ? "pdf" : "photo");
       setDraft(enriched);
       setItemSources(sources);
+      setPriceConfirmedIdx(new Set());
       setExpenseCategorySource(expSource);
       toast.success(
         `Nota lida! ${enriched.items.length} ${enriched.items.length === 1 ? "item" : "itens"} encontrados.`,
@@ -387,7 +395,19 @@ function NovaDespesa() {
     return RECUR_CATEGORIES.find((c) => text.includes(c)) ?? null;
   };
 
-  const save = async () => {
+  const advanceAnomalyQueue = (confirmed: Set<number>) => {
+    const remaining = anomalyQueue.filter((a) => !confirmed.has(a.index));
+    if (remaining.length === 0) {
+      setCurrentAnomaly(null);
+      setAnomalyQueue([]);
+      void save(confirmed);
+    } else {
+      setCurrentAnomaly(remaining[0]);
+      setAnomalyQueue(remaining.slice(1));
+    }
+  };
+
+  const save = async (confirmedOverride?: Set<number>) => {
     if (!draft) return;
     if (!draft.merchant_name.trim()) {
       toast.error("Informe o estabelecimento.");
@@ -402,6 +422,24 @@ function NovaDespesa() {
         return;
       }
     }
+
+    // Validação de anomalias de preço: bloqueia salvamento se algum item
+    // tiver preço > 200% acima da média histórica e ainda não foi confirmado.
+    const confirmed = confirmedOverride ?? priceConfirmedIdx;
+    const anomalies = await detectPriceAnomalies(
+      draft.items.map((it, i) => ({
+        raw_name: it.raw_name,
+        normalized_name: it.normalized_name ?? null,
+        unit_price: it.unit_price ?? 0,
+        preco_confirmado_manualmente: confirmed.has(i),
+      })),
+    );
+    if (anomalies.length > 0) {
+      setCurrentAnomaly(anomalies[0]);
+      setAnomalyQueue(anomalies.slice(1));
+      return;
+    }
+
     setSaving(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -452,7 +490,7 @@ function NovaDespesa() {
       }
 
       if (draft.items.length > 0) {
-        const itemsPayload = draft.items.map((it) => ({
+        const itemsPayload = draft.items.map((it, i) => ({
           expense_id: expenseId,
           user_id: userId,
           raw_name: it.raw_name,
@@ -462,6 +500,7 @@ function NovaDespesa() {
           unit: it.unit ?? null,
           unit_price: it.unit_price ?? 0,
           total_price: it.total_price ?? 0,
+          preco_confirmado_manualmente: confirmed.has(i),
         }));
         const { data: insertedItems, error: e2 } = await supabase
           .from("expense_items")
@@ -794,13 +833,14 @@ function NovaDespesa() {
                 setDraft(null);
                 setStoragePath(null);
                 setSteps(STEP_TEMPLATE);
+                setPriceConfirmedIdx(new Set());
               }}
               className="flex-1 h-12 rounded-2xl"
             >
               Cancelar
             </Button>
             <Button
-              onClick={save}
+              onClick={() => void save()}
               disabled={saving}
               className="flex-1 h-12 rounded-2xl bg-primary text-primary-foreground font-semibold"
             >
@@ -810,6 +850,35 @@ function NovaDespesa() {
           </div>
         </div>
       )}
+
+      <PriceAnomalyDialog
+        open={!!currentAnomaly}
+        anomaly={currentAnomaly}
+        onConfirm={() => {
+          if (!currentAnomaly) return;
+          const next = new Set(priceConfirmedIdx);
+          next.add(currentAnomaly.index);
+          setPriceConfirmedIdx(next);
+          advanceAnomalyQueue(next);
+        }}
+        onCorrect={(newPrice) => {
+          if (!currentAnomaly || !draft) return;
+          const items = [...draft.items];
+          const it = { ...items[currentAnomaly.index] };
+          it.unit_price = newPrice;
+          it.total_price = Math.round(Number(it.quantity ?? 1) * newPrice * 100) / 100;
+          items[currentAnomaly.index] = it;
+          setDraft({ ...draft, items });
+          const next = new Set(priceConfirmedIdx);
+          next.add(currentAnomaly.index);
+          setPriceConfirmedIdx(next);
+          advanceAnomalyQueue(next);
+        }}
+        onCancel={() => {
+          setCurrentAnomaly(null);
+          setAnomalyQueue([]);
+        }}
+      />
     </>
   );
 }

@@ -21,6 +21,7 @@ export type Database = {
           expense_id: string
           id: string
           normalized_name: string | null
+          preco_confirmado_manualmente: boolean
           quantity: number
           raw_name: string
           total_price: number
@@ -34,6 +35,7 @@ export type Database = {
           expense_id: string
           id?: string
           normalized_name?: string | null
+          preco_confirmado_manualmente?: boolean
           quantity?: number
           raw_name: string
           total_price?: number
@@ -47,6 +49,7 @@ export type Database = {
           expense_id?: string
           id?: string
           normalized_name?: string | null
+          preco_confirmado_manualmente?: boolean
           quantity?: number
           raw_name?: string
           total_price?: number
