@@ -2,7 +2,8 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "app.lovable.auraconsumo",
-  appName: "AURA Consumo",
+  appName: "Aura-Consumo",
+
   webDir: "dist",
   server: {
     // Carrega o app publicado no webview (TanStack Start é SSR).
