@@ -64,9 +64,15 @@ function Insights() {
   const [allExpenses, setAllExpenses] = useState<E[]>([]);
   const [allItems, setAllItems] = useState<I[]>([]);
   const [prices, setPrices] = useState<P[]>([]);
+  // Mapa alias_normalizado → nome_canônico (somente same_product = true).
+  // Usado para SOMAR no comparativo registros que o usuário já confirmou
+  // serem o mesmo produto (ex.: "Coração da Alcatra bovino" ≡ "Coração bovino").
+  const [aliasMap, setAliasMap] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
-    const load = () => {
+    const load = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
       supabase
         .from("expenses")
         .select("id,merchant_name,total_amount,category,expense_date")
@@ -80,11 +86,37 @@ function Insights() {
         .select("normalized_name,merchant_name,unit_price,quantity,unit,purchase_date")
         .order("purchase_date", { ascending: true })
         .then(({ data }) => setPrices((data ?? []) as P[]));
+      if (uid) {
+        const { data: aliases } = await supabase
+          .from("product_aliases")
+          .select("alias_normalized,canonical_normalized,same_product")
+          .eq("user_id", uid)
+          .eq("same_product", true);
+        const m = new Map<string, string>();
+        for (const r of aliases ?? []) {
+          m.set(r.alias_normalized, r.canonical_normalized);
+        }
+        setAliasMap(m);
+      }
     };
     load();
     window.addEventListener("aura:data-changed", load);
     return () => window.removeEventListener("aura:data-changed", load);
   }, []);
+
+  /** Resolve recursivamente cadeias de apelidos até o canônico final. */
+  const canon = useMemo(() => {
+    return (name: string | null | undefined): string => {
+      let cur = (name ?? "").trim();
+      const seen = new Set<string>();
+      while (aliasMap.has(cur) && !seen.has(cur)) {
+        seen.add(cur);
+        cur = aliasMap.get(cur)!;
+      }
+      return cur;
+    };
+  }, [aliasMap]);
+
 
   // Filtra por período (expenses + items vinculados)
   const { expenses, items } = useMemo(() => {
