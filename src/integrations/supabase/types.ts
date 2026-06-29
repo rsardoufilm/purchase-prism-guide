@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      dicionario_global: {
+        Row: {
+          aprovado: boolean
+          atualizado_em: string
+          categoria_sugerida: string
+          criado_em: string
+          id: string
+          nome_sugerido: string | null
+          termo_normalizado: string
+          termo_original: string
+          votos: number
+        }
+        Insert: {
+          aprovado?: boolean
+          atualizado_em?: string
+          categoria_sugerida: string
+          criado_em?: string
+          id?: string
+          nome_sugerido?: string | null
+          termo_normalizado: string
+          termo_original: string
+          votos?: number
+        }
+        Update: {
+          aprovado?: boolean
+          atualizado_em?: string
+          categoria_sugerida?: string
+          criado_em?: string
+          id?: string
+          nome_sugerido?: string | null
+          termo_normalizado?: string
+          termo_original?: string
+          votos?: number
+        }
+        Relationships: []
+      }
+      dicionario_usuario: {
+        Row: {
+          atualizado_em: string
+          categoria_corrigida: string
+          confirmacoes: number
+          criado_em: string
+          id: string
+          nome_corrigido: string | null
+          termo_normalizado: string
+          termo_original: string
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          categoria_corrigida: string
+          confirmacoes?: number
+          criado_em?: string
+          id?: string
+          nome_corrigido?: string | null
+          termo_normalizado: string
+          termo_original: string
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          categoria_corrigida?: string
+          confirmacoes?: number
+          criado_em?: string
+          id?: string
+          nome_corrigido?: string | null
+          termo_normalizado?: string
+          termo_original?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       expense_items: {
         Row: {
           category: string | null
