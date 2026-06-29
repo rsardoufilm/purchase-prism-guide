@@ -706,7 +706,7 @@ function Insights() {
           </div>
         )}
 
-        <div className="space-y-3 mb-3 pb-32 md:pb-24">
+        <div className="space-y-3 mb-3 pb-44 md:pb-32">
           {msgs.map((m, i) => (
             <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
               <div
@@ -727,7 +727,7 @@ function Insights() {
               </div>
             </div>
           )}
-          <div ref={endRef} style={{ scrollMarginBottom: "8rem" }} />
+          <div ref={endRef} style={{ scrollMarginBottom: "12rem" }} />
         </div>
 
 
