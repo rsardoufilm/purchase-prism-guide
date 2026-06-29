@@ -43,6 +43,8 @@ function Produtos() {
     ignoredCategories: new Set(),
     ignoredProducts: new Set(),
   });
+  const [visibleCount, setVisibleCount] = useState(20);
+
 
   const refreshFilters = useCallback(() => {
     loadHighlightFilters().then(setFilters);
