@@ -634,6 +634,9 @@ function Insights() {
         <section className="mb-5">
           <h2 className="font-display font-semibold text-sm mb-2 flex items-center gap-2">
             <Tag className="size-4 text-primary" /> Por categoria
+            <span className="ml-auto text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {periodLabel(period)}
+            </span>
           </h2>
           <div className="space-y-2">
             {categoryInsights.slice(0, 8).map((c) => (
