@@ -215,6 +215,14 @@ function DespesasIndex() {
     );
   }, [rows, filter, period]);
 
+  // Paginação: reset ao mudar filtros/período.
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [filter, period]);
+
+  const pagedRows = useMemo(() => filteredRows.slice(0, visibleCount), [filteredRows, visibleCount]);
+
+
   const uncategorizedCount = useMemo(() => rows.filter((r) => !r.category).length, [rows]);
 
   const projectedOccurrences = useMemo(() => {
