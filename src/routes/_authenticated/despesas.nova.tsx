@@ -394,7 +394,7 @@ function NovaDespesa() {
     return RECUR_CATEGORIES.find((c) => text.includes(c)) ?? null;
   };
 
-  const save = async () => {
+  const save = async (confirmedOverride?: Set<number>) => {
     if (!draft) return;
     if (!draft.merchant_name.trim()) {
       toast.error("Informe o estabelecimento.");
@@ -409,6 +409,24 @@ function NovaDespesa() {
         return;
       }
     }
+
+    // Validação de anomalias de preço: bloqueia salvamento se algum item
+    // tiver preço > 200% acima da média histórica e ainda não foi confirmado.
+    const confirmed = confirmedOverride ?? priceConfirmedIdx;
+    const anomalies = await detectPriceAnomalies(
+      draft.items.map((it, i) => ({
+        raw_name: it.raw_name,
+        normalized_name: it.normalized_name ?? null,
+        unit_price: it.unit_price ?? 0,
+        preco_confirmado_manualmente: confirmed.has(i),
+      })),
+    );
+    if (anomalies.length > 0) {
+      setCurrentAnomaly(anomalies[0]);
+      setAnomalyQueue(anomalies.slice(1));
+      return;
+    }
+
     setSaving(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
