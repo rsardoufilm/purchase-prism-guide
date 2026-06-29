@@ -183,43 +183,68 @@ function Insights() {
       });
     }
 
-    const prodPrices = new Map<string, P[]>();
+    // Agrupa preços do MESMO produto canônico + MESMA unidade base.
+    // Converte para R$/kg, R$/L ou R$/un. NUNCA compara preço absoluto:
+    // 500 g a R$ 5 (= R$ 10/kg) é mais barato que 1 kg a R$ 12 — sem a
+    // normalização, o sinal vai pro lado errado.
+    type Norm = { basePrice: number; baseUnit: "kg" | "L" | "un"; date: string; store: string };
+    const prodNorm = new Map<string, Map<"kg" | "L" | "un", Norm[]>>();
     for (const p of prices) {
-      const arr = prodPrices.get(p.normalized_name) ?? [];
-      arr.push(p);
-      prodPrices.set(p.normalized_name, arr);
+      if (!p.normalized_name) continue;
+      const name = canon(p.normalized_name);
+      const b = toBaseUnitPrice(Number(p.unit_price), p.quantity, p.unit);
+      if (!b) continue;
+      const byUnit = prodNorm.get(name) ?? new Map<"kg" | "L" | "un", Norm[]>();
+      const arr = byUnit.get(b.baseUnit) ?? [];
+      arr.push({ basePrice: b.basePrice, baseUnit: b.baseUnit, date: p.purchase_date, store: p.merchant_name });
+      byUnit.set(b.baseUnit, arr);
+      prodNorm.set(name, byUnit);
     }
+
     let biggestSwing: {
       name: string;
+      unit: "kg" | "L" | "un";
       min: number;
       max: number;
       minStore: string;
       maxStore: string;
     } | null = null;
-    let priceUp: { name: string; first: number; last: number; pct: number } | null = null;
-    for (const [name, arr] of prodPrices) {
-      if (arr.length < 2) continue;
-      const sorted = [...arr].sort((a, b) => Number(a.unit_price) - Number(b.unit_price));
-      const min = sorted[0];
-      const max = sorted[sorted.length - 1];
-      if (
-        !biggestSwing ||
-        Number(max.unit_price) - Number(min.unit_price) > biggestSwing.max - biggestSwing.min
-      ) {
-        biggestSwing = {
-          name,
-          min: Number(min.unit_price),
-          max: Number(max.unit_price),
-          minStore: min.merchant_name,
-          maxStore: max.merchant_name,
-        };
-      }
-      const byDate = [...arr].sort((a, b) => a.purchase_date.localeCompare(b.purchase_date));
-      const first = Number(byDate[0].unit_price);
-      const last = Number(byDate[byDate.length - 1].unit_price);
-      if (first > 0 && last > first) {
-        const pct = ((last - first) / first) * 100;
-        if (!priceUp || pct > priceUp.pct) priceUp = { name, first, last, pct };
+    let priceUp: {
+      name: string;
+      unit: "kg" | "L" | "un";
+      first: number;
+      last: number;
+      pct: number;
+    } | null = null;
+
+    for (const [name, byUnit] of prodNorm) {
+      for (const [unit, arr] of byUnit) {
+        if (arr.length < 2) continue;
+        const sorted = [...arr].sort((a, b) => a.basePrice - b.basePrice);
+        const min = sorted[0];
+        const max = sorted[sorted.length - 1];
+        if (
+          min.basePrice > 0 &&
+          (!biggestSwing ||
+            (max.basePrice - min.basePrice) / min.basePrice >
+              (biggestSwing.max - biggestSwing.min) / biggestSwing.min)
+        ) {
+          biggestSwing = {
+            name,
+            unit,
+            min: min.basePrice,
+            max: max.basePrice,
+            minStore: min.store,
+            maxStore: max.store,
+          };
+        }
+        const byDate = [...arr].sort((a, b) => a.date.localeCompare(b.date));
+        const first = byDate[0].basePrice;
+        const last = byDate[byDate.length - 1].basePrice;
+        if (first > 0 && last > first) {
+          const pct = ((last - first) / first) * 100;
+          if (!priceUp || pct > priceUp.pct) priceUp = { name, unit, first, last, pct };
+        }
       }
     }
     if (biggestSwing) {
@@ -227,17 +252,18 @@ function Insights() {
       out.push({
         icon: <TrendingDown className="size-5" />,
         title: `${biggestSwing.name} varia ${pct.toFixed(0)}% entre lojas`,
-        desc: `${brl(biggestSwing.min)} em ${biggestSwing.minStore} vs ${brl(biggestSwing.max)} em ${biggestSwing.maxStore}.`,
+        desc: `${brl(biggestSwing.min)}/${biggestSwing.unit} em ${biggestSwing.minStore} vs ${brl(biggestSwing.max)}/${biggestSwing.unit} em ${biggestSwing.maxStore}.`,
       });
     }
     if (priceUp)
       out.push({
         icon: <TrendingUp className="size-5" />,
         title: `${priceUp.name} subiu ${priceUp.pct.toFixed(0)}%`,
-        desc: `De ${brl(priceUp.first)} para ${brl(priceUp.last)} no histórico.`,
+        desc: `De ${brl(priceUp.first)}/${priceUp.unit} para ${brl(priceUp.last)}/${priceUp.unit} no histórico.`,
       });
     return out;
-  }, [expenses, prices]);
+  }, [expenses, prices, canon]);
+
 
   // Insights por categoria
   const categoryInsights = useMemo(() => {
