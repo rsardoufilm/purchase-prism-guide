@@ -324,10 +324,10 @@ function NovaDespesa() {
         let cat = it.category ?? null;
         if (cat) source = "ocr";
         if (!cat) {
-          const learned = suggestCategory(it.raw_name, userCatMap);
-          if (learned) {
-            cat = learned;
-            source = "learned";
+          const hit = suggestFromDictionary(it.raw_name, userCatMap);
+          if (hit) {
+            cat = hit.category;
+            source = hit.source; // "pessoal" | "global"
           }
         }
         if (!cat) {
@@ -997,7 +997,7 @@ function ItemsEditor({
   items: EditableItem[];
   total: number;
   onChange: (items: EditableItem[], sources?: CategorySource[]) => void;
-  userCatMap: UserCategoryMap;
+  userCatMap: LearnedDictionary;
   sources: CategorySource[];
 }) {
   const sum = items.reduce((acc, it) => acc + (Number(it.total_price) || 0), 0);
@@ -1018,20 +1018,32 @@ function ItemsEditor({
       const raw = String(patch.raw_name ?? "").trim();
       merged.normalized_name = raw || null;
       if (!merged.category) {
-        const learned = suggestCategory(raw, userCatMap);
-        if (learned) {
-          merged.category = learned;
-          nextSources[i] = "learned";
+        const hit = suggestFromDictionary(raw, userCatMap);
+        if (hit) {
+          merged.category = hit.category;
+          nextSources[i] = hit.source;
         } else {
           merged.category = classifyItem(raw) ?? "Outros";
           nextSources[i] = "rule";
         }
       }
     }
-    if (opts?.userEdit) nextSources[i] = "user";
+    if (opts?.userEdit) {
+      nextSources[i] = "user";
+      // Captura: registra a correção no dicionário pessoal (UPSERT + confirmacoes++).
+      // Só faz sentido quando há nome do produto e categoria definidos.
+      if (patch.category !== undefined) {
+        const raw = String(merged.raw_name ?? "").trim();
+        const cat = String(patch.category ?? "").trim();
+        if (raw && cat) {
+          void recordItemCorrection(raw, cat);
+        }
+      }
+    }
     next[i] = merged;
     onChange(next, nextSources);
   };
+
 
   const remove = (i: number) => {
     onChange(
