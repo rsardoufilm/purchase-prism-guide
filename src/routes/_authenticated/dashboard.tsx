@@ -83,6 +83,17 @@ function Dashboard() {
   const [items, setItems] = useState<ItemRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [reloadTick, setReloadTick] = useState(0);
+  const [highlightFilters, setHighlightFilters] = useState<HighlightFilters>({
+    ignoredCategories: new Set(),
+    ignoredProducts: new Set(),
+  });
+
+  useEffect(() => {
+    loadHighlightFilters().then(setHighlightFilters);
+    const reload = () => loadHighlightFilters().then(setHighlightFilters);
+    window.addEventListener("aura:data-changed", reload);
+    return () => window.removeEventListener("aura:data-changed", reload);
+  }, []);
 
   useEffect(() => {
     const onChange = () => setReloadTick((t) => t + 1);
