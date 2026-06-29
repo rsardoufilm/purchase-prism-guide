@@ -38,6 +38,14 @@ function Produtos() {
   const [suggestions, setSuggestions] = useState<DuplicateSuggestion[]>([]);
   const [reviewing, setReviewing] = useState<DuplicateSuggestion | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<HighlightFilters>({
+    ignoredCategories: new Set(),
+    ignoredProducts: new Set(),
+  });
+
+  const refreshFilters = useCallback(() => {
+    loadHighlightFilters().then(setFilters);
+  }, []);
 
   useEffect(() => {
     const load = () => {
@@ -46,6 +54,12 @@ function Produtos() {
         .select("normalized_name,merchant_name,unit_price,quantity,unit,purchase_date")
         .order("purchase_date", { ascending: false })
         .then(({ data }) => setPrices((data ?? []) as Price[]));
+      refreshFilters();
+    };
+    load();
+    window.addEventListener("aura:data-changed", load);
+    return () => window.removeEventListener("aura:data-changed", load);
+  }, [refreshFilters]);
     };
     load();
     window.addEventListener("aura:data-changed", load);
