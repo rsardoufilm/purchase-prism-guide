@@ -39,10 +39,11 @@ const MOBILE_MORE = NAV.filter((n) => !["/dashboard", "/despesas"].includes(n.to
 export function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const isActive = (to: string) => location.pathname.startsWith(to);
+  const moreActive = MOBILE_MORE.some((n) => isActive(n.to));
 
-  const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   };
