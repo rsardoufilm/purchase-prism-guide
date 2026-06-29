@@ -118,6 +118,59 @@ export type Database = {
         }
         Relationships: []
       }
+      grupos_familiares: {
+        Row: {
+          codigo_convite: string
+          criado_em: string
+          criado_por: string
+          id: string
+          nome_grupo: string
+        }
+        Insert: {
+          codigo_convite?: string
+          criado_em?: string
+          criado_por: string
+          id?: string
+          nome_grupo: string
+        }
+        Update: {
+          codigo_convite?: string
+          criado_em?: string
+          criado_por?: string
+          id?: string
+          nome_grupo?: string
+        }
+        Relationships: []
+      }
+      membros_grupo: {
+        Row: {
+          entrou_em: string
+          grupo_id: string
+          papel: Database["public"]["Enums"]["papel_grupo"]
+          user_id: string
+        }
+        Insert: {
+          entrou_em?: string
+          grupo_id: string
+          papel?: Database["public"]["Enums"]["papel_grupo"]
+          user_id: string
+        }
+        Update: {
+          entrou_em?: string
+          grupo_id?: string
+          papel?: Database["public"]["Enums"]["papel_grupo"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membros_grupo_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos_familiares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           created_at: string
@@ -386,10 +439,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      gerar_codigo_convite: { Args: never; Returns: string }
+      grupo_do_usuario: { Args: { _user: string }; Returns: string }
+      mesmo_grupo: { Args: { _a: string; _b: string }; Returns: boolean }
     }
     Enums: {
       expense_source: "manual" | "photo" | "pdf"
+      papel_grupo: "admin" | "membro"
       payment_method:
         | "pix"
         | "credito"
@@ -533,6 +589,7 @@ export const Constants = {
   public: {
     Enums: {
       expense_source: ["manual", "photo", "pdf"],
+      papel_grupo: ["admin", "membro"],
       payment_method: [
         "pix",
         "credito",

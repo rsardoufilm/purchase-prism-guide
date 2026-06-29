@@ -11,6 +11,8 @@ import { Sparkles, TrendingDown, Store, Package as PackageIcon, Wallet } from "l
 import { DashboardSummaryCard } from "@/components/dashboard-summary-card";
 import { DashboardCardsSkeleton, RecentExpensesSkeleton } from "@/components/dashboard-skeleton";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
+import { useCurrentGroup } from "@/hooks/use-current-group";
+import { MemberAvatar } from "@/components/member-avatar";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -29,6 +31,7 @@ interface ExpenseRow {
   expense_date: string;
   total_amount: number;
   payment_method: string | null;
+  user_id: string;
 }
 interface ItemRow {
   normalized_name: string | null;
@@ -74,6 +77,7 @@ function formatQty(qty: number, unit: string): string {
 
 function Dashboard() {
   const [period, setPeriod] = useSharedPeriod();
+  const { isInGroup, membersById } = useCurrentGroup();
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [items, setItems] = useState<ItemRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +98,7 @@ function Dashboard() {
     (async () => {
       let q = supabase
         .from("expenses")
-        .select("id,merchant_name,category,expense_date,total_amount,payment_method")
+        .select("id,merchant_name,category,expense_date,total_amount,payment_method,user_id")
         .order("expense_date", { ascending: false });
       if (s) q = q.gte("expense_date", s);
       if (e) q = q.lte("expense_date", e);
@@ -394,23 +398,37 @@ function Dashboard() {
           </div>
         ) : (
           <div className="space-y-2">
-            {expenses.slice(0, 5).map((r) => (
-              <div
-                key={r.id}
-                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 bg-card p-4 rounded-2xl border border-border"
-              >
-                <div className="size-10 shrink-0 rounded-xl bg-muted grid place-items-center font-mono text-[10px] font-bold text-muted-foreground">
-                  NF
+            {expenses.slice(0, 5).map((r) => {
+              const member = isInGroup ? membersById.get(r.user_id) : undefined;
+              return (
+                <div
+                  key={r.id}
+                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 bg-card p-4 rounded-2xl border border-border"
+                >
+                  {isInGroup ? (
+                    <MemberAvatar
+                      userId={r.user_id}
+                      name={member?.display_name ?? null}
+                      size={40}
+                    />
+                  ) : (
+                    <div className="size-10 shrink-0 rounded-xl bg-muted grid place-items-center font-mono text-[10px] font-bold text-muted-foreground">
+                      NF
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate">{r.merchant_name}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                      {fmtDate(r.expense_date)} {r.category ? `• ${r.category}` : ""}
+                      {isInGroup && member?.display_name
+                        ? ` • ${member.display_name.split(" ")[0]}`
+                        : ""}
+                    </p>
+                  </div>
+                  <p className="text-sm font-bold text-right">{brl(Number(r.total_amount))}</p>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">{r.merchant_name}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                    {fmtDate(r.expense_date)} {r.category ? `• ${r.category}` : ""}
-                  </p>
-                </div>
-                <p className="text-sm font-bold text-right">{brl(Number(r.total_amount))}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
