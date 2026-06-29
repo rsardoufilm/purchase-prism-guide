@@ -150,8 +150,9 @@ function Dashboard() {
 
     const byProd = new Map<string, number>();
     for (const it of items) {
-      const k = it.normalized_name || it.raw_name;
-      byProd.set(k, (byProd.get(k) ?? 0) + 1);
+      const name = it.normalized_name || it.raw_name;
+      if (!isHighlightable(highlightFilters, name, it.category)) continue;
+      byProd.set(name, (byProd.get(name) ?? 0) + 1);
     }
     const topProd = [...byProd.entries()].sort((a, b) => b[1] - a[1])[0];
 
