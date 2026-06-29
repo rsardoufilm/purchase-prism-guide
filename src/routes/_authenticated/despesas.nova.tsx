@@ -187,6 +187,8 @@ function NovaDespesa() {
   const [aliasQueue, setAliasQueue] = useState<AliasCandidate[]>([]);
   const [currentAlias, setCurrentAlias] = useState<AliasCandidate | null>(null);
   const [aliasChecked, setAliasChecked] = useState(false);
+  // Confirmação única de itens detectados como Embalagens (SAC, sacola, etc.)
+  const [packagingChecked, setPackagingChecked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
