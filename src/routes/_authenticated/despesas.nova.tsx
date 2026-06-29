@@ -394,6 +394,18 @@ function NovaDespesa() {
     return RECUR_CATEGORIES.find((c) => text.includes(c)) ?? null;
   };
 
+  const advanceAnomalyQueue = (confirmed: Set<number>) => {
+    const remaining = anomalyQueue.filter((a) => !confirmed.has(a.index));
+    if (remaining.length === 0) {
+      setCurrentAnomaly(null);
+      setAnomalyQueue([]);
+      void save(confirmed);
+    } else {
+      setCurrentAnomaly(remaining[0]);
+      setAnomalyQueue(remaining.slice(1));
+    }
+  };
+
   const save = async (confirmedOverride?: Set<number>) => {
     if (!draft) return;
     if (!draft.merchant_name.trim()) {
