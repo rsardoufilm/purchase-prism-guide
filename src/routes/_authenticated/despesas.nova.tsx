@@ -173,6 +173,8 @@ function NovaDespesa() {
   const [userCatMap, setUserCatMap] = useState<LearnedDictionary>({
     personal: new Map(),
     global: new Map(),
+    personalKeys: [],
+    globalKeys: [],
   });
   const [userExpMap, setUserExpMap] = useState<UserExpenseCategoryMap>({
     byMerchant: new Map(),
