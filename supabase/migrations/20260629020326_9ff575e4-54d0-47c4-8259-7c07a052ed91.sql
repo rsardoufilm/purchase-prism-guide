@@ -1,0 +1,1 @@
+ALTER TABLE public.expense_items ADD COLUMN IF NOT EXISTS preco_confirmado_manualmente boolean NOT NULL DEFAULT false;
