@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, LogOut, Plus, Users, UserPlus, Loader2, Crown, Trash2 } from "lucide-react";
+import { Copy, LogOut, Plus, Users, UserPlus, Loader2, Crown, Trash2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -173,6 +173,38 @@ export function FamilyGroupSection() {
     }
   };
 
+  /**
+   * Compartilha o convite pelo share sheet nativo do sistema (WhatsApp,
+   * Telegram, SMS, e-mail, etc.). Fallback: copia a mensagem inteira.
+   */
+  const shareInvite = async () => {
+    if (!group) return;
+    const code = formatInviteCode(group.codigo_convite);
+    const text =
+      `Entre no meu grupo "${group.nome_grupo}" no AURA Consumo.\n` +
+      `Código de convite: ${code}\n\n` +
+      `Baixe ou abra em: https://aura-consumo.lovable.app`;
+    const shareData = { title: "Convite AURA Consumo", text };
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share(shareData);
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      toast.success("Convite copiado. Cole no WhatsApp ou app de mensagens.");
+    } catch (err) {
+      // AbortError = usuário cancelou o share; não mostrar erro nesse caso.
+      if (err instanceof Error && err.name === "AbortError") return;
+      try {
+        await navigator.clipboard.writeText(text);
+        toast.success("Convite copiado. Cole no WhatsApp ou app de mensagens.");
+      } catch {
+        toast.error("Não foi possível compartilhar.");
+      }
+    }
+  };
+
+
   if (loading) {
     return (
       <section className="bg-card border border-border rounded-3xl p-5 mb-4">
@@ -224,9 +256,19 @@ export function FamilyGroupSection() {
                 </span>
                 <Copy className="size-4 text-muted-foreground" />
               </button>
+              <Button
+                type="button"
+                onClick={shareInvite}
+                className="mt-2 w-full gap-2"
+                variant="default"
+              >
+                <Share2 className="size-4" />
+                Compartilhar convite
+              </Button>
               <p className="text-[11px] text-muted-foreground mt-1.5">
                 Compartilhe com até 9 pessoas. Quem entrar verá suas despesas e vice-versa.
               </p>
+
             </div>
           </div>
 
