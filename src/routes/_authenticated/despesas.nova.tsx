@@ -914,6 +914,36 @@ function NovaDespesa() {
           setAnomalyQueue([]);
         }}
       />
+
+      <ProductAliasDialog
+        open={!!currentAlias}
+        candidate={currentAlias}
+        onSame={async () => {
+          if (!currentAlias || !draft) return;
+          const { data: userData } = await supabase.auth.getUser();
+          const userId = userData.user?.id;
+          if (userId) {
+            await saveAlias(userId, currentAlias.newName, currentAlias.existingName, true);
+          }
+          // Unifica: renomeia o item para o canônico já existente.
+          const items = [...draft.items];
+          const it = { ...items[currentAlias.index] };
+          it.normalized_name = currentAlias.existingName;
+          items[currentAlias.index] = it;
+          setDraft({ ...draft, items });
+          advanceAliasQueue();
+        }}
+        onDifferent={async () => {
+          if (!currentAlias) return;
+          const { data: userData } = await supabase.auth.getUser();
+          const userId = userData.user?.id;
+          if (userId) {
+            await saveAlias(userId, currentAlias.newName, currentAlias.existingName, false);
+          }
+          advanceAliasQueue();
+        }}
+        onSkip={() => advanceAliasQueue()}
+      />
     </>
   );
 }
