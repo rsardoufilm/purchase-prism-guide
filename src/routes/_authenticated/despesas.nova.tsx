@@ -477,7 +477,7 @@ function NovaDespesa() {
       }
 
       if (draft.items.length > 0) {
-        const itemsPayload = draft.items.map((it) => ({
+        const itemsPayload = draft.items.map((it, i) => ({
           expense_id: expenseId,
           user_id: userId,
           raw_name: it.raw_name,
@@ -487,6 +487,7 @@ function NovaDespesa() {
           unit: it.unit ?? null,
           unit_price: it.unit_price ?? 0,
           total_price: it.total_price ?? 0,
+          preco_confirmado_manualmente: confirmed.has(i),
         }));
         const { data: insertedItems, error: e2 } = await supabase
           .from("expense_items")
