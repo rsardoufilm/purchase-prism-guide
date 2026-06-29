@@ -187,6 +187,8 @@ function NovaDespesa() {
   const [aliasQueue, setAliasQueue] = useState<AliasCandidate[]>([]);
   const [currentAlias, setCurrentAlias] = useState<AliasCandidate | null>(null);
   const [aliasChecked, setAliasChecked] = useState(false);
+  // Confirmação única de itens detectados como Embalagens (SAC, sacola, etc.)
+  const [packagingChecked, setPackagingChecked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -485,6 +487,44 @@ function NovaDespesa() {
         }
       }
       setAliasChecked(true);
+    }
+
+    // Embalagens: detecta itens como SAC, Sacola, Sacola plástica que ainda
+    // não estão categorizados como "Embalagens" e pergunta antes de salvar
+    // (uma vez por draft). Mantém o controle nas mãos do usuário.
+    if (!packagingChecked) {
+      const PACK_RX =
+        /\b(sac|sacs|sacola|sacolas|sacolinha|sacolinhas|sacola pl[aá]stica|saco pl[aá]stico|sacos pl[aá]sticos|embalagem|embalagens|descart[aá]vel|descart[aá]veis)\b/i;
+      const candidatesIdx = draft.items
+        .map((it, i) => ({ it, i }))
+        .filter(
+          ({ it }) =>
+            it.category !== "Embalagens" &&
+            PACK_RX.test(it.raw_name ?? "") &&
+            // Não confundir com "saco de lixo" (Casa).
+            !/\bsaco de lixo\b/i.test(it.raw_name ?? ""),
+        );
+      if (candidatesIdx.length > 0) {
+        const lista = candidatesIdx.map(({ it }) => `• ${it.raw_name}`).join("\n");
+        const ok = window.confirm(
+          `Identificamos itens que parecem embalagens:\n\n${lista}\n\nDeseja categorizá-los como "Embalagens"?`,
+        );
+        if (ok) {
+          const items = [...draft.items];
+          for (const { i } of candidatesIdx) {
+            items[i] = { ...items[i], category: "Embalagens" };
+          }
+          setDraft({ ...draft, items });
+          setPackagingChecked(true);
+          // Reentra no save com os itens já atualizados — usa setTimeout para
+          // garantir que o estado do React seja propagado antes de prosseguir.
+          setTimeout(() => void save(confirmedOverride), 0);
+          return;
+        }
+        setPackagingChecked(true);
+      } else {
+        setPackagingChecked(true);
+      }
     }
 
     setSaving(true);

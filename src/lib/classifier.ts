@@ -33,6 +33,7 @@ export type ConsumoCategory =
   | "Snacks"
   | "Doces"
   | "Congelados"
+  | "Embalagens"
   // Tipos de estabelecimento / serviço
   | "Padaria"
   | "Farmácia"
@@ -178,6 +179,14 @@ const ITEM_RULES: Rule[] = [
     cat: "Casa",
     patterns:
       /\b(vela|pilha|l[aâ]mpada|extens[aã]o|lixeira|vassoura|rodo|saco de lixo|filamento|fita adesiva)\b/i,
+  },
+
+  // Embalagens — sacolas de supermercado, sacolinhas plásticas, embalagens descartáveis.
+  // Avaliado APÓS "Casa" para que "saco de lixo" não caia aqui por engano.
+  {
+    cat: "Embalagens",
+    patterns:
+      /\b(sac|sacs|sacola|sacolas|sacolinha|sacolinhas|sacola pl[aá]stica|saco pl[aá]stico|sacos pl[aá]sticos|embalagem|embalagens|descart[aá]vel|descart[aá]veis)\b/i,
   },
 
   // Pet / Snacks / Doces / Congelados
