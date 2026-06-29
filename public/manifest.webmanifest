@@ -1,6 +1,7 @@
 {
-  "name": "AURA Consumo",
-  "short_name": "AURA",
+  "name": "Aura-Consumo",
+  "short_name": "Aura-Consumo",
+
   "description": "Inteligência de consumo premium baseada em OCR de notas fiscais.",
   "start_url": "/",
   "display": "standalone",
