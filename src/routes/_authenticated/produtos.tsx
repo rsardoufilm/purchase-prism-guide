@@ -167,7 +167,7 @@ function Produtos() {
         <div className="space-y-2">
           {products.map((p) => {
             const ignored = filters.ignoredProducts.has(normalizeProductKey(p.name));
-            const handleToggle = async (e: React.MouseEvent) => {
+            const handleToggle = async (e: import("react").MouseEvent) => {
               e.preventDefault();
               e.stopPropagation();
               if (!userId) return;
