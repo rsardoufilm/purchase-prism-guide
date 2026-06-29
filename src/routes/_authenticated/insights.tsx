@@ -38,6 +38,8 @@ interface P {
   normalized_name: string;
   merchant_name: string;
   unit_price: number;
+  quantity: number | null;
+  unit: string | null;
   purchase_date: string;
 }
 interface Msg {
@@ -75,7 +77,7 @@ function Insights() {
         .then(({ data }) => setAllItems((data ?? []) as I[]));
       supabase
         .from("product_prices")
-        .select("normalized_name,merchant_name,unit_price,purchase_date")
+        .select("normalized_name,merchant_name,unit_price,quantity,unit,purchase_date")
         .order("purchase_date", { ascending: true })
         .then(({ data }) => setPrices((data ?? []) as P[]));
     };
