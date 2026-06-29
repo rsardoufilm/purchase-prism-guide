@@ -458,6 +458,23 @@ function NovaDespesa() {
       return;
     }
 
+    // Aprendizado de produtos equivalentes: pergunta ao usuário sobre nomes
+    // parecidos com o histórico antes de gravar (uma vez por draft).
+    if (!aliasChecked && !editId) {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (userId) {
+        const candidates = await detectAliasCandidates(userId, draft.items);
+        if (candidates.length > 0) {
+          setAliasChecked(true);
+          setCurrentAlias(candidates[0]);
+          setAliasQueue(candidates.slice(1));
+          return;
+        }
+      }
+      setAliasChecked(true);
+    }
+
     setSaving(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
