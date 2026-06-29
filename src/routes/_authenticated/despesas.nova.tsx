@@ -41,10 +41,11 @@ import {
   MERCHANT_CATEGORY_OPTIONS,
 } from "@/lib/classifier";
 import {
-  loadUserCategoryMap,
-  suggestCategory,
-  type UserCategoryMap,
-} from "@/lib/user-classifier";
+  loadLearnedDictionary,
+  suggestFromDictionary,
+  recordItemCorrection,
+  type LearnedDictionary,
+} from "@/lib/learned-dictionary";
 import {
   loadUserExpenseCategoryMap,
   suggestExpenseCategory,
@@ -57,7 +58,14 @@ import { Sparkles, UserCheck } from "lucide-react";
 import { detectPriceAnomalies, type PriceAnomaly } from "@/lib/price-anomaly";
 import { PriceAnomalyDialog } from "@/components/price-anomaly-dialog";
 
-type CategorySource = "ocr" | "learned" | "rule" | "user" | null;
+type CategorySource =
+  | "ocr"
+  | "pessoal"
+  | "global"
+  | "learned"
+  | "rule"
+  | "user"
+  | null;
 
 export const Route = createFileRoute("/_authenticated/despesas/nova")({
   component: NovaDespesa,
@@ -154,9 +162,9 @@ function NovaDespesa() {
   const [itemsCount, setItemsCount] = useState<number>(0);
   const [failures, setFailures] = useState<FailureEntry[]>(() => readFailures());
   const [loadingEdit, setLoadingEdit] = useState<boolean>(!!editId);
-  const [userCatMap, setUserCatMap] = useState<UserCategoryMap>({
-    byRaw: new Map(),
-    byToken: new Map(),
+  const [userCatMap, setUserCatMap] = useState<LearnedDictionary>({
+    personal: new Map(),
+    global: new Map(),
   });
   const [userExpMap, setUserExpMap] = useState<UserExpenseCategoryMap>({
     byMerchant: new Map(),
@@ -172,7 +180,7 @@ function NovaDespesa() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([loadUserCategoryMap(), loadUserExpenseCategoryMap()]).then(([m, em]) => {
+    Promise.all([loadLearnedDictionary(), loadUserExpenseCategoryMap()]).then(([m, em]) => {
       if (cancelled) return;
       setUserCatMap(m);
       setUserExpMap(em);
