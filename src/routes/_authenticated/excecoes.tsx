@@ -53,11 +53,10 @@ function Excecoes() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="Exceções"
-        title="Decisões de unificação"
-        subtitle="Revise pares de produtos que você já marcou como iguais ou diferentes."
-      />
+      <PageHeader eyebrow="Exceções" title="Decisões de unificação" />
+      <p className="text-xs text-muted-foreground mb-3">
+        Revise pares de produtos que você já marcou como iguais ou diferentes.
+      </p>
 
       <div className="grid grid-cols-3 gap-2 mb-4">
         <Stat label="Total" value={items.length} active={filter === "todas"} onClick={() => setFilter("todas")} />
