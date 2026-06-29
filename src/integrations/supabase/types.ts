@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      categorias_ignoradas_destaques: {
+        Row: {
+          categoria: string
+          criado_em: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          categoria: string
+          criado_em?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          categoria?: string
+          criado_em?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       dicionario_global: {
         Row: {
           aprovado: boolean
@@ -388,6 +409,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      produtos_ignorados_destaques: {
+        Row: {
+          criado_em: string
+          id: string
+          motivo: string | null
+          nome_normalizado: string
+          nome_produto: string
+          user_id: string
+        }
+        Insert: {
+          criado_em?: string
+          id?: string
+          motivo?: string | null
+          nome_normalizado: string
+          nome_produto: string
+          user_id: string
+        }
+        Update: {
+          criado_em?: string
+          id?: string
+          motivo?: string | null
+          nome_normalizado?: string
+          nome_produto?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
