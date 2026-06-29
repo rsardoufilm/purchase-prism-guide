@@ -75,14 +75,13 @@ export function FamilyGroupSection() {
     if (!userId) return;
     setBusy(true);
     try {
-      const { data: g, error } = await supabase
-        .from("grupos_familiares")
-        .select("id,nome_grupo")
-        .eq("codigo_convite", code)
-        .maybeSingle();
+      const { data: rows, error } = await supabase.rpc("buscar_grupo_por_codigo", {
+        _codigo: code,
+      });
       if (error) throw error;
+      const g = Array.isArray(rows) ? rows[0] : rows;
       if (!g) {
-        toast.error("Código não encontrado.");
+        toast.error("Código não encontrado. Confira com quem criou o grupo.");
         return;
       }
       const { error: e2 } = await supabase

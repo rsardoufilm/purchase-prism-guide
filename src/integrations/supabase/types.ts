@@ -574,6 +574,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      buscar_grupo_por_codigo: {
+        Args: { _codigo: string }
+        Returns: {
+          codigo_convite: string
+          id: string
+          nome_grupo: string
+        }[]
+      }
       gerar_codigo_convite: { Args: never; Returns: string }
       grupo_do_usuario: { Args: { _user: string }; Returns: string }
       mesmo_grupo: { Args: { _a: string; _b: string }; Returns: boolean }
