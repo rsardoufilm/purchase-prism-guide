@@ -125,11 +125,11 @@ function Insights() {
         .then(({ data }) => setAllExpenses((data ?? []) as E[]));
       supabase
         .from("expense_items")
-        .select("normalized_name,raw_name,total_price,category,expense_id")
+        .select("id,normalized_name,raw_name,total_price,category,expense_id")
         .then(({ data }) => setAllItems((data ?? []) as I[]));
       supabase
         .from("product_prices")
-        .select("normalized_name,merchant_name,unit_price,quantity,unit,purchase_date")
+        .select("normalized_name,merchant_name,unit_price,quantity,unit,purchase_date,expense_item_id")
         .order("purchase_date", { ascending: true })
         .then(({ data }) => setPrices((data ?? []) as P[]));
       if (uid) {
