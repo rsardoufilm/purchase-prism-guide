@@ -46,9 +46,10 @@ export function FamilyGroupSection() {
       const { data, error } = await supabase
         .from("grupos_familiares")
         .insert({ nome_grupo: name, criado_por: userId })
-        .select("id")
+        .select("id, codigo_convite")
         .single();
       if (error) throw error;
+      console.info("[grupo] criado", { id: data.id, codigo: data.codigo_convite });
       const { error: e2 } = await supabase
         .from("membros_grupo")
         .insert({ grupo_id: data.id, user_id: userId, papel: "admin" });
@@ -68,6 +69,7 @@ export function FamilyGroupSection() {
 
   const handleJoin = async () => {
     const code = normalizeInviteCode(inviteInput);
+    console.info("[grupo] join attempt", { input: inviteInput, normalized: code });
     if (code.length !== 6) {
       toast.error("Código inválido. Use 6 caracteres.");
       return;
@@ -80,6 +82,7 @@ export function FamilyGroupSection() {
       });
       if (error) throw error;
       const g = Array.isArray(rows) ? rows[0] : rows;
+      console.info("[grupo] lookup result", { code, found: !!g, id: g?.id });
       if (!g) {
         toast.error("Código não encontrado. Confira com quem criou o grupo.");
         return;
