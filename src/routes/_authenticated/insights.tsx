@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { TourGuide } from "@/components/tour-guide";
 import { TOURS } from "@/lib/tours";
 import { PeriodFilter } from "@/components/period-filter";
-import { periodRange, type PeriodKey } from "@/lib/period";
+import { periodRange, periodLabel, type PeriodKey } from "@/lib/period";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/format";
