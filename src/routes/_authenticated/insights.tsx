@@ -84,6 +84,25 @@ function toBaseUnitPrice(
   return { basePrice: unitPrice, baseUnit: "un" };
 }
 
+/**
+ * Assinatura "produto + marca + embalagem" derivada do raw_name.
+ * Dois registros só representam o MESMO SKU (mesmo produto E mesma marca)
+ * quando o raw_name normalizado coincide. Sem isso, "BISCOITO OREO 90G" e
+ * "BISCOITO TRAKINAS 100G" seriam comparados só por serem "Biscoito" —
+ * comparação inválida.
+ */
+function brandSignature(rawName: string | null | undefined): string {
+  return (rawName ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+
+
 
 function Insights() {
   const [period, setPeriod] = useSharedPeriod();
