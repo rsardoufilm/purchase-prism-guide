@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/format";
 import { askAura } from "@/lib/chat.functions";
-import { Sparkles, TrendingUp, TrendingDown, Store, Loader2, Send, Tag } from "lucide-react";
+import { Sparkles, TrendingUp, TrendingDown, Store, Loader2, Send, Tag, ArrowUp, ArrowDown, Scale } from "lucide-react";
 import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
 
