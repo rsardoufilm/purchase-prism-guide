@@ -163,6 +163,20 @@ function Insights() {
     };
   }, [aliasMap]);
 
+  /**
+   * Mapa expense_item_id → raw_name. Necessário para que cada price tenha
+   * acesso ao raw_name original e possa ser agrupado por marca + embalagem.
+   */
+  const rawNameByItemId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const it of allItems) {
+      if (it.id) m.set(it.id, it.raw_name ?? "");
+    }
+    return m;
+  }, [allItems]);
+
+
+
 
   // Filtra por período (expenses + items vinculados)
   const { expenses, items } = useMemo(() => {
