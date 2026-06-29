@@ -183,6 +183,10 @@ function NovaDespesa() {
   const [priceConfirmedIdx, setPriceConfirmedIdx] = useState<Set<number>>(new Set());
   const [anomalyQueue, setAnomalyQueue] = useState<PriceAnomaly[]>([]);
   const [currentAnomaly, setCurrentAnomaly] = useState<PriceAnomaly | null>(null);
+  // Fila de produtos parecidos a confirmar antes de salvar.
+  const [aliasQueue, setAliasQueue] = useState<AliasCandidate[]>([]);
+  const [currentAlias, setCurrentAlias] = useState<AliasCandidate | null>(null);
+  const [aliasChecked, setAliasChecked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
