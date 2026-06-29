@@ -377,6 +377,67 @@ function Insights() {
         </section>
       )}
 
+      <section className="mb-5">
+        <h2 className="font-display font-semibold text-sm mb-2 flex items-center gap-2">
+          <Scale className="size-4 text-primary" /> Comparativo de mercados
+        </h2>
+        {marketCompare.length === 0 ? (
+          <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 text-center">
+            <p className="text-sm text-muted-foreground text-pretty">
+              Compre o mesmo produto em mais de um mercado para ver comparativos aqui.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {marketCompare.slice(0, 12).map((row) => (
+              <div
+                key={row.product}
+                className="bg-card border border-border rounded-2xl p-3 sm:p-4"
+              >
+                <div className="flex items-baseline justify-between gap-2 mb-2">
+                  <p className="text-sm font-semibold truncate">{row.product}</p>
+                  <span className="text-xs font-bold whitespace-nowrap px-2 py-0.5 rounded-full bg-primary-soft text-primary">
+                    {row.diffPct.toFixed(0)}% de diferença
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                    <ArrowDown className="size-4 text-emerald-600 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] uppercase tracking-wide text-emerald-700 font-semibold">
+                        Mais barato
+                      </p>
+                      <p className="text-xs font-medium truncate text-emerald-900">
+                        {row.cheapestStore}
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold text-emerald-700 whitespace-nowrap">
+                      {brl(row.cheapestPrice)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2">
+                    <ArrowUp className="size-4 text-red-600 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] uppercase tracking-wide text-red-700 font-semibold">
+                        Mais caro
+                      </p>
+                      <p className="text-xs font-medium truncate text-red-900">
+                        {row.priciestStore}
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold text-red-700 whitespace-nowrap">
+                      {brl(row.priciestPrice)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+
+
       <section className="mb-3">
         <h2 className="font-display font-semibold text-sm mb-2 flex items-center gap-2">
           <Sparkles className="size-4 text-primary" /> Pergunte ao AURA Consumo
