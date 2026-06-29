@@ -21,8 +21,9 @@ export function useGroupRealtime(enabled: boolean) {
 
     const fire = () => window.dispatchEvent(new CustomEvent("aura:data-changed"));
 
+    const topic = `aura-shared-data-${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
-      .channel("aura-shared-data")
+      .channel(topic)
       .on("postgres_changes", { event: "*", schema: "public", table: "expenses" }, fire)
       .on("postgres_changes", { event: "*", schema: "public", table: "expense_items" }, fire)
       .on("postgres_changes", { event: "*", schema: "public", table: "subscriptions" }, fire)
@@ -32,6 +33,7 @@ export function useGroupRealtime(enabled: boolean) {
         fire,
       )
       .subscribe();
+
 
     return () => {
       void supabase.removeChannel(channel);
