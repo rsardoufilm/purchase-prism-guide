@@ -4,30 +4,41 @@
 //   1. Dicionário PESSOAL — `dicionario_usuario` do próprio usuário autenticado.
 //   2. Dicionário GLOBAL  — `dicionario_global` (apenas registros `aprovado=true`).
 //
-// O classificador fixo (regras + OCR) continua sendo aplicado depois disso.
-//
 // Captura: a cada edição manual de categoria de um item, o app chama
 // `recordItemCorrection(rawName, categoria)` que faz UPSERT em `dicionario_usuario`
-// e incrementa `confirmacoes`. Um gatilho no banco promove o termo para o
-// dicionário global (aprovado=false) ao atingir 5 usuários distintos.
+// e incrementa `confirmacoes`.
+//
+// Lookup: além de igualdade exata por chave normalizada, também aplica
+// correspondência por SIMILARIDADE — ignora acentos, caixa e espaços extras,
+// e considera substring/contém-token, para que variações como
+// "sacola 40x50" sejam unificadas ao termo canônico "sacola".
 
 import { supabase } from "@/integrations/supabase/client";
 
-/** Origem da sugestão pelo dicionário. */
 export type DictionarySource = "pessoal" | "global";
 
-/** Mapas em memória usados durante o pipeline de OCR / classificação. */
+export interface DictionaryEntry {
+  category: string;
+  /** Nome canônico/corrigido (quando registrado). */
+  name: string | null;
+}
+
 export interface LearnedDictionary {
-  personal: Map<string, string>; // termo_normalizado → categoria
-  global: Map<string, string>;
+  personal: Map<string, DictionaryEntry>;
+  global: Map<string, DictionaryEntry>;
+  /** Lista ordenada (chave mais longa primeiro) para casamento por substring. */
+  personalKeys: string[];
+  globalKeys: string[];
 }
 
 const EMPTY: LearnedDictionary = {
   personal: new Map(),
   global: new Map(),
+  personalKeys: [],
+  globalKeys: [],
 };
 
-/** Normaliza um nome de produto para chave estável (sem acento, lowercase, sem pontuação). */
+/** Normaliza um termo: sem acento, lowercase, sem pontuação, espaços colapsados. */
 export function normalizeTerm(input: string): string {
   return (input ?? "")
     .toLowerCase()
@@ -38,85 +49,100 @@ export function normalizeTerm(input: string): string {
     .trim();
 }
 
-/**
- * Carrega o dicionário pessoal + o global aprovado para o usuário autenticado.
- * Falhas silenciosas: o pipeline funciona mesmo sem dicionário (cai nas regras).
- */
+function sortedKeys(map: Map<string, unknown>): string[] {
+  return Array.from(map.keys()).sort((a, b) => b.length - a.length);
+}
+
 export async function loadLearnedDictionary(): Promise<LearnedDictionary> {
   try {
     const { data: u } = await supabase.auth.getUser();
     const uid = u.user?.id;
-    if (!uid) return { personal: new Map(), global: new Map() };
+    if (!uid) return EMPTY;
 
     const [personalRes, globalRes] = await Promise.all([
       supabase
         .from("dicionario_usuario")
-        .select("termo_normalizado,categoria_corrigida,confirmacoes,atualizado_em")
+        .select("termo_normalizado,categoria_corrigida,nome_corrigido,confirmacoes")
         .eq("user_id", uid)
         .order("confirmacoes", { ascending: false })
         .limit(2000),
       supabase
         .from("dicionario_global")
-        .select("termo_normalizado,categoria_sugerida")
+        .select("termo_normalizado,categoria_sugerida,nome_sugerido")
         .eq("aprovado", true)
         .limit(5000),
     ]);
 
-    const personal = new Map<string, string>();
+    const personal = new Map<string, DictionaryEntry>();
     for (const row of personalRes.data ?? []) {
-      // Conflito entre regras pessoais para o mesmo termo: a primeira (maior
-      // `confirmacoes`) vence; demais são ignoradas.
       if (!personal.has(row.termo_normalizado)) {
-        personal.set(row.termo_normalizado, row.categoria_corrigida);
+        personal.set(row.termo_normalizado, {
+          category: row.categoria_corrigida,
+          name: row.nome_corrigido ?? null,
+        });
       }
     }
 
-    const globalMap = new Map<string, string>();
+    const globalMap = new Map<string, DictionaryEntry>();
     for (const row of globalRes.data ?? []) {
       if (!globalMap.has(row.termo_normalizado)) {
-        globalMap.set(row.termo_normalizado, row.categoria_sugerida);
+        globalMap.set(row.termo_normalizado, {
+          category: row.categoria_sugerida,
+          name: row.nome_sugerido ?? null,
+        });
       }
     }
 
-    return { personal, global: globalMap };
+    return {
+      personal,
+      global: globalMap,
+      personalKeys: sortedKeys(personal),
+      globalKeys: sortedKeys(globalMap),
+    };
   } catch {
     return EMPTY;
   }
 }
 
-/**
- * Sugere uma categoria para `rawName` consultando, nesta ordem,
- * o dicionário pessoal e depois o global aprovado.
- * Retorna `null` quando nenhum dicionário cobre o termo.
- */
-export function suggestFromDictionary(
-  rawName: string,
-  dict: LearnedDictionary,
-): { category: string; source: DictionarySource } | null {
-  const key = normalizeTerm(rawName);
-  if (!key) return null;
-  const personal = dict.personal.get(key);
-  if (personal) return { category: personal, source: "pessoal" };
-  const global = dict.global.get(key);
-  if (global) return { category: global, source: "global" };
+function lookup(
+  norm: string,
+  map: Map<string, DictionaryEntry>,
+  keys: string[],
+): DictionaryEntry | null {
+  if (!norm) return null;
+  // 1. Exato.
+  const exact = map.get(norm);
+  if (exact) return exact;
+  // 2. Substring (chave dentro do termo, ex.: "sacola" em "sacola 40x50").
+  for (const k of keys) {
+    if (k.length < 3) continue;
+    if (norm === k) return map.get(k) ?? null;
+    if (norm.includes(k)) {
+      // Garante que é palavra inteira, não pedaço (ex.: "sal" ≠ "salgado").
+      const re = new RegExp(`(^|\\s)${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s|$)`);
+      if (re.test(norm)) return map.get(k) ?? null;
+    }
+  }
   return null;
 }
 
 /**
- * Registra (UPSERT) uma correção de categoria feita pelo usuário.
- *
- * Comportamento:
- *  - Se já existe linha (mesmo usuário, mesmo termo, mesma categoria):
- *    incrementa `confirmacoes`.
- *  - Caso contrário: insere com `confirmacoes = 1`.
- *
- * Outras correções concorrentes para o mesmo termo (com OUTRA categoria) são
- * preservadas — a leitura escolhe a de maior `confirmacoes` (vide
- * `loadLearnedDictionary`).
- *
- * Toda essa operação respeita RLS: a inserção é validada pela política
- * `auth.uid() = user_id`.
+ * Sugere categoria/nome consultando dicionário pessoal e depois global.
+ * Faz correspondência por similaridade (acento/caixa/substring de palavra).
  */
+export function suggestFromDictionary(
+  rawName: string,
+  dict: LearnedDictionary,
+): { category: string; name: string | null; source: DictionarySource } | null {
+  const key = normalizeTerm(rawName);
+  if (!key) return null;
+  const p = lookup(key, dict.personal, dict.personalKeys);
+  if (p) return { category: p.category, name: p.name, source: "pessoal" };
+  const g = lookup(key, dict.global, dict.globalKeys);
+  if (g) return { category: g.category, name: g.name, source: "global" };
+  return null;
+}
+
 export async function recordItemCorrection(
   rawName: string,
   categoria: string,
@@ -133,7 +159,6 @@ export async function recordItemCorrection(
     const uid = u.user?.id;
     if (!uid) return;
 
-    // Tenta atualizar primeiro (incrementa confirmacoes).
     const { data: existing, error: selErr } = await supabase
       .from("dicionario_usuario")
       .select("id,confirmacoes")
@@ -163,6 +188,6 @@ export async function recordItemCorrection(
       confirmacoes: 1,
     });
   } catch {
-    // Sem feedback ao usuário: aprendizado é melhor-esforço.
+    // Aprendizado é melhor-esforço.
   }
 }
