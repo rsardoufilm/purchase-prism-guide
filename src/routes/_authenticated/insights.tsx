@@ -34,6 +34,7 @@ interface I {
   total_price: number;
   category: string | null;
   expense_id: string;
+  quantity: number | null;
 }
 interface P {
   normalized_name: string;
@@ -125,7 +126,7 @@ function Insights() {
         .then(({ data }) => setAllExpenses((data ?? []) as E[]));
       supabase
         .from("expense_items")
-        .select("id,normalized_name,raw_name,total_price,category,expense_id")
+        .select("id,normalized_name,raw_name,total_price,category,expense_id,quantity")
         .then(({ data }) => setAllItems((data ?? []) as I[]));
       supabase
         .from("product_prices")
