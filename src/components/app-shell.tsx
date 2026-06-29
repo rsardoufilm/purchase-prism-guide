@@ -44,9 +44,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const isActive = (to: string) => location.pathname.startsWith(to);
   const moreActive = MOBILE_MORE.some((n) => isActive(n.to));
 
+  const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   };
+
 
   const handleNewExpenseTouch = () => {
     console.log("[PLUS_TOUCH] toque recebido no botão +");
