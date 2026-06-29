@@ -58,15 +58,46 @@ function isoDate(d: Date | null) {
   return d ? d.toISOString().slice(0, 10) : null;
 }
 
+/**
+ * Converte (unit_price, quantity, unit) em preço por unidade base.
+ * Garante que toda comparação seja em R$/kg, R$/L ou R$/un — nunca preço
+ * absoluto, que distorce embalagens de tamanhos diferentes.
+ */
+function toBaseUnitPrice(
+  unitPrice: number,
+  qtyRaw: number | null,
+  unitRaw: string | null,
+): { basePrice: number; baseUnit: "kg" | "L" | "un" } | null {
+  if (!Number.isFinite(unitPrice) || unitPrice <= 0) return null;
+  const u = (unitRaw ?? "").trim().toLowerCase();
+  const qty = Number(qtyRaw);
+  if (u === "kg" || u === "quilo" || u === "kilo") return { basePrice: unitPrice, baseUnit: "kg" };
+  if (u === "l" || u === "lt" || u === "litro") return { basePrice: unitPrice, baseUnit: "L" };
+  if ((u === "g" || u === "grama") && Number.isFinite(qty) && qty > 0) {
+    return { basePrice: (unitPrice * 1000) / qty, baseUnit: "kg" };
+  }
+  if ((u === "ml" || u === "mililitro") && Number.isFinite(qty) && qty > 0) {
+    return { basePrice: (unitPrice * 1000) / qty, baseUnit: "L" };
+  }
+  return { basePrice: unitPrice, baseUnit: "un" };
+}
+
+
 function Insights() {
   const [period, setPeriod] = useSharedPeriod();
 
   const [allExpenses, setAllExpenses] = useState<E[]>([]);
   const [allItems, setAllItems] = useState<I[]>([]);
   const [prices, setPrices] = useState<P[]>([]);
+  // Mapa alias_normalizado → nome_canônico (somente same_product = true).
+  // Usado para SOMAR no comparativo registros que o usuário já confirmou
+  // serem o mesmo produto (ex.: "Coração da Alcatra bovino" ≡ "Coração bovino").
+  const [aliasMap, setAliasMap] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
-    const load = () => {
+    const load = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
       supabase
         .from("expenses")
         .select("id,merchant_name,total_amount,category,expense_date")
@@ -80,11 +111,37 @@ function Insights() {
         .select("normalized_name,merchant_name,unit_price,quantity,unit,purchase_date")
         .order("purchase_date", { ascending: true })
         .then(({ data }) => setPrices((data ?? []) as P[]));
+      if (uid) {
+        const { data: aliases } = await supabase
+          .from("product_aliases")
+          .select("alias_normalized,canonical_normalized,same_product")
+          .eq("user_id", uid)
+          .eq("same_product", true);
+        const m = new Map<string, string>();
+        for (const r of aliases ?? []) {
+          m.set(r.alias_normalized, r.canonical_normalized);
+        }
+        setAliasMap(m);
+      }
     };
     load();
     window.addEventListener("aura:data-changed", load);
     return () => window.removeEventListener("aura:data-changed", load);
   }, []);
+
+  /** Resolve recursivamente cadeias de apelidos até o canônico final. */
+  const canon = useMemo(() => {
+    return (name: string | null | undefined): string => {
+      let cur = (name ?? "").trim();
+      const seen = new Set<string>();
+      while (aliasMap.has(cur) && !seen.has(cur)) {
+        seen.add(cur);
+        cur = aliasMap.get(cur)!;
+      }
+      return cur;
+    };
+  }, [aliasMap]);
+
 
   // Filtra por período (expenses + items vinculados)
   const { expenses, items } = useMemo(() => {
@@ -151,43 +208,68 @@ function Insights() {
       });
     }
 
-    const prodPrices = new Map<string, P[]>();
+    // Agrupa preços do MESMO produto canônico + MESMA unidade base.
+    // Converte para R$/kg, R$/L ou R$/un. NUNCA compara preço absoluto:
+    // 500 g a R$ 5 (= R$ 10/kg) é mais barato que 1 kg a R$ 12 — sem a
+    // normalização, o sinal vai pro lado errado.
+    type Norm = { basePrice: number; baseUnit: "kg" | "L" | "un"; date: string; store: string };
+    const prodNorm = new Map<string, Map<"kg" | "L" | "un", Norm[]>>();
     for (const p of prices) {
-      const arr = prodPrices.get(p.normalized_name) ?? [];
-      arr.push(p);
-      prodPrices.set(p.normalized_name, arr);
+      if (!p.normalized_name) continue;
+      const name = canon(p.normalized_name);
+      const b = toBaseUnitPrice(Number(p.unit_price), p.quantity, p.unit);
+      if (!b) continue;
+      const byUnit = prodNorm.get(name) ?? new Map<"kg" | "L" | "un", Norm[]>();
+      const arr = byUnit.get(b.baseUnit) ?? [];
+      arr.push({ basePrice: b.basePrice, baseUnit: b.baseUnit, date: p.purchase_date, store: p.merchant_name });
+      byUnit.set(b.baseUnit, arr);
+      prodNorm.set(name, byUnit);
     }
+
     let biggestSwing: {
       name: string;
+      unit: "kg" | "L" | "un";
       min: number;
       max: number;
       minStore: string;
       maxStore: string;
     } | null = null;
-    let priceUp: { name: string; first: number; last: number; pct: number } | null = null;
-    for (const [name, arr] of prodPrices) {
-      if (arr.length < 2) continue;
-      const sorted = [...arr].sort((a, b) => Number(a.unit_price) - Number(b.unit_price));
-      const min = sorted[0];
-      const max = sorted[sorted.length - 1];
-      if (
-        !biggestSwing ||
-        Number(max.unit_price) - Number(min.unit_price) > biggestSwing.max - biggestSwing.min
-      ) {
-        biggestSwing = {
-          name,
-          min: Number(min.unit_price),
-          max: Number(max.unit_price),
-          minStore: min.merchant_name,
-          maxStore: max.merchant_name,
-        };
-      }
-      const byDate = [...arr].sort((a, b) => a.purchase_date.localeCompare(b.purchase_date));
-      const first = Number(byDate[0].unit_price);
-      const last = Number(byDate[byDate.length - 1].unit_price);
-      if (first > 0 && last > first) {
-        const pct = ((last - first) / first) * 100;
-        if (!priceUp || pct > priceUp.pct) priceUp = { name, first, last, pct };
+    let priceUp: {
+      name: string;
+      unit: "kg" | "L" | "un";
+      first: number;
+      last: number;
+      pct: number;
+    } | null = null;
+
+    for (const [name, byUnit] of prodNorm) {
+      for (const [unit, arr] of byUnit) {
+        if (arr.length < 2) continue;
+        const sorted = [...arr].sort((a, b) => a.basePrice - b.basePrice);
+        const min = sorted[0];
+        const max = sorted[sorted.length - 1];
+        if (
+          min.basePrice > 0 &&
+          (!biggestSwing ||
+            (max.basePrice - min.basePrice) / min.basePrice >
+              (biggestSwing.max - biggestSwing.min) / biggestSwing.min)
+        ) {
+          biggestSwing = {
+            name,
+            unit,
+            min: min.basePrice,
+            max: max.basePrice,
+            minStore: min.store,
+            maxStore: max.store,
+          };
+        }
+        const byDate = [...arr].sort((a, b) => a.date.localeCompare(b.date));
+        const first = byDate[0].basePrice;
+        const last = byDate[byDate.length - 1].basePrice;
+        if (first > 0 && last > first) {
+          const pct = ((last - first) / first) * 100;
+          if (!priceUp || pct > priceUp.pct) priceUp = { name, unit, first, last, pct };
+        }
       }
     }
     if (biggestSwing) {
@@ -195,17 +277,18 @@ function Insights() {
       out.push({
         icon: <TrendingDown className="size-5" />,
         title: `${biggestSwing.name} varia ${pct.toFixed(0)}% entre lojas`,
-        desc: `${brl(biggestSwing.min)} em ${biggestSwing.minStore} vs ${brl(biggestSwing.max)} em ${biggestSwing.maxStore}.`,
+        desc: `${brl(biggestSwing.min)}/${biggestSwing.unit} em ${biggestSwing.minStore} vs ${brl(biggestSwing.max)}/${biggestSwing.unit} em ${biggestSwing.maxStore}.`,
       });
     }
     if (priceUp)
       out.push({
         icon: <TrendingUp className="size-5" />,
         title: `${priceUp.name} subiu ${priceUp.pct.toFixed(0)}%`,
-        desc: `De ${brl(priceUp.first)} para ${brl(priceUp.last)} no histórico.`,
+        desc: `De ${brl(priceUp.first)}/${priceUp.unit} para ${brl(priceUp.last)}/${priceUp.unit} no histórico.`,
       });
     return out;
-  }, [expenses, prices]);
+  }, [expenses, prices, canon]);
+
 
   // Insights por categoria
   const categoryInsights = useMemo(() => {
@@ -261,47 +344,27 @@ function Insights() {
   //     misturar "por kg" com "por unidade" é maçãs com laranjas.
   //  4. Exibe a média do produto e quanto cada extremo se desvia dela.
   const marketCompare = useMemo(() => {
-    // Converte (unit, quantity, unit_price) em (basePrice, baseUnit).
-    // unit_price na base é o "preço por unidade de embalagem" (ex.: por kg quando vendido a kg).
-    // Quando a unidade é g/ml, convertemos para kg/L para padronizar.
-    const toBase = (
-      unitPrice: number,
-      qtyRaw: number | null,
-      unitRaw: string | null,
-    ): { basePrice: number; baseUnit: "kg" | "L" | "un" } | null => {
-      if (!Number.isFinite(unitPrice) || unitPrice <= 0) return null;
-      const u = (unitRaw ?? "").trim().toLowerCase();
-      const qty = Number(qtyRaw);
-      // Casos vendidos a granel — unit_price JÁ é por kg/L.
-      if (u === "kg" || u === "quilo" || u === "kilo") return { basePrice: unitPrice, baseUnit: "kg" };
-      if (u === "l" || u === "lt" || u === "litro") return { basePrice: unitPrice, baseUnit: "L" };
-      // Embalagens em gramas/ml: extrapola para a unidade base padrão.
-      if ((u === "g" || u === "grama") && Number.isFinite(qty) && qty > 0) {
-        return { basePrice: (unitPrice * 1000) / qty, baseUnit: "kg" };
-      }
-      if ((u === "ml" || u === "mililitro") && Number.isFinite(qty) && qty > 0) {
-        return { basePrice: (unitPrice * 1000) / qty, baseUnit: "L" };
-      }
-      // Por unidade (un, pct, cx, etc.): mantém preço da embalagem.
-      return { basePrice: unitPrice, baseUnit: "un" };
-    };
-
-    // produto → unidade base → mercado → { sum, n } (média de preço/unidade base).
+    // produto canônico → unidade base → mercado → { sum, n }
+    // Aplica aliases confirmados: somar leituras do mesmo item sob nomes diferentes
+    // (ex.: "Coração da Alcatra bovino" + "Coração bovino") só ocorre depois que o
+    // usuário confirmou a equivalência no fluxo de salvamento da nota.
     type Agg = { sum: number; n: number };
     const byProduct = new Map<string, Map<"kg" | "L" | "un", Map<string, Agg>>>();
     for (const p of prices) {
       if (!p.normalized_name || !p.merchant_name) continue;
-      const base = toBase(Number(p.unit_price), p.quantity, p.unit);
+      const base = toBaseUnitPrice(Number(p.unit_price), p.quantity, p.unit);
       if (!base) continue;
-      const byUnit = byProduct.get(p.normalized_name) ?? new Map();
+      const product = canon(p.normalized_name);
+      const byUnit = byProduct.get(product) ?? new Map();
       const byStore = byUnit.get(base.baseUnit) ?? new Map<string, Agg>();
       const cur = byStore.get(p.merchant_name) ?? { sum: 0, n: 0 };
       cur.sum += base.basePrice;
       cur.n += 1;
       byStore.set(p.merchant_name, cur);
       byUnit.set(base.baseUnit, byStore);
-      byProduct.set(p.normalized_name, byUnit);
+      byProduct.set(product, byUnit);
     }
+
 
     const rows: Array<{
       product: string;
@@ -344,7 +407,7 @@ function Insights() {
 
     // Ordena por % de diferença DECRESCENTE — destaca as maiores oportunidades.
     return rows.sort((a, b) => b.diffPct - a.diffPct);
-  }, [prices]);
+  }, [prices, canon]);
 
   /** Formata "R$ 12,90/kg" — sempre mostra a unidade base do comparativo. */
   const brlPerUnit = (value: number, unit: "kg" | "L" | "un") =>
