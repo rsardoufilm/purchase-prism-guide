@@ -173,6 +173,38 @@ export function FamilyGroupSection() {
     }
   };
 
+  /**
+   * Compartilha o convite pelo share sheet nativo do sistema (WhatsApp,
+   * Telegram, SMS, e-mail, etc.). Fallback: copia a mensagem inteira.
+   */
+  const shareInvite = async () => {
+    if (!group) return;
+    const code = formatInviteCode(group.codigo_convite);
+    const text =
+      `Entre no meu grupo "${group.nome_grupo}" no AURA Consumo.\n` +
+      `Código de convite: ${code}\n\n` +
+      `Baixe ou abra em: https://aura-consumo.lovable.app`;
+    const shareData = { title: "Convite AURA Consumo", text };
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share(shareData);
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      toast.success("Convite copiado. Cole no WhatsApp ou app de mensagens.");
+    } catch (err) {
+      // AbortError = usuário cancelou o share; não mostrar erro nesse caso.
+      if (err instanceof Error && err.name === "AbortError") return;
+      try {
+        await navigator.clipboard.writeText(text);
+        toast.success("Convite copiado. Cole no WhatsApp ou app de mensagens.");
+      } catch {
+        toast.error("Não foi possível compartilhar.");
+      }
+    }
+  };
+
+
   if (loading) {
     return (
       <section className="bg-card border border-border rounded-3xl p-5 mb-4">
