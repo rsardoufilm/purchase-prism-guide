@@ -14,6 +14,7 @@ import { askAura } from "@/lib/chat.functions";
 import { Sparkles, TrendingUp, TrendingDown, Store, Loader2, Send, Tag, ArrowUp, ArrowDown, Scale } from "lucide-react";
 import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
+import { loadHighlightFilters, isHighlightable, type HighlightFilters } from "@/lib/highlight-filters";
 
 export const Route = createFileRoute("/_authenticated/insights")({
   component: Insights,
