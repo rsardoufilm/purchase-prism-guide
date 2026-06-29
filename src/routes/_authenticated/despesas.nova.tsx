@@ -338,13 +338,17 @@ function NovaDespesa() {
       const processedItems = result.items.map((it) => {
         let source: CategorySource = null;
         let cat = it.category ?? null;
+        let norm = it.normalized_name ?? null;
         if (cat) source = "ocr";
-        if (!cat) {
-          const hit = suggestFromDictionary(it.raw_name, userCatMap);
-          if (hit) {
+        const hit = suggestFromDictionary(it.raw_name, userCatMap);
+        if (hit) {
+          // Dicionário (pessoal > global) sobrepõe categoria genérica/ausente
+          // e padroniza o nome quando há um canônico registrado.
+          if (!cat || cat === "Outros") {
             cat = hit.category;
-            source = hit.source; // "pessoal" | "global"
+            source = hit.source;
           }
+          if (hit.name) norm = hit.name;
         }
         if (!cat) {
           const rule = classifyItem(it.raw_name);
@@ -354,7 +358,7 @@ function NovaDespesa() {
           }
         }
         sources.push(source);
-        const norm = it.normalized_name ?? normalizeName(it.raw_name);
+        if (!norm) norm = normalizeName(it.raw_name);
         return { ...it, category: cat, normalized_name: norm };
       });
       const inferredCategory = inferExpenseCategory(processedItems, result.merchant_name);
@@ -1145,9 +1149,9 @@ function ItemsEditor({
     const nextSources = [...sources];
     if (patch.raw_name !== undefined) {
       const raw = String(patch.raw_name ?? "").trim();
-      merged.normalized_name = raw || null;
+      const hit = suggestFromDictionary(raw, userCatMap);
+      merged.normalized_name = hit?.name ?? raw ?? null;
       if (!merged.category) {
-        const hit = suggestFromDictionary(raw, userCatMap);
         if (hit) {
           merged.category = hit.category;
           nextSources[i] = hit.source;
