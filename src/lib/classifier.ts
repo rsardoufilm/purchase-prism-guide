@@ -52,6 +52,8 @@ export type MerchantCategory =
   | "Restaurantes"
   | "Padaria"
   | "Hortifrutti"
+  | "Açougue"
+  | "Armazém"
   | "Mercado"
   | "Farmácia"
   | "Combustível"
@@ -66,7 +68,9 @@ export type MerchantCategory =
 export const MERCHANT_CATEGORY_OPTIONS: MerchantCategory[] = [
   "Restaurantes",
   "Padaria",
+  "Açougue",
   "Hortifrutti",
+  "Armazém",
   "Mercado",
   "Supermercado",
   "Farmácia",
@@ -276,10 +280,22 @@ const MERCHANT_RULES: MerchantRule[] = [
     patterns:
       /\b(hortifrutti|hortifruti|sacol[aã]o|quitanda|verduras e frutas|frutas e verduras|feira|feira livre|produtos naturais|org[aâ]nicos|organico)\b/i,
   },
+  // Açougue (avaliado ANTES de Mercado para não ser engolido por "casa de carnes").
+  {
+    cat: "Açougue",
+    patterns:
+      /\b(a[cç]ougue|casa de carnes|frigor[ií]fico|boutique de carnes|carnes (?:nobres|premium|finas)|peixaria)\b/i,
+  },
+  // Armazém / mercearia de bairro (avaliado ANTES de Mercado).
+  {
+    cat: "Armazém",
+    patterns:
+      /\b(armaz[eé]m|mercearia|empório|emporio|venda(?: do | da )|secos e molhados|bodega)\b/i,
+  },
   {
     cat: "Mercado",
     patterns:
-      /\b(mercado|supermercado|mercadinho|atacad[aã]o|atacarejo|carrefour|walmart|extra|sonae|big|comper|condor|angeloni|sonda|fort|savegnago|tenda|pague menos|mercantil|bazar|armaz[eé]m)\b/i,
+      /\b(mercado|supermercado|mercadinho|atacad[aã]o|atacarejo|carrefour|walmart|extra|sonae|big|comper|condor|angeloni|sonda|fort|savegnago|tenda|pague menos|mercantil|bazar)\b/i,
   },
   {
     cat: "Supermercado",
