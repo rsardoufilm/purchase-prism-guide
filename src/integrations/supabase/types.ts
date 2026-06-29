@@ -482,6 +482,39 @@ export type Database = {
         }
         Relationships: []
       }
+      sugestoes_unificacao: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          id: string
+          nome_a: string
+          nome_b: string
+          similaridade: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          nome_a: string
+          nome_b: string
+          similaridade: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          nome_a?: string
+          nome_b?: string
+          similaridade?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_notifications: {
         Row: {
           created_at: string
