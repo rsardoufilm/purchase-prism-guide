@@ -10,13 +10,16 @@ import {
   LogOut,
   ScanLine,
   Settings,
+  MoreHorizontal,
+  HelpCircle,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { BrandLogo } from "@/components/brand-logo";
 import { PullToRefresh } from "@/components/pull-to-refresh";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -27,18 +30,25 @@ const NAV = [
   { to: "/assinaturas", label: "Assinaturas", icon: CreditCard },
   { to: "/recorrentes", label: "Recorrentes", icon: Repeat },
   { to: "/configuracoes", label: "Ajustes", icon: Settings },
+  { to: "/ajuda", label: "Ajuda", icon: HelpCircle },
 ] as const;
+
+const MOBILE_MORE = NAV.filter((n) => !["/dashboard", "/despesas"].includes(n.to));
+
 
 export function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const isActive = (to: string) => location.pathname.startsWith(to);
+  const moreActive = MOBILE_MORE.some((n) => isActive(n.to));
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   };
+
 
   const handleNewExpenseTouch = () => {
     console.log("[PLUS_TOUCH] toque recebido no botão +");
@@ -128,7 +138,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <ScanLine className="size-6" strokeWidth={2.2} />
           </Link>
-          {[NAV[4], NAV[7]].map(({ to, label, icon: Icon }) => {
+          {(() => {
+            const { to, label, icon: Icon } = NAV[4]; // Insights
             const active = isActive(to);
             return (
               <Link
@@ -148,7 +159,61 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <span className="text-[10px] font-semibold tracking-tight">{label}</span>
               </Link>
             );
-          })}
+          })()}
+          <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                aria-label="Mais opções"
+                className={cn(
+                  "relative flex flex-col items-center gap-1 py-2 min-h-12 rounded-xl transition-colors",
+                  moreActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {moreActive && (
+                  <span className="absolute -top-0.5 h-1 w-8 rounded-full bg-primary" aria-hidden />
+                )}
+                <MoreHorizontal className="size-5" strokeWidth={moreActive ? 2.4 : 2} />
+                <span className="text-[10px] font-semibold tracking-tight">Mais</span>
+              </button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="rounded-t-2xl">
+              <SheetHeader>
+                <SheetTitle>Navegar</SheetTitle>
+              </SheetHeader>
+              <div className="grid grid-cols-3 gap-3 pt-4 pb-2">
+                {MOBILE_MORE.map(({ to, label, icon: Icon }) => {
+                  const active = isActive(to);
+                  return (
+                    <Link
+                      key={to}
+                      to={to}
+                      onClick={() => setMoreOpen(false)}
+                      className={cn(
+                        "flex flex-col items-center gap-2 p-4 rounded-xl border border-border bg-card transition-colors",
+                        active ? "text-primary border-primary/40 bg-primary-soft" : "text-foreground hover:bg-muted",
+                      )}
+                    >
+                      <Icon className="size-6" strokeWidth={2} />
+                      <span className="text-xs font-medium tracking-tight">{label}</span>
+                    </Link>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    void handleSignOut();
+                  }}
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  <LogOut className="size-6" strokeWidth={2} />
+                  <span className="text-xs font-medium tracking-tight">Sair</span>
+                </button>
+              </div>
+            </SheetContent>
+          </Sheet>
+
         </div>
       </nav>
     </div>
