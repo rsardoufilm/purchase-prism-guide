@@ -88,7 +88,7 @@ export interface AliasCandidate {
  */
 export async function detectAliasCandidates(
   userId: string,
-  items: Array<{ normalized_name: string | null; raw_name: string }>,
+  items: Array<{ normalized_name?: string | null; raw_name: string }>,
 ): Promise<AliasCandidate[]> {
   const aliases = await loadAliases(userId);
 
