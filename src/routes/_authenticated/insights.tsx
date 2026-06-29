@@ -580,7 +580,18 @@ function Insights() {
     setQ("");
     setBusy(true);
     try {
-      const res = await ask({ data: { question: t } });
+      // CRÍTICO: envia o MESMO período da tela para que o chat e a aba
+      // Insights compartilhem a fonte de verdade. Sem isso, o chat
+      // usaria uma janela diferente e os totais divergiriam.
+      const { start, end } = periodRange(period);
+      const res = await ask({
+        data: {
+          question: t,
+          start: isoDate(start),
+          end: isoDate(end),
+          periodLabel: periodLabel(period),
+        },
+      });
       setMsgs((m) => [...m, { role: "aura", text: res.answer }]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha");
