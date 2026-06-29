@@ -28,6 +28,7 @@ interface E {
   expense_date: string;
 }
 interface I {
+  id: string;
   normalized_name: string | null;
   raw_name: string;
   total_price: number;
@@ -41,6 +42,7 @@ interface P {
   quantity: number | null;
   unit: string | null;
   purchase_date: string;
+  expense_item_id: string | null;
 }
 interface Msg {
   role: "user" | "aura";
@@ -82,6 +84,25 @@ function toBaseUnitPrice(
   return { basePrice: unitPrice, baseUnit: "un" };
 }
 
+/**
+ * Assinatura "produto + marca + embalagem" derivada do raw_name.
+ * Dois registros só representam o MESMO SKU (mesmo produto E mesma marca)
+ * quando o raw_name normalizado coincide. Sem isso, "BISCOITO OREO 90G" e
+ * "BISCOITO TRAKINAS 100G" seriam comparados só por serem "Biscoito" —
+ * comparação inválida.
+ */
+function brandSignature(rawName: string | null | undefined): string {
+  return (rawName ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+
+
 
 function Insights() {
   const [period, setPeriod] = useSharedPeriod();
@@ -104,11 +125,11 @@ function Insights() {
         .then(({ data }) => setAllExpenses((data ?? []) as E[]));
       supabase
         .from("expense_items")
-        .select("normalized_name,raw_name,total_price,category,expense_id")
+        .select("id,normalized_name,raw_name,total_price,category,expense_id")
         .then(({ data }) => setAllItems((data ?? []) as I[]));
       supabase
         .from("product_prices")
-        .select("normalized_name,merchant_name,unit_price,quantity,unit,purchase_date")
+        .select("normalized_name,merchant_name,unit_price,quantity,unit,purchase_date,expense_item_id")
         .order("purchase_date", { ascending: true })
         .then(({ data }) => setPrices((data ?? []) as P[]));
       if (uid) {
@@ -141,6 +162,20 @@ function Insights() {
       return cur;
     };
   }, [aliasMap]);
+
+  /**
+   * Mapa expense_item_id → raw_name. Necessário para que cada price tenha
+   * acesso ao raw_name original e possa ser agrupado por marca + embalagem.
+   */
+  const rawNameByItemId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const it of allItems) {
+      if (it.id) m.set(it.id, it.raw_name ?? "");
+    }
+    return m;
+  }, [allItems]);
+
+
 
 
   // Filtra por período (expenses + items vinculados)
@@ -208,22 +243,40 @@ function Insights() {
       });
     }
 
-    // Agrupa preços do MESMO produto canônico + MESMA unidade base.
-    // Converte para R$/kg, R$/L ou R$/un. NUNCA compara preço absoluto:
-    // 500 g a R$ 5 (= R$ 10/kg) é mais barato que 1 kg a R$ 12 — sem a
-    // normalização, o sinal vai pro lado errado.
-    type Norm = { basePrice: number; baseUnit: "kg" | "L" | "un"; date: string; store: string };
+    // Agrupa preços do MESMO SKU (produto canônico + MARCA + embalagem,
+    // via brandSignature do raw_name) e MESMA unidade base. Converte para
+    // R$/kg, R$/L ou R$/un. Comparar "Biscoito Oreo 90g" com "Biscoito
+    // Trakinas 100g" só porque ambos viram "Biscoito" é inválido — só o
+    // mesmo produto e mesma marca podem ser comparados entre lojas.
+    type Norm = {
+      name: string; // rótulo legível (raw_name preferido)
+      basePrice: number;
+      baseUnit: "kg" | "L" | "un";
+      date: string;
+      store: string;
+    };
     const prodNorm = new Map<string, Map<"kg" | "L" | "un", Norm[]>>();
     for (const p of prices) {
       if (!p.normalized_name) continue;
-      const name = canon(p.normalized_name);
+      const raw = p.expense_item_id ? rawNameByItemId.get(p.expense_item_id) ?? "" : "";
+      const sig = brandSignature(raw);
+      // Sem raw_name disponível NÃO podemos garantir mesma marca — ignora.
+      if (!sig) continue;
+      const canonical = canon(p.normalized_name);
+      const key = `${canonical}|${sig}`;
       const b = toBaseUnitPrice(Number(p.unit_price), p.quantity, p.unit);
       if (!b) continue;
-      const byUnit = prodNorm.get(name) ?? new Map<"kg" | "L" | "un", Norm[]>();
+      const byUnit = prodNorm.get(key) ?? new Map<"kg" | "L" | "un", Norm[]>();
       const arr = byUnit.get(b.baseUnit) ?? [];
-      arr.push({ basePrice: b.basePrice, baseUnit: b.baseUnit, date: p.purchase_date, store: p.merchant_name });
+      arr.push({
+        name: raw || canonical,
+        basePrice: b.basePrice,
+        baseUnit: b.baseUnit,
+        date: p.purchase_date,
+        store: p.merchant_name,
+      });
       byUnit.set(b.baseUnit, arr);
-      prodNorm.set(name, byUnit);
+      prodNorm.set(key, byUnit);
     }
 
     let biggestSwing: {
@@ -242,20 +295,24 @@ function Insights() {
       pct: number;
     } | null = null;
 
-    for (const [name, byUnit] of prodNorm) {
+    for (const [, byUnit] of prodNorm) {
       for (const [unit, arr] of byUnit) {
         if (arr.length < 2) continue;
+        // Para variação entre lojas exigimos ≥ 2 LOJAS DISTINTAS — comparar
+        // o mesmo SKU em duas idas à mesma loja não é variação entre lojas.
+        const distinctStores = new Set(arr.map((x) => x.store));
         const sorted = [...arr].sort((a, b) => a.basePrice - b.basePrice);
         const min = sorted[0];
         const max = sorted[sorted.length - 1];
         if (
+          distinctStores.size >= 2 &&
           min.basePrice > 0 &&
           (!biggestSwing ||
             (max.basePrice - min.basePrice) / min.basePrice >
               (biggestSwing.max - biggestSwing.min) / biggestSwing.min)
         ) {
           biggestSwing = {
-            name,
+            name: min.name,
             unit,
             min: min.basePrice,
             max: max.basePrice,
@@ -268,7 +325,8 @@ function Insights() {
         const last = byDate[byDate.length - 1].basePrice;
         if (first > 0 && last > first) {
           const pct = ((last - first) / first) * 100;
-          if (!priceUp || pct > priceUp.pct) priceUp = { name, unit, first, last, pct };
+          if (!priceUp || pct > priceUp.pct)
+            priceUp = { name: min.name, unit, first, last, pct };
         }
       }
     }
@@ -287,7 +345,7 @@ function Insights() {
         desc: `De ${brl(priceUp.first)}/${priceUp.unit} para ${brl(priceUp.last)}/${priceUp.unit} no histórico.`,
       });
     return out;
-  }, [expenses, prices, canon]);
+  }, [expenses, prices, canon, rawNameByItemId]);
 
 
   // Insights por categoria
@@ -337,32 +395,40 @@ function Insights() {
   // Comparativo de mercados — INTELIGENTE
   //
   // Princípios:
-  //  1. Compara só o MESMO produto (mesmo normalized_name) em ≥ 2 mercados.
-  //  2. Usa "preço por unidade base" (R$/kg, R$/L ou R$/un) para que
+  //  1. Compara só o MESMO SKU: mesmo produto canônico + MESMA MARCA
+  //     (assinatura derivada do raw_name) + mesma embalagem.
+  //  2. Em ≥ 2 mercados distintos.
+  //  3. Usa "preço por unidade base" (R$/kg, R$/L ou R$/un) para que
   //     embalagens diferentes (500g x 1kg, 1L x 350ml) não distorçam.
-  //  3. Só compara linhas que compartilham a mesma unidade base —
-  //     misturar "por kg" com "por unidade" é maçãs com laranjas.
-  //  4. Exibe a média do produto e quanto cada extremo se desvia dela.
+  //  4. Só compara linhas que compartilham a mesma unidade base.
+  //  5. Exibe a média do produto e quanto cada extremo se desvia dela.
   const marketCompare = useMemo(() => {
-    // produto canônico → unidade base → mercado → { sum, n }
-    // Aplica aliases confirmados: somar leituras do mesmo item sob nomes diferentes
-    // (ex.: "Coração da Alcatra bovino" + "Coração bovino") só ocorre depois que o
-    // usuário confirmou a equivalência no fluxo de salvamento da nota.
-    type Agg = { sum: number; n: number };
+    // chave (canonical|brandSignature) → unidade base → mercado → { sum, n, label }
+    // Aplica aliases confirmados pelo usuário sobre o normalized_name. A marca
+    // entra via brandSignature(raw_name) — sem isso, "Biscoito Oreo" e
+    // "Biscoito Trakinas" seriam misturados só por serem "Biscoito".
+    type Agg = { sum: number; n: number; label: string };
     const byProduct = new Map<string, Map<"kg" | "L" | "un", Map<string, Agg>>>();
     for (const p of prices) {
       if (!p.normalized_name || !p.merchant_name) continue;
+      const raw = p.expense_item_id ? rawNameByItemId.get(p.expense_item_id) ?? "" : "";
+      const sig = brandSignature(raw);
+      // Sem assinatura de marca não há como afirmar "mesmo produto e marca".
+      if (!sig) continue;
       const base = toBaseUnitPrice(Number(p.unit_price), p.quantity, p.unit);
       if (!base) continue;
-      const product = canon(p.normalized_name);
-      const byUnit = byProduct.get(product) ?? new Map();
+      const canonical = canon(p.normalized_name);
+      const key = `${canonical}|${sig}`;
+      const label = raw || canonical;
+      const byUnit = byProduct.get(key) ?? new Map();
       const byStore = byUnit.get(base.baseUnit) ?? new Map<string, Agg>();
-      const cur = byStore.get(p.merchant_name) ?? { sum: 0, n: 0 };
+      const cur = byStore.get(p.merchant_name) ?? { sum: 0, n: 0, label };
       cur.sum += base.basePrice;
       cur.n += 1;
+      cur.label = label;
       byStore.set(p.merchant_name, cur);
       byUnit.set(base.baseUnit, byStore);
-      byProduct.set(product, byUnit);
+      byProduct.set(key, byUnit);
     }
 
 
@@ -379,19 +445,19 @@ function Insights() {
       stores: number;
     }> = [];
 
-    for (const [product, byUnit] of byProduct) {
+    for (const [, byUnit] of byProduct) {
       for (const [baseUnit, byStore] of byUnit) {
         // Precisa de pelo menos 2 mercados COM A MESMA unidade base.
         if (byStore.size < 2) continue;
         const avgs = [...byStore.entries()]
-          .map(([store, v]) => ({ store, avg: v.sum / v.n }))
+          .map(([store, v]) => ({ store, avg: v.sum / v.n, label: v.label }))
           .sort((a, b) => a.avg - b.avg);
         const min = avgs[0];
         const max = avgs[avgs.length - 1];
         if (min.avg <= 0) continue;
         const meanOfMeans = avgs.reduce((s, x) => s + x.avg, 0) / avgs.length;
         rows.push({
-          product,
+          product: min.label,
           baseUnit,
           cheapestStore: min.store,
           cheapestPrice: min.avg,
@@ -407,7 +473,7 @@ function Insights() {
 
     // Ordena por % de diferença DECRESCENTE — destaca as maiores oportunidades.
     return rows.sort((a, b) => b.diffPct - a.diffPct);
-  }, [prices, canon]);
+  }, [prices, canon, rawNameByItemId]);
 
   /** Formata "R$ 12,90/kg" — sempre mostra a unidade base do comparativo. */
   const brlPerUnit = (value: number, unit: "kg" | "L" | "un") =>
