@@ -34,6 +34,7 @@ interface I {
   total_price: number;
   category: string | null;
   expense_id: string;
+  quantity: number | null;
 }
 interface P {
   normalized_name: string;
@@ -125,7 +126,7 @@ function Insights() {
         .then(({ data }) => setAllExpenses((data ?? []) as E[]));
       supabase
         .from("expense_items")
-        .select("id,normalized_name,raw_name,total_price,category,expense_id")
+        .select("id,normalized_name,raw_name,total_price,category,expense_id,quantity")
         .then(({ data }) => setAllItems((data ?? []) as I[]));
       supabase
         .from("product_prices")
@@ -345,25 +346,54 @@ function Insights() {
         desc: `De ${brl(priceUp.first)}/${priceUp.unit} para ${brl(priceUp.last)}/${priceUp.unit} no histórico.`,
       });
 
-    // Embalagens (sacolas, descartáveis) — gasto evitável. Mostra total
-    // do período + loja que mais cobra para o usuário decidir levar sacola
-    // reutilizável. Só aparece quando há registros, para não poluir.
+    // Embalagens (sacolas, descartáveis) — gasto evitável.
+    // Mostra recorrência, % das visitas, projeção anual e top loja.
     const embalagensItems = items.filter((it) => (it.category ?? "") === "Embalagens");
     if (embalagensItems.length > 0) {
       const totalEmb = embalagensItems.reduce((s, it) => s + Number(it.total_price ?? 0), 0);
+      const totalQty = embalagensItems.reduce((s, it) => s + Number(it.quantity ?? 1), 0);
+
+      // visitas com embalagem vs total de visitas no período
+      const visitsWithEmb = new Set(embalagensItems.map((it) => it.expense_id));
+      const totalVisits = new Set(expenses.map((e) => e.id)).size;
+      const visitPct = totalVisits > 0 ? (visitsWithEmb.size / totalVisits) * 100 : 0;
+
+      // janela do período em dias para projetar 12 meses
+      const dates = expenses
+        .map((e) => new Date(e.expense_date).getTime())
+        .filter((t) => Number.isFinite(t));
+      const spanDays =
+        dates.length > 1 ? Math.max(1, (Math.max(...dates) - Math.min(...dates)) / 86_400_000) : 30;
+      const annualProj = (totalEmb / spanDays) * 365;
+
+      // ranking de lojas
       const byStoreEmb = new Map<string, number>();
       for (const it of embalagensItems) {
         const exp = expenses.find((e) => e.id === it.expense_id);
         if (!exp) continue;
-        byStoreEmb.set(exp.merchant_name, (byStoreEmb.get(exp.merchant_name) ?? 0) + Number(it.total_price ?? 0));
+        byStoreEmb.set(
+          exp.merchant_name,
+          (byStoreEmb.get(exp.merchant_name) ?? 0) + Number(it.total_price ?? 0),
+        );
       }
-      const topStoreEmb = [...byStoreEmb.entries()].sort((a, b) => b[1] - a[1])[0];
+      const storesRanked = [...byStoreEmb.entries()].sort((a, b) => b[1] - a[1]);
+      const topStoreEmb = storesRanked[0];
+
+      const parts: string[] = [];
+      parts.push(`${totalQty.toFixed(0)} un em ${visitsWithEmb.size} de ${totalVisits} visitas (${visitPct.toFixed(0)}%)`);
+      if (topStoreEmb) {
+        parts.push(
+          storesRanked.length > 1
+            ? `pior: ${topStoreEmb[0]} (${brl(topStoreEmb[1])})`
+            : `só em ${topStoreEmb[0]}`,
+        );
+      }
+      parts.push(`projeção 12m: ${brl(annualProj)}`);
+
       out.push({
         icon: <Tag className="size-5" />,
-        title: `Embalagens custaram ${brl(totalEmb)} no período`,
-        desc: topStoreEmb
-          ? `Maior gasto em ${topStoreEmb[0]} (${brl(topStoreEmb[1])}). Levar sacola reutilizável zera esse custo.`
-          : `Levar sacola reutilizável evita esse gasto recorrente.`,
+        title: `Embalagens: ${brl(totalEmb)} no período`,
+        desc: `${parts.join(" · ")}. Levar sacola reutilizável zera esse custo.`,
       });
     }
 
