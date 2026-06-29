@@ -223,7 +223,7 @@ function Dashboard() {
       .sort((a, b) => b.qty - a.qty);
 
     return { total, topCat, topProd, topStore, topPay, savings, catList, productAccum };
-  }, [expenses, items]);
+  }, [expenses, items, highlightFilters]);
 
   const periodLabel = useMemo(() => {
     if (typeof period === "string" && period.startsWith("month:")) return "neste mês";
