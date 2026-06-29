@@ -445,19 +445,19 @@ function Insights() {
       stores: number;
     }> = [];
 
-    for (const [product, byUnit] of byProduct) {
+    for (const [, byUnit] of byProduct) {
       for (const [baseUnit, byStore] of byUnit) {
         // Precisa de pelo menos 2 mercados COM A MESMA unidade base.
         if (byStore.size < 2) continue;
         const avgs = [...byStore.entries()]
-          .map(([store, v]) => ({ store, avg: v.sum / v.n }))
+          .map(([store, v]) => ({ store, avg: v.sum / v.n, label: v.label }))
           .sort((a, b) => a.avg - b.avg);
         const min = avgs[0];
         const max = avgs[avgs.length - 1];
         if (min.avg <= 0) continue;
         const meanOfMeans = avgs.reduce((s, x) => s + x.avg, 0) / avgs.length;
         rows.push({
-          product,
+          product: min.label,
           baseUnit,
           cheapestStore: min.store,
           cheapestPrice: min.avg,
@@ -473,7 +473,7 @@ function Insights() {
 
     // Ordena por % de diferença DECRESCENTE — destaca as maiores oportunidades.
     return rows.sort((a, b) => b.diffPct - a.diffPct);
-  }, [prices, canon]);
+  }, [prices, canon, rawNameByItemId]);
 
   /** Formata "R$ 12,90/kg" — sempre mostra a unidade base do comparativo. */
   const brlPerUnit = (value: number, unit: "kg" | "L" | "un") =>
