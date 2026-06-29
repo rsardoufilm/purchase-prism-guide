@@ -345,7 +345,7 @@ function Insights() {
         desc: `De ${brl(priceUp.first)}/${priceUp.unit} para ${brl(priceUp.last)}/${priceUp.unit} no histórico.`,
       });
     return out;
-  }, [expenses, prices, canon]);
+  }, [expenses, prices, canon, rawNameByItemId]);
 
 
   // Insights por categoria
