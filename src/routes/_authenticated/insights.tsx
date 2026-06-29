@@ -58,6 +58,31 @@ function isoDate(d: Date | null) {
   return d ? d.toISOString().slice(0, 10) : null;
 }
 
+/**
+ * Converte (unit_price, quantity, unit) em preço por unidade base.
+ * Garante que toda comparação seja em R$/kg, R$/L ou R$/un — nunca preço
+ * absoluto, que distorce embalagens de tamanhos diferentes.
+ */
+function toBaseUnitPrice(
+  unitPrice: number,
+  qtyRaw: number | null,
+  unitRaw: string | null,
+): { basePrice: number; baseUnit: "kg" | "L" | "un" } | null {
+  if (!Number.isFinite(unitPrice) || unitPrice <= 0) return null;
+  const u = (unitRaw ?? "").trim().toLowerCase();
+  const qty = Number(qtyRaw);
+  if (u === "kg" || u === "quilo" || u === "kilo") return { basePrice: unitPrice, baseUnit: "kg" };
+  if (u === "l" || u === "lt" || u === "litro") return { basePrice: unitPrice, baseUnit: "L" };
+  if ((u === "g" || u === "grama") && Number.isFinite(qty) && qty > 0) {
+    return { basePrice: (unitPrice * 1000) / qty, baseUnit: "kg" };
+  }
+  if ((u === "ml" || u === "mililitro") && Number.isFinite(qty) && qty > 0) {
+    return { basePrice: (unitPrice * 1000) / qty, baseUnit: "L" };
+  }
+  return { basePrice: unitPrice, baseUnit: "un" };
+}
+
+
 function Insights() {
   const [period, setPeriod] = useSharedPeriod();
 
