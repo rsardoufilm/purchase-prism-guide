@@ -11,6 +11,8 @@ import { Sparkles, TrendingDown, Store, Package as PackageIcon, Wallet } from "l
 import { DashboardSummaryCard } from "@/components/dashboard-summary-card";
 import { DashboardCardsSkeleton, RecentExpensesSkeleton } from "@/components/dashboard-skeleton";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
+import { useCurrentGroup } from "@/hooks/use-current-group";
+import { MemberAvatar } from "@/components/member-avatar";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -75,6 +77,7 @@ function formatQty(qty: number, unit: string): string {
 
 function Dashboard() {
   const [period, setPeriod] = useSharedPeriod();
+  const { isInGroup, membersById } = useCurrentGroup();
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [items, setItems] = useState<ItemRow[]>([]);
   const [loading, setLoading] = useState(true);
