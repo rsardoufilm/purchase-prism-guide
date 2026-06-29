@@ -193,6 +193,7 @@ function Dashboard() {
     for (const it of items) {
       const name = (it.normalized_name || it.raw_name || "").trim();
       if (!name) continue;
+      if (!isHighlightable(highlightFilters, name, it.category)) continue;
       const q = Number(it.quantity) || 0;
       if (q <= 0) continue;
       const rawUnit = (it.unit || "").toLowerCase().trim();
