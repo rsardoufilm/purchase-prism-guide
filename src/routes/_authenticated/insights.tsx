@@ -466,8 +466,9 @@ function Insights() {
     const itemsByCat = new Map<string, Map<string, number>>();
     for (const it of items) {
       const k = it.category || "Outros";
-      const prodMap = itemsByCat.get(k) ?? new Map<string, number>();
       const name = it.normalized_name || it.raw_name;
+      if (!isHighlightable(highlightFilters, name, it.category)) continue;
+      const prodMap = itemsByCat.get(k) ?? new Map<string, number>();
       prodMap.set(name, (prodMap.get(name) ?? 0) + Number(it.total_price ?? 0));
       itemsByCat.set(k, prodMap);
     }
@@ -486,7 +487,7 @@ function Insights() {
       all.push({ category: cat, total: v.total, count: v.count, topMerchant, topProduct });
     }
     return all.sort((a, b) => b.total - a.total);
-  }, [expenses, items]);
+  }, [expenses, items, highlightFilters]);
 
   // Comparativo de mercados — INTELIGENTE
   //
