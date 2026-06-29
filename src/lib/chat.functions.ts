@@ -53,11 +53,19 @@ export const askAura = createServerFn({ method: "POST" })
     if (start) expQ = expQ.gte("expense_date", start);
     if (end) expQ = expQ.lte("expense_date", end);
 
-    const [exp, recur, subs] = await Promise.all([
+    const [exp, recur, subs, catIgn, prodIgn] = await Promise.all([
       expQ,
       supabase.from("recurring_expenses").select("name,category,amount,frequency,active"),
       supabase.from("subscriptions").select("name,amount,frequency,active"),
+      supabase.from("categorias_ignoradas_destaques").select("categoria"),
+      supabase.from("produtos_ignorados_destaques").select("nome_normalizado"),
     ]);
+    const ignoredCats = new Set(
+      (catIgn.data ?? []).map((r) => (r.categoria ?? "").trim().toLowerCase()),
+    );
+    const ignoredProds = new Set((prodIgn.data ?? []).map((r) => r.nome_normalizado));
+    const normProdKey = (s: string) =>
+      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 
     const expenses = exp.data ?? [];
     const expenseIds = expenses.map((e) => e.id);
