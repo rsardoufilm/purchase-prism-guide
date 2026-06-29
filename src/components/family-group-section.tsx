@@ -69,6 +69,7 @@ export function FamilyGroupSection() {
 
   const handleJoin = async () => {
     const code = normalizeInviteCode(inviteInput);
+    console.info("[grupo] join attempt", { input: inviteInput, normalized: code });
     if (code.length !== 6) {
       toast.error("Código inválido. Use 6 caracteres.");
       return;
@@ -81,6 +82,7 @@ export function FamilyGroupSection() {
       });
       if (error) throw error;
       const g = Array.isArray(rows) ? rows[0] : rows;
+      console.info("[grupo] lookup result", { code, found: !!g, id: g?.id });
       if (!g) {
         toast.error("Código não encontrado. Confira com quem criou o grupo.");
         return;
