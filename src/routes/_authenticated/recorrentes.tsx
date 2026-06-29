@@ -54,7 +54,7 @@ function Recorrentes() {
   const load = () =>
     supabase
       .from("recurring_expenses")
-      .select("*")
+      .select("id,name,category,amount,due_day,frequency")
       .order("created_at", { ascending: false })
       .then(({ data }) => setRows((data ?? []) as Bill[]));
   useEffect(() => {
