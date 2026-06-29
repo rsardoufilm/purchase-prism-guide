@@ -57,6 +57,12 @@ import { useEffect } from "react";
 import { Sparkles, UserCheck } from "lucide-react";
 import { detectPriceAnomalies, type PriceAnomaly } from "@/lib/price-anomaly";
 import { PriceAnomalyDialog } from "@/components/price-anomaly-dialog";
+import {
+  detectAliasCandidates,
+  saveAlias,
+  type AliasCandidate,
+} from "@/lib/product-aliases";
+import { ProductAliasDialog } from "@/components/product-alias-dialog";
 
 type CategorySource =
   | "ocr"
@@ -177,6 +183,10 @@ function NovaDespesa() {
   const [priceConfirmedIdx, setPriceConfirmedIdx] = useState<Set<number>>(new Set());
   const [anomalyQueue, setAnomalyQueue] = useState<PriceAnomaly[]>([]);
   const [currentAnomaly, setCurrentAnomaly] = useState<PriceAnomaly | null>(null);
+  // Fila de produtos parecidos a confirmar antes de salvar.
+  const [aliasQueue, setAliasQueue] = useState<AliasCandidate[]>([]);
+  const [currentAlias, setCurrentAlias] = useState<AliasCandidate | null>(null);
+  const [aliasChecked, setAliasChecked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -415,6 +425,18 @@ function NovaDespesa() {
     }
   };
 
+  const advanceAliasQueue = () => {
+    const remaining = aliasQueue;
+    if (remaining.length === 0) {
+      setCurrentAlias(null);
+      setAliasQueue([]);
+      void save();
+    } else {
+      setCurrentAlias(remaining[0]);
+      setAliasQueue(remaining.slice(1));
+    }
+  };
+
   const save = async (confirmedOverride?: Set<number>) => {
     if (!draft) return;
     if (!draft.merchant_name.trim()) {
@@ -446,6 +468,23 @@ function NovaDespesa() {
       setCurrentAnomaly(anomalies[0]);
       setAnomalyQueue(anomalies.slice(1));
       return;
+    }
+
+    // Aprendizado de produtos equivalentes: pergunta ao usuário sobre nomes
+    // parecidos com o histórico antes de gravar (uma vez por draft).
+    if (!aliasChecked && !editId) {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (userId) {
+        const candidates = await detectAliasCandidates(userId, draft.items);
+        if (candidates.length > 0) {
+          setAliasChecked(true);
+          setCurrentAlias(candidates[0]);
+          setAliasQueue(candidates.slice(1));
+          return;
+        }
+      }
+      setAliasChecked(true);
     }
 
     setSaving(true);
@@ -886,6 +925,36 @@ function NovaDespesa() {
           setCurrentAnomaly(null);
           setAnomalyQueue([]);
         }}
+      />
+
+      <ProductAliasDialog
+        open={!!currentAlias}
+        candidate={currentAlias}
+        onSame={async () => {
+          if (!currentAlias || !draft) return;
+          const { data: userData } = await supabase.auth.getUser();
+          const userId = userData.user?.id;
+          if (userId) {
+            await saveAlias(userId, currentAlias.newName, currentAlias.existingName, true);
+          }
+          // Unifica: renomeia o item para o canônico já existente.
+          const items = [...draft.items];
+          const it = { ...items[currentAlias.index] };
+          it.normalized_name = currentAlias.existingName;
+          items[currentAlias.index] = it;
+          setDraft({ ...draft, items });
+          advanceAliasQueue();
+        }}
+        onDifferent={async () => {
+          if (!currentAlias) return;
+          const { data: userData } = await supabase.auth.getUser();
+          const userId = userData.user?.id;
+          if (userId) {
+            await saveAlias(userId, currentAlias.newName, currentAlias.existingName, false);
+          }
+          advanceAliasQueue();
+        }}
+        onSkip={() => advanceAliasQueue()}
       />
     </>
   );

@@ -288,6 +288,36 @@ export type Database = {
         }
         Relationships: []
       }
+      product_aliases: {
+        Row: {
+          alias_normalized: string
+          canonical_normalized: string
+          created_at: string
+          id: string
+          same_product: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alias_normalized: string
+          canonical_normalized: string
+          created_at?: string
+          id?: string
+          same_product?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alias_normalized?: string
+          canonical_normalized?: string
+          created_at?: string
+          id?: string
+          same_product?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_normalization: {
         Row: {
           confidence: number
