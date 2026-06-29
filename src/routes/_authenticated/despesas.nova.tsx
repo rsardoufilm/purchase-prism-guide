@@ -41,10 +41,11 @@ import {
   MERCHANT_CATEGORY_OPTIONS,
 } from "@/lib/classifier";
 import {
-  loadUserCategoryMap,
-  suggestCategory,
-  type UserCategoryMap,
-} from "@/lib/user-classifier";
+  loadLearnedDictionary,
+  suggestFromDictionary,
+  recordItemCorrection,
+  type LearnedDictionary,
+} from "@/lib/learned-dictionary";
 import {
   loadUserExpenseCategoryMap,
   suggestExpenseCategory,
@@ -57,7 +58,14 @@ import { Sparkles, UserCheck } from "lucide-react";
 import { detectPriceAnomalies, type PriceAnomaly } from "@/lib/price-anomaly";
 import { PriceAnomalyDialog } from "@/components/price-anomaly-dialog";
 
-type CategorySource = "ocr" | "learned" | "rule" | "user" | null;
+type CategorySource =
+  | "ocr"
+  | "pessoal"
+  | "global"
+  | "learned"
+  | "rule"
+  | "user"
+  | null;
 
 export const Route = createFileRoute("/_authenticated/despesas/nova")({
   component: NovaDespesa,
@@ -154,9 +162,9 @@ function NovaDespesa() {
   const [itemsCount, setItemsCount] = useState<number>(0);
   const [failures, setFailures] = useState<FailureEntry[]>(() => readFailures());
   const [loadingEdit, setLoadingEdit] = useState<boolean>(!!editId);
-  const [userCatMap, setUserCatMap] = useState<UserCategoryMap>({
-    byRaw: new Map(),
-    byToken: new Map(),
+  const [userCatMap, setUserCatMap] = useState<LearnedDictionary>({
+    personal: new Map(),
+    global: new Map(),
   });
   const [userExpMap, setUserExpMap] = useState<UserExpenseCategoryMap>({
     byMerchant: new Map(),
@@ -172,7 +180,7 @@ function NovaDespesa() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([loadUserCategoryMap(), loadUserExpenseCategoryMap()]).then(([m, em]) => {
+    Promise.all([loadLearnedDictionary(), loadUserExpenseCategoryMap()]).then(([m, em]) => {
       if (cancelled) return;
       setUserCatMap(m);
       setUserExpMap(em);
@@ -316,10 +324,10 @@ function NovaDespesa() {
         let cat = it.category ?? null;
         if (cat) source = "ocr";
         if (!cat) {
-          const learned = suggestCategory(it.raw_name, userCatMap);
-          if (learned) {
-            cat = learned;
-            source = "learned";
+          const hit = suggestFromDictionary(it.raw_name, userCatMap);
+          if (hit) {
+            cat = hit.category;
+            source = hit.source; // "pessoal" | "global"
           }
         }
         if (!cat) {
@@ -944,12 +952,28 @@ function Field({
 }
 
 function CategorySourceBadge({ source }: { source: CategorySource }) {
-  if (!source || source === "ocr") return null;
-  if (source === "learned") {
+  // Por especificação:
+  //  - "pessoal" → mostra tag discreta de feedback de aprendizado pessoal.
+  //  - "global"  → silencioso (parece que o app "já sabia").
+  //  - "ocr"     → silencioso (veio da própria nota).
+  if (!source || source === "ocr" || source === "global") return null;
+  if (source === "pessoal") {
     return (
       <span
         className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-1.5 py-0.5 text-[9px] font-semibold text-primary"
-        title="Categoria sugerida pelo seu histórico de compras"
+        title="Aplicado automaticamente a partir das suas correções anteriores"
+      >
+        <Sparkles className="size-2.5" />
+        Classificado com base no seu histórico ✓
+      </span>
+    );
+  }
+  if (source === "learned") {
+    // Aprendizado de categoria por estabelecimento (merchant), camada separada.
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-1.5 py-0.5 text-[9px] font-semibold text-primary"
+        title="Categoria sugerida pelo seu histórico de compras neste estabelecimento"
       >
         <Sparkles className="size-2.5" />
         Aprendido
@@ -989,7 +1013,7 @@ function ItemsEditor({
   items: EditableItem[];
   total: number;
   onChange: (items: EditableItem[], sources?: CategorySource[]) => void;
-  userCatMap: UserCategoryMap;
+  userCatMap: LearnedDictionary;
   sources: CategorySource[];
 }) {
   const sum = items.reduce((acc, it) => acc + (Number(it.total_price) || 0), 0);
@@ -1010,20 +1034,32 @@ function ItemsEditor({
       const raw = String(patch.raw_name ?? "").trim();
       merged.normalized_name = raw || null;
       if (!merged.category) {
-        const learned = suggestCategory(raw, userCatMap);
-        if (learned) {
-          merged.category = learned;
-          nextSources[i] = "learned";
+        const hit = suggestFromDictionary(raw, userCatMap);
+        if (hit) {
+          merged.category = hit.category;
+          nextSources[i] = hit.source;
         } else {
           merged.category = classifyItem(raw) ?? "Outros";
           nextSources[i] = "rule";
         }
       }
     }
-    if (opts?.userEdit) nextSources[i] = "user";
+    if (opts?.userEdit) {
+      nextSources[i] = "user";
+      // Captura: registra a correção no dicionário pessoal (UPSERT + confirmacoes++).
+      // Só faz sentido quando há nome do produto e categoria definidos.
+      if (patch.category !== undefined) {
+        const raw = String(merged.raw_name ?? "").trim();
+        const cat = String(patch.category ?? "").trim();
+        if (raw && cat) {
+          void recordItemCorrection(raw, cat);
+        }
+      }
+    }
     next[i] = merged;
     onChange(next, nextSources);
   };
+
 
   const remove = (i: number) => {
     onChange(

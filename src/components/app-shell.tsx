@@ -10,7 +10,6 @@ import {
   LogOut,
   ScanLine,
   Settings,
-  Brain,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +24,6 @@ const NAV = [
   { to: "/consumo", label: "Consumo", icon: ShoppingBasket },
   { to: "/produtos", label: "Produtos", icon: Package },
   { to: "/insights", label: "Insights", icon: Sparkles },
-  { to: "/aprendizado", label: "Aprendizado", icon: Brain },
   { to: "/assinaturas", label: "Assinaturas", icon: CreditCard },
   { to: "/recorrentes", label: "Recorrentes", icon: Repeat },
   { to: "/configuracoes", label: "Ajustes", icon: Settings },
@@ -130,7 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <ScanLine className="size-6" strokeWidth={2.2} />
           </Link>
-          {[NAV[4], NAV[8]].map(({ to, label, icon: Icon }) => {
+          {[NAV[4], NAV[7]].map(({ to, label, icon: Icon }) => {
             const active = isActive(to);
             return (
               <Link
