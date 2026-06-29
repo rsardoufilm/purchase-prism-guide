@@ -38,6 +38,8 @@ interface P {
   normalized_name: string;
   merchant_name: string;
   unit_price: number;
+  quantity: number | null;
+  unit: string | null;
   purchase_date: string;
 }
 interface Msg {
@@ -75,7 +77,7 @@ function Insights() {
         .then(({ data }) => setAllItems((data ?? []) as I[]));
       supabase
         .from("product_prices")
-        .select("normalized_name,merchant_name,unit_price,purchase_date")
+        .select("normalized_name,merchant_name,unit_price,quantity,unit,purchase_date")
         .order("purchase_date", { ascending: true })
         .then(({ data }) => setPrices((data ?? []) as P[]));
     };
@@ -249,48 +251,104 @@ function Insights() {
     return all.sort((a, b) => b.total - a.total);
   }, [expenses, items]);
 
-  // Comparativo de mercados: produtos comprados em ≥ 2 estabelecimentos
+  // Comparativo de mercados — INTELIGENTE
+  //
+  // Princípios:
+  //  1. Compara só o MESMO produto (mesmo normalized_name) em ≥ 2 mercados.
+  //  2. Usa "preço por unidade base" (R$/kg, R$/L ou R$/un) para que
+  //     embalagens diferentes (500g x 1kg, 1L x 350ml) não distorçam.
+  //  3. Só compara linhas que compartilham a mesma unidade base —
+  //     misturar "por kg" com "por unidade" é maçãs com laranjas.
+  //  4. Exibe a média do produto e quanto cada extremo se desvia dela.
   const marketCompare = useMemo(() => {
-    // agrupa preços por produto → por estabelecimento (média de unit_price)
-    const byProduct = new Map<string, Map<string, { sum: number; n: number }>>();
+    // Converte (unit, quantity, unit_price) em (basePrice, baseUnit).
+    // unit_price na base é o "preço por unidade de embalagem" (ex.: por kg quando vendido a kg).
+    // Quando a unidade é g/ml, convertemos para kg/L para padronizar.
+    const toBase = (
+      unitPrice: number,
+      qtyRaw: number | null,
+      unitRaw: string | null,
+    ): { basePrice: number; baseUnit: "kg" | "L" | "un" } | null => {
+      if (!Number.isFinite(unitPrice) || unitPrice <= 0) return null;
+      const u = (unitRaw ?? "").trim().toLowerCase();
+      const qty = Number(qtyRaw);
+      // Casos vendidos a granel — unit_price JÁ é por kg/L.
+      if (u === "kg" || u === "quilo" || u === "kilo") return { basePrice: unitPrice, baseUnit: "kg" };
+      if (u === "l" || u === "lt" || u === "litro") return { basePrice: unitPrice, baseUnit: "L" };
+      // Embalagens em gramas/ml: extrapola para a unidade base padrão.
+      if ((u === "g" || u === "grama") && Number.isFinite(qty) && qty > 0) {
+        return { basePrice: (unitPrice * 1000) / qty, baseUnit: "kg" };
+      }
+      if ((u === "ml" || u === "mililitro") && Number.isFinite(qty) && qty > 0) {
+        return { basePrice: (unitPrice * 1000) / qty, baseUnit: "L" };
+      }
+      // Por unidade (un, pct, cx, etc.): mantém preço da embalagem.
+      return { basePrice: unitPrice, baseUnit: "un" };
+    };
+
+    // produto → unidade base → mercado → { sum, n } (média de preço/unidade base).
+    type Agg = { sum: number; n: number };
+    const byProduct = new Map<string, Map<"kg" | "L" | "un", Map<string, Agg>>>();
     for (const p of prices) {
       if (!p.normalized_name || !p.merchant_name) continue;
-      const price = Number(p.unit_price);
-      if (!Number.isFinite(price) || price <= 0) continue;
-      const merchants = byProduct.get(p.normalized_name) ?? new Map();
-      const cur = merchants.get(p.merchant_name) ?? { sum: 0, n: 0 };
-      cur.sum += price;
+      const base = toBase(Number(p.unit_price), p.quantity, p.unit);
+      if (!base) continue;
+      const byUnit = byProduct.get(p.normalized_name) ?? new Map();
+      const byStore = byUnit.get(base.baseUnit) ?? new Map<string, Agg>();
+      const cur = byStore.get(p.merchant_name) ?? { sum: 0, n: 0 };
+      cur.sum += base.basePrice;
       cur.n += 1;
-      merchants.set(p.merchant_name, cur);
-      byProduct.set(p.normalized_name, merchants);
+      byStore.set(p.merchant_name, cur);
+      byUnit.set(base.baseUnit, byStore);
+      byProduct.set(p.normalized_name, byUnit);
     }
+
     const rows: Array<{
       product: string;
+      baseUnit: "kg" | "L" | "un";
       cheapestStore: string;
-      cheapestPrice: number;
+      cheapestPrice: number; // por base unit
       priciestStore: string;
       priciestPrice: number;
-      diffPct: number;
+      avgPrice: number; // média entre mercados
+      diffPct: number; // (max-min)/min * 100
+      savingsPct: number; // economia vs média se sempre comprar no mais barato
+      stores: number;
     }> = [];
-    for (const [product, merchants] of byProduct) {
-      if (merchants.size < 2) continue;
-      const avgs = [...merchants.entries()]
-        .map(([store, v]) => ({ store, avg: v.sum / v.n }))
-        .sort((a, b) => a.avg - b.avg);
-      const min = avgs[0];
-      const max = avgs[avgs.length - 1];
-      if (min.avg <= 0) continue;
-      rows.push({
-        product,
-        cheapestStore: min.store,
-        cheapestPrice: min.avg,
-        priciestStore: max.store,
-        priciestPrice: max.avg,
-        diffPct: ((max.avg - min.avg) / min.avg) * 100,
-      });
+
+    for (const [product, byUnit] of byProduct) {
+      for (const [baseUnit, byStore] of byUnit) {
+        // Precisa de pelo menos 2 mercados COM A MESMA unidade base.
+        if (byStore.size < 2) continue;
+        const avgs = [...byStore.entries()]
+          .map(([store, v]) => ({ store, avg: v.sum / v.n }))
+          .sort((a, b) => a.avg - b.avg);
+        const min = avgs[0];
+        const max = avgs[avgs.length - 1];
+        if (min.avg <= 0) continue;
+        const meanOfMeans = avgs.reduce((s, x) => s + x.avg, 0) / avgs.length;
+        rows.push({
+          product,
+          baseUnit,
+          cheapestStore: min.store,
+          cheapestPrice: min.avg,
+          priciestStore: max.store,
+          priciestPrice: max.avg,
+          avgPrice: meanOfMeans,
+          diffPct: ((max.avg - min.avg) / min.avg) * 100,
+          savingsPct: meanOfMeans > 0 ? ((meanOfMeans - min.avg) / meanOfMeans) * 100 : 0,
+          stores: byStore.size,
+        });
+      }
     }
+
+    // Ordena por % de diferença DECRESCENTE — destaca as maiores oportunidades.
     return rows.sort((a, b) => b.diffPct - a.diffPct);
   }, [prices]);
+
+  /** Formata "R$ 12,90/kg" — sempre mostra a unidade base do comparativo. */
+  const brlPerUnit = (value: number, unit: "kg" | "L" | "un") =>
+    `${brl(value)}/${unit}`;
 
   // Chat
   const ask = useServerFn(askAura);
@@ -384,22 +442,31 @@ function Insights() {
         {marketCompare.length === 0 ? (
           <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 text-center">
             <p className="text-sm text-muted-foreground text-pretty">
-              Compre o mesmo produto em mais de um mercado para ver comparativos aqui.
+              Compre o mesmo produto em mais de um mercado, na mesma unidade
+              (kg, L ou unidade), para ver comparativos aqui.
             </p>
           </div>
         ) : (
           <div className="space-y-2">
             {marketCompare.slice(0, 12).map((row) => (
               <div
-                key={row.product}
+                key={`${row.product}__${row.baseUnit}`}
                 className="bg-card border border-border rounded-2xl p-3 sm:p-4"
               >
-                <div className="flex items-baseline justify-between gap-2 mb-2">
+                <div className="flex items-baseline justify-between gap-2 mb-1">
                   <p className="text-sm font-semibold truncate">{row.product}</p>
                   <span className="text-xs font-bold whitespace-nowrap px-2 py-0.5 rounded-full bg-primary-soft text-primary">
                     {row.diffPct.toFixed(0)}% de diferença
                   </span>
                 </div>
+                <p className="text-[11px] text-muted-foreground mb-2">
+                  Comparado por <span className="font-medium">{brlPerUnit(row.avgPrice, row.baseUnit)}</span>{" "}
+                  (média entre {row.stores} mercados) • economiza até{" "}
+                  <span className="font-semibold text-emerald-700">
+                    {row.savingsPct.toFixed(0)}%
+                  </span>{" "}
+                  no mais barato
+                </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
                     <ArrowDown className="size-4 text-emerald-600 shrink-0" />
@@ -412,7 +479,7 @@ function Insights() {
                       </p>
                     </div>
                     <p className="text-sm font-bold text-emerald-700 whitespace-nowrap">
-                      {brl(row.cheapestPrice)}
+                      {brlPerUnit(row.cheapestPrice, row.baseUnit)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2">
@@ -426,7 +493,7 @@ function Insights() {
                       </p>
                     </div>
                     <p className="text-sm font-bold text-red-700 whitespace-nowrap">
-                      {brl(row.priciestPrice)}
+                      {brlPerUnit(row.priciestPrice, row.baseUnit)}
                     </p>
                   </div>
                 </div>
