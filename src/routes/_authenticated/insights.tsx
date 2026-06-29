@@ -706,7 +706,7 @@ function Insights() {
           </div>
         )}
 
-        <div className="space-y-3 mb-3">
+        <div className="space-y-3 mb-3 pb-32 md:pb-24">
           {msgs.map((m, i) => (
             <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
               <div
@@ -727,8 +727,9 @@ function Insights() {
               </div>
             </div>
           )}
-          <div ref={endRef} />
+          <div ref={endRef} style={{ scrollMarginBottom: "8rem" }} />
         </div>
+
 
         <form
           onSubmit={(e) => {
