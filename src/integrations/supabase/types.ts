@@ -563,6 +563,33 @@ export type Database = {
         }
         Relationships: []
       }
+      tentativas_convite: {
+        Row: {
+          codigo_tentado: string
+          criado_em: string
+          id: string
+          motivo: string | null
+          sucesso: boolean
+          user_id: string
+        }
+        Insert: {
+          codigo_tentado: string
+          criado_em?: string
+          id?: string
+          motivo?: string | null
+          sucesso?: boolean
+          user_id: string
+        }
+        Update: {
+          codigo_tentado?: string
+          criado_em?: string
+          id?: string
+          motivo?: string | null
+          sucesso?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_notifications: {
         Row: {
           created_at: string
@@ -633,6 +660,7 @@ export type Database = {
       gerar_codigo_convite: { Args: never; Returns: string }
       grupo_do_usuario: { Args: { _user: string }; Returns: string }
       mesmo_grupo: { Args: { _a: string; _b: string }; Returns: boolean }
+      tentar_entrar_no_grupo: { Args: { _codigo: string }; Returns: Json }
     }
     Enums: {
       expense_source: "manual" | "photo" | "pdf"

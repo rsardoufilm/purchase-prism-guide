@@ -77,33 +77,47 @@ export function FamilyGroupSection() {
     if (!userId) return;
     setBusy(true);
     try {
-      const { data: rows, error } = await supabase.rpc("buscar_grupo_por_codigo", {
+      const { data, error } = await supabase.rpc("tentar_entrar_no_grupo", {
         _codigo: code,
       });
       if (error) throw error;
-      const g = Array.isArray(rows) ? rows[0] : rows;
-      console.info("[grupo] lookup result", { code, found: !!g, id: g?.id });
-      if (!g) {
-        toast.error("Código não encontrado. Confira com quem criou o grupo.");
-        return;
-      }
-      const { error: e2 } = await supabase
-        .from("membros_grupo")
-        .insert({ grupo_id: g.id, user_id: userId, papel: "membro" });
-      if (e2) {
-        if (e2.message.includes("duplicate") || e2.code === "23505") {
+      const result = (data ?? {}) as {
+        status?: string;
+        nome_grupo?: string;
+        motivo?: string;
+        tentativas_restantes?: number;
+      };
+      console.info("[grupo] join result", { code, status: result.status });
+
+      switch (result.status) {
+        case "ok":
+          toast.success(`Entrou em "${result.nome_grupo}".`);
+          setInviteInput("");
+          setMode("idle");
+          notifyGroupChanged();
+          await refresh();
+          break;
+        case "ja_membro":
           toast.error("Você já está em um grupo. Saia antes de entrar em outro.");
-        } else {
-          throw e2;
+          break;
+        case "rate_limited":
+          toast.error("Muitas tentativas inválidas. Aguarde 15 minutos antes de tentar novamente.");
+          break;
+        case "nao_autenticado":
+          toast.error("Sessão expirou. Faça login novamente.");
+          break;
+        case "nao_encontrado":
+        default: {
+          const rest = result.tentativas_restantes;
+          const suffix =
+            typeof rest === "number" && rest >= 0
+              ? ` (${rest} tentativa${rest === 1 ? "" : "s"} restante${rest === 1 ? "" : "s"})`
+              : "";
+          toast.error(`Código não encontrado. Confira com quem criou o grupo.${suffix}`);
         }
-        return;
       }
-      toast.success(`Entrou em "${g.nome_grupo}".`);
-      setInviteInput("");
-      setMode("idle");
-      notifyGroupChanged();
-      await refresh();
     } catch (err) {
+      console.error("[grupo] join error", err);
       toast.error(err instanceof Error ? err.message : "Falha ao entrar.");
     } finally {
       setBusy(false);
