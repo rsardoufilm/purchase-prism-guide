@@ -256,9 +256,19 @@ export function FamilyGroupSection() {
                 </span>
                 <Copy className="size-4 text-muted-foreground" />
               </button>
+              <Button
+                type="button"
+                onClick={shareInvite}
+                className="mt-2 w-full gap-2"
+                variant="default"
+              >
+                <Share2 className="size-4" />
+                Compartilhar convite
+              </Button>
               <p className="text-[11px] text-muted-foreground mt-1.5">
                 Compartilhe com até 9 pessoas. Quem entrar verá suas despesas e vice-versa.
               </p>
+
             </div>
           </div>
 
