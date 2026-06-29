@@ -1,8 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { brl } from "@/lib/format";
+import {
+  scanDuplicates,
+  acceptUnification,
+  rejectUnification,
+  type DuplicateSuggestion,
+} from "@/lib/duplicate-scan";
+import { ProductAliasDialog } from "@/components/product-alias-dialog";
+import { Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/produtos")({
   component: Produtos,
@@ -20,6 +28,10 @@ interface Price {
 
 function Produtos() {
   const [prices, setPrices] = useState<Price[]>([]);
+  const [suggestions, setSuggestions] = useState<DuplicateSuggestion[]>([]);
+  const [reviewing, setReviewing] = useState<DuplicateSuggestion | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
   useEffect(() => {
     const load = () => {
       supabase
@@ -32,6 +44,28 @@ function Produtos() {
     window.addEventListener("aura:data-changed", load);
     return () => window.removeEventListener("aura:data-changed", load);
   }, []);
+
+  const runScan = useCallback(async (uid: string) => {
+    try {
+      const pend = await scanDuplicates(uid);
+      setSuggestions(pend);
+    } catch {
+      /* silent */
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      const uid = data.user?.id;
+      if (!uid || cancelled) return;
+      setUserId(uid);
+      runScan(uid);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [runScan]);
 
   const products = useMemo(() => {
     type Agg = {
@@ -71,9 +105,46 @@ function Produtos() {
       .sort((a, b) => b.total - a.total);
   }, [prices]);
 
+  const handleSame = async () => {
+    if (!reviewing || !userId) return;
+    // canonical = nome_a (ordem alfabética estável); other = nome_b
+    await acceptUnification(userId, reviewing.id, reviewing.nome_a, reviewing.nome_b);
+    setReviewing(null);
+    setSuggestions((s) => s.filter((x) => x.id !== reviewing.id));
+    window.dispatchEvent(new CustomEvent("aura:data-changed"));
+  };
+
+  const handleDifferent = async () => {
+    if (!reviewing || !userId) return;
+    await rejectUnification(userId, reviewing.id, reviewing.nome_a, reviewing.nome_b);
+    setReviewing(null);
+    setSuggestions((s) => s.filter((x) => x.id !== reviewing.id));
+  };
+
   return (
     <>
       <PageHeader eyebrow="Produtos" title="Catálogo de consumo" />
+
+      {suggestions.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setReviewing(suggestions[0])}
+          className="w-full mb-3 flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary-soft/40 px-3 py-2.5 text-left hover:bg-primary-soft/60 transition"
+        >
+          <div className="size-8 rounded-xl bg-primary/15 grid place-items-center text-primary shrink-0">
+            <Sparkles className="size-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-foreground">
+              Encontramos {suggestions.length}{" "}
+              {suggestions.length === 1 ? "produto que pode ser" : "produtos que podem ser"} o mesmo
+              item
+            </p>
+            <p className="text-[11px] text-muted-foreground truncate">Revisar →</p>
+          </div>
+        </button>
+      )}
+
       {products.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nenhum produto registrado ainda.</p>
       ) : (
@@ -107,6 +178,23 @@ function Produtos() {
           ))}
         </div>
       )}
+
+      <ProductAliasDialog
+        open={!!reviewing}
+        candidate={
+          reviewing
+            ? {
+                index: 0,
+                newName: reviewing.nome_b,
+                existingName: reviewing.nome_a,
+                similarity: Number(reviewing.similaridade),
+              }
+            : null
+        }
+        onSame={handleSame}
+        onDifferent={handleDifferent}
+        onSkip={() => setReviewing(null)}
+      />
     </>
   );
 }
