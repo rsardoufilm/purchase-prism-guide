@@ -107,8 +107,12 @@ export function useCurrentGroup(): UseCurrentGroupResult {
   // Realtime: muda alguém entra/sai do grupo → recarrega.
   useEffect(() => {
     if (!group?.id) return;
+    // Nome único por execução do efeito evita reutilizar um canal já
+    // subscrito (Strict Mode / remounts), o que faria o `.on()` lançar
+    // "cannot add postgres_changes callbacks after subscribe()".
+    const topic = `group-members-${group.id}-${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
-      .channel(`group-members-${group.id}`)
+      .channel(topic)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "membros_grupo", filter: `grupo_id=eq.${group.id}` },
@@ -119,6 +123,7 @@ export function useCurrentGroup(): UseCurrentGroupResult {
       void supabase.removeChannel(channel);
     };
   }, [group?.id, load]);
+
 
   const membersById = new Map(members.map((m) => [m.user_id, m]));
   const isAdmin = !!(group && userId && group.criado_por === userId);
