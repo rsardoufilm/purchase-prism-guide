@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { TourGuide } from "@/components/tour-guide";
 import { TOURS } from "@/lib/tours";
 import { PeriodFilter } from "@/components/period-filter";
-import { periodRange, type PeriodKey } from "@/lib/period";
+import { periodRange, periodLabel, type PeriodKey } from "@/lib/period";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/format";
@@ -580,7 +580,18 @@ function Insights() {
     setQ("");
     setBusy(true);
     try {
-      const res = await ask({ data: { question: t } });
+      // CRÍTICO: envia o MESMO período da tela para que o chat e a aba
+      // Insights compartilhem a fonte de verdade. Sem isso, o chat
+      // usaria uma janela diferente e os totais divergiriam.
+      const { start, end } = periodRange(period);
+      const res = await ask({
+        data: {
+          question: t,
+          start: isoDate(start),
+          end: isoDate(end),
+          periodLabel: periodLabel(period),
+        },
+      });
       setMsgs((m) => [...m, { role: "aura", text: res.answer }]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha");
@@ -623,6 +634,9 @@ function Insights() {
         <section className="mb-5">
           <h2 className="font-display font-semibold text-sm mb-2 flex items-center gap-2">
             <Tag className="size-4 text-primary" /> Por categoria
+            <span className="ml-auto text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {periodLabel(period)}
+            </span>
           </h2>
           <div className="space-y-2">
             {categoryInsights.slice(0, 8).map((c) => (
