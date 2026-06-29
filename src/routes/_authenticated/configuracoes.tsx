@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import { LEGAL } from "@/lib/legal-info";
 import { NotificationPreferences } from "@/components/notification-preferences";
+import { FamilyGroupSection } from "@/components/family-group-section";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: Configuracoes,
@@ -232,6 +233,8 @@ function Configuracoes() {
       </section>
 
       <NotificationPreferences />
+
+      <FamilyGroupSection />
 
       {/* Aparência */}
       <section className="bg-card border border-border rounded-3xl p-5 space-y-3 mb-4">
