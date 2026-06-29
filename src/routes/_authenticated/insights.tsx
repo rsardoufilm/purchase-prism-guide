@@ -395,32 +395,40 @@ function Insights() {
   // Comparativo de mercados — INTELIGENTE
   //
   // Princípios:
-  //  1. Compara só o MESMO produto (mesmo normalized_name) em ≥ 2 mercados.
-  //  2. Usa "preço por unidade base" (R$/kg, R$/L ou R$/un) para que
+  //  1. Compara só o MESMO SKU: mesmo produto canônico + MESMA MARCA
+  //     (assinatura derivada do raw_name) + mesma embalagem.
+  //  2. Em ≥ 2 mercados distintos.
+  //  3. Usa "preço por unidade base" (R$/kg, R$/L ou R$/un) para que
   //     embalagens diferentes (500g x 1kg, 1L x 350ml) não distorçam.
-  //  3. Só compara linhas que compartilham a mesma unidade base —
-  //     misturar "por kg" com "por unidade" é maçãs com laranjas.
-  //  4. Exibe a média do produto e quanto cada extremo se desvia dela.
+  //  4. Só compara linhas que compartilham a mesma unidade base.
+  //  5. Exibe a média do produto e quanto cada extremo se desvia dela.
   const marketCompare = useMemo(() => {
-    // produto canônico → unidade base → mercado → { sum, n }
-    // Aplica aliases confirmados: somar leituras do mesmo item sob nomes diferentes
-    // (ex.: "Coração da Alcatra bovino" + "Coração bovino") só ocorre depois que o
-    // usuário confirmou a equivalência no fluxo de salvamento da nota.
-    type Agg = { sum: number; n: number };
+    // chave (canonical|brandSignature) → unidade base → mercado → { sum, n, label }
+    // Aplica aliases confirmados pelo usuário sobre o normalized_name. A marca
+    // entra via brandSignature(raw_name) — sem isso, "Biscoito Oreo" e
+    // "Biscoito Trakinas" seriam misturados só por serem "Biscoito".
+    type Agg = { sum: number; n: number; label: string };
     const byProduct = new Map<string, Map<"kg" | "L" | "un", Map<string, Agg>>>();
     for (const p of prices) {
       if (!p.normalized_name || !p.merchant_name) continue;
+      const raw = p.expense_item_id ? rawNameByItemId.get(p.expense_item_id) ?? "" : "";
+      const sig = brandSignature(raw);
+      // Sem assinatura de marca não há como afirmar "mesmo produto e marca".
+      if (!sig) continue;
       const base = toBaseUnitPrice(Number(p.unit_price), p.quantity, p.unit);
       if (!base) continue;
-      const product = canon(p.normalized_name);
-      const byUnit = byProduct.get(product) ?? new Map();
+      const canonical = canon(p.normalized_name);
+      const key = `${canonical}|${sig}`;
+      const label = raw || canonical;
+      const byUnit = byProduct.get(key) ?? new Map();
       const byStore = byUnit.get(base.baseUnit) ?? new Map<string, Agg>();
-      const cur = byStore.get(p.merchant_name) ?? { sum: 0, n: 0 };
+      const cur = byStore.get(p.merchant_name) ?? { sum: 0, n: 0, label };
       cur.sum += base.basePrice;
       cur.n += 1;
+      cur.label = label;
       byStore.set(p.merchant_name, cur);
       byUnit.set(base.baseUnit, byStore);
-      byProduct.set(product, byUnit);
+      byProduct.set(key, byUnit);
     }
 
 
