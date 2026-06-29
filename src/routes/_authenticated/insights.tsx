@@ -295,20 +295,24 @@ function Insights() {
       pct: number;
     } | null = null;
 
-    for (const [name, byUnit] of prodNorm) {
+    for (const [, byUnit] of prodNorm) {
       for (const [unit, arr] of byUnit) {
         if (arr.length < 2) continue;
+        // Para variação entre lojas exigimos ≥ 2 LOJAS DISTINTAS — comparar
+        // o mesmo SKU em duas idas à mesma loja não é variação entre lojas.
+        const distinctStores = new Set(arr.map((x) => x.store));
         const sorted = [...arr].sort((a, b) => a.basePrice - b.basePrice);
         const min = sorted[0];
         const max = sorted[sorted.length - 1];
         if (
+          distinctStores.size >= 2 &&
           min.basePrice > 0 &&
           (!biggestSwing ||
             (max.basePrice - min.basePrice) / min.basePrice >
               (biggestSwing.max - biggestSwing.min) / biggestSwing.min)
         ) {
           biggestSwing = {
-            name,
+            name: min.name,
             unit,
             min: min.basePrice,
             max: max.basePrice,
@@ -321,7 +325,8 @@ function Insights() {
         const last = byDate[byDate.length - 1].basePrice;
         if (first > 0 && last > first) {
           const pct = ((last - first) / first) * 100;
-          if (!priceUp || pct > priceUp.pct) priceUp = { name, unit, first, last, pct };
+          if (!priceUp || pct > priceUp.pct)
+            priceUp = { name: min.name, unit, first, last, pct };
         }
       }
     }
