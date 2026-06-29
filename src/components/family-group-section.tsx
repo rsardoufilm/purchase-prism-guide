@@ -46,9 +46,10 @@ export function FamilyGroupSection() {
       const { data, error } = await supabase
         .from("grupos_familiares")
         .insert({ nome_grupo: name, criado_por: userId })
-        .select("id")
+        .select("id, codigo_convite")
         .single();
       if (error) throw error;
+      console.info("[grupo] criado", { id: data.id, codigo: data.codigo_convite });
       const { error: e2 } = await supabase
         .from("membros_grupo")
         .insert({ grupo_id: data.id, user_id: userId, papel: "admin" });
