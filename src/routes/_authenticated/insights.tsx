@@ -28,6 +28,7 @@ interface E {
   expense_date: string;
 }
 interface I {
+  id: string;
   normalized_name: string | null;
   raw_name: string;
   total_price: number;
@@ -41,6 +42,7 @@ interface P {
   quantity: number | null;
   unit: string | null;
   purchase_date: string;
+  expense_item_id: string | null;
 }
 interface Msg {
   role: "user" | "aura";
