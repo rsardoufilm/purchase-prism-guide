@@ -10,7 +10,14 @@ import {
   type DuplicateSuggestion,
 } from "@/lib/duplicate-scan";
 import { ProductAliasDialog } from "@/components/product-alias-dialog";
-import { Sparkles } from "lucide-react";
+import { Sparkles, EyeOff, Eye } from "lucide-react";
+import {
+  loadHighlightFilters,
+  toggleProductIgnored,
+  normalizeProductKey,
+  type HighlightFilters,
+} from "@/lib/highlight-filters";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/produtos")({
   component: Produtos,
