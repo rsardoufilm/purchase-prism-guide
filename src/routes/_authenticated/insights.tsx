@@ -513,7 +513,7 @@ function Insights() {
 
     // Ordena por % de diferença DECRESCENTE — destaca as maiores oportunidades.
     return rows.sort((a, b) => b.diffPct - a.diffPct);
-  }, [prices, canon, rawNameByItemId]);
+  }, [prices, canon, rawNameByItemId, categoryByItemId]);
 
   /** Formata "R$ 12,90/kg" — sempre mostra a unidade base do comparativo. */
   const brlPerUnit = (value: number, unit: "kg" | "L" | "un") =>
