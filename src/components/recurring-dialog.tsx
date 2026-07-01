@@ -19,7 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
 import { paymentLabel } from "@/lib/format";
 
 const FREQS = ["mensal", "bimestral", "trimestral", "semestral", "anual"] as const;
@@ -59,7 +58,6 @@ export function RecurringDialog({
 
   const isEdit = !!editing;
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<string>("");
   const [amount, setAmount] = useState("");
   const [dueDay, setDueDay] = useState("");
   const [frequency, setFrequency] = useState<Freq>("mensal");
@@ -69,7 +67,6 @@ export function RecurringDialog({
   useEffect(() => {
     if (!open) return;
     setName(editing?.name ?? "");
-    setCategory(editing?.category ?? "");
     setAmount(editing ? String(editing.amount) : "");
     setDueDay(editing?.due_day ? String(editing.due_day) : "");
     setFrequency(((editing?.frequency as Freq) ?? "mensal") as Freq);
@@ -86,7 +83,6 @@ export function RecurringDialog({
     const uid = user.user!.id;
     const payload = {
       name: name.trim(),
-      category: category || null,
       amount: Number(amount),
       due_day: dueDay ? Number(dueDay) : null,
       frequency,
@@ -131,20 +127,6 @@ export function RecurringDialog({
               onChange={(e) => setName(e.target.value)}
               placeholder="Conta de luz"
             />
-          </Field>
-          <Field label="Categoria">
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="—" />
-              </SelectTrigger>
-              <SelectContent>
-                {MERCHANT_CATEGORY_OPTIONS.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Valor">

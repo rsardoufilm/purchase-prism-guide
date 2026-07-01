@@ -19,7 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
 import { paymentLabel } from "@/lib/format";
 
 const FREQS = ["mensal", "bimestral", "trimestral", "semestral", "anual"] as const;
@@ -64,7 +63,6 @@ export function SubscriptionDialog({
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Freq>("mensal");
   const [due, setDue] = useState("");
-  const [category, setCategory] = useState<string>("");
   const [payment, setPayment] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
@@ -74,7 +72,6 @@ export function SubscriptionDialog({
     setAmount(editing ? String(editing.amount) : "");
     setFrequency(((editing?.frequency as Freq) ?? "mensal") as Freq);
     setDue(editing?.next_due_date ?? "");
-    setCategory(editing?.category ?? "");
     setPayment(editing?.payment_method ?? "");
   }, [open, editing]);
 
@@ -91,7 +88,6 @@ export function SubscriptionDialog({
       amount: Number(amount),
       frequency,
       next_due_date: due || null,
-      category: category || null,
       payment_method: payment || null,
     };
     const { error } = isEdit
@@ -162,36 +158,20 @@ export function SubscriptionDialog({
           <Field label="Próximo vencimento">
             <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Categoria">
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="—" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MERCHANT_CATEGORY_OPTIONS.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Pagamento">
-              <Select value={payment} onValueChange={setPayment}>
-                <SelectTrigger>
-                  <SelectValue placeholder="—" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(paymentLabel).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>
-                      {v}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          </div>
+          <Field label="Pagamento">
+            <Select value={payment} onValueChange={setPayment}>
+              <SelectTrigger>
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(paymentLabel).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>
+                    {v}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
           {isEdit && editing?.id && (
             <p className="text-[10px] text-muted-foreground">
               Alterações são registradas no histórico do item (editado_em / editado_por).
