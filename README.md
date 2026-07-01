@@ -13,9 +13,19 @@ O workflow `.github/workflows/ci.yml` roda em todo push/PR:
 - `npm run build`
 - `npm run verify:all` (rotas, câmera, convite, ranking, recorrentes, taxa de serviço)
 
+### O que é Branch Protection (e por que é importante)
+
+A Branch Protection é uma trava de segurança do GitHub para a branch `main` — a versão oficial do seu app. Ela impede que alterações acidentais ou quebradas entrem em produção sem passar por revisão e testes.
+
+Resumo do que ela garante:
+- ❌ Ninguém envia código direto para o `main` sem Pull Request.
+- ✅ Toda alteração passa pelo **Quality Gate** (CI) antes de poder ser mergeada.
+- ✅ Pelo menos 1 aprovação é obrigatória para concluir o merge.
+- ✅ O `main` fica sempre estável e testado.
+
 ### Tornar obrigatório no `main` (configuração recomendada)
 
-1. GitHub → **Settings** → **Branches** → **Branch protection rules** → **Add rule** (ou **Edit** se já existir)
+1. GitHub → **Settings** → **Branches** → **Branch protection rules** → **Add rule** (ou **Edit** se aparecer "Name already protected: main")
 2. Branch name pattern: `main`
 3. Marque:
    - ✅ **Require a pull request before merging** (com **1 aprovação**)
@@ -29,13 +39,14 @@ O workflow `.github/workflows/ci.yml` roda em todo push/PR:
 
 A partir daí, nenhum commit entra no `main` sem PR + Quality Gate verde + aprovação.
 
-### Como testar a proteção com um PR
+### Como testar a proteção com um Pull Request
 
 1. Faça qualquer pequena alteração pelo Lovable (ex.: ajuste de texto)
 2. O Lovable sincroniza com o GitHub e abre/atualiza um Pull Request automaticamente
 3. Na aba **Checks** do PR, acompanhe o **Quality Gate** rodar
 4. Se falhar 🔴 → o botão de merge fica bloqueado (proteção funcionando)
 5. Se passar 🟢 → aprove o próprio PR e clique **Merge pull request**
+
 
 
 ## Testar manualmente as novas features
