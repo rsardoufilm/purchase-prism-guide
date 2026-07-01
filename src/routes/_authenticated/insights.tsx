@@ -203,7 +203,11 @@ function Insights() {
       return true;
     });
     const ids = new Set(filteredExp.map((x) => x.id));
-    const filteredItems = allItems.filter((it) => ids.has(it.expense_id));
+    // "Embalagens" nunca entra em rankings/insights (sacolas e descartáveis
+    // são gasto operacional do checkout, não consumo). Filtrado na fonte.
+    const filteredItems = allItems.filter(
+      (it) => ids.has(it.expense_id) && (it.category ?? "") !== "Embalagens",
+    );
     return { expenses: filteredExp, items: filteredItems };
   }, [allExpenses, allItems, period]);
 
