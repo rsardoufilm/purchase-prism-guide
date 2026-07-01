@@ -150,7 +150,10 @@ function Consumo() {
 
   const filteredItems = useMemo(() => {
     const ids = new Set(filteredExpenses.map((x) => x.id));
-    return items.filter((it) => ids.has(it.expense_id));
+    // "Embalagens" nunca entra em rankings/agregações desta aba.
+    return items.filter(
+      (it) => ids.has(it.expense_id) && (it.category ?? "") !== "Embalagens",
+    );
   }, [items, filteredExpenses]);
 
   const allCategories = useMemo(() => {
