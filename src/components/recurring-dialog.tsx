@@ -83,7 +83,6 @@ export function RecurringDialog({
     const uid = user.user!.id;
     const payload = {
       name: name.trim(),
-      category: category || null,
       amount: Number(amount),
       due_day: dueDay ? Number(dueDay) : null,
       frequency,
