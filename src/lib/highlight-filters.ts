@@ -46,6 +46,8 @@ export function isHighlightable(
   productName: string | null | undefined,
   category: string | null | undefined,
 ): boolean {
+  // Taxa de serviço / gorjeta / couvert nunca é destaque de consumo.
+  if (isServiceCharge(productName)) return false;
   const cat = (category ?? "").trim().toLowerCase();
   if (cat && filters.ignoredCategories.has(cat)) return false;
   const prod = normalizeProductKey(productName);
