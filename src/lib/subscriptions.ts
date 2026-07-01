@@ -4,6 +4,8 @@ export interface SubscriptionRow {
   amount: number;
   frequency: string;
   next_due_date: string | null;
+  category?: string | null;
+  payment_method?: string | null;
 }
 
 export interface SubscriptionOccurrence {
