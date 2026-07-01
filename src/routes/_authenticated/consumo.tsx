@@ -59,6 +59,24 @@ function isoDate(d: Date | null) {
   return d ? d.toISOString().slice(0, 10) : null;
 }
 
+function RankingInfo({ title, body }: { title: string; body: string }) {
+  return (
+    <Popover>
+      <PopoverTrigger
+        aria-label={title}
+        className="text-muted-foreground hover:text-primary transition-colors"
+      >
+        <Info className="size-3.5" />
+      </PopoverTrigger>
+      <PopoverContent side="top" className="w-72 text-xs leading-relaxed">
+        <p className="font-semibold mb-1">{title}</p>
+        <p className="text-muted-foreground">{body}</p>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+
 function Consumo() {
   const [period, setPeriod] = useSharedPeriod();
   const [items, setItems] = useState<ItemRow[]>([]);
