@@ -59,7 +59,7 @@ function isoDate(d: Date | null) {
   return d ? d.toISOString().slice(0, 10) : null;
 }
 
-function RankingInfo({ title, body }: { title: string; body: string }) {
+function RankingInfo({ title, body, example }: { title: string; body: string; example?: string }) {
   return (
     <Popover>
       <PopoverTrigger
@@ -71,6 +71,12 @@ function RankingInfo({ title, body }: { title: string; body: string }) {
       <PopoverContent side="top" className="w-72 text-xs leading-relaxed">
         <p className="font-semibold mb-1">{title}</p>
         <p className="text-muted-foreground">{body}</p>
+        {example && (
+          <>
+            <p className="font-semibold mt-2 mb-1">Exemplo</p>
+            <p className="text-muted-foreground">{example}</p>
+          </>
+        )}
       </PopoverContent>
     </Popover>
   );
@@ -269,7 +275,8 @@ function Consumo() {
           <h2 className="font-display font-semibold text-sm">Mais consumidos por peso</h2>
           <RankingInfo
             title="Como é calculado"
-            body="Ordenado pelo peso total acumulado (kg) no período. Gramas são convertidos automaticamente para kg antes da soma. O valor em R$ é apenas informativo e não influencia a posição."
+            body="Ordenado pelo peso total acumulado (kg) no período. Gramas viram kg automaticamente. O R$ aparece só como informação — não muda a posição."
+            example="Arroz: 2 compras de 5 kg = 10 kg acumulado. Café: 500 g + 0,5 kg = 1 kg. Arroz fica acima mesmo se o café tiver custado mais."
           />
         </div>
         <div className="space-y-2">
