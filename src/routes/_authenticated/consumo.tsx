@@ -305,7 +305,8 @@ function Consumo() {
           <h2 className="font-display font-semibold text-sm">Mais consumidos por unidade</h2>
           <RankingInfo
             title="Como é calculado"
-            body="Ordenado pela quantidade de unidades acumuladas (un, pct, cx, etc.) no período. Itens vendidos por peso não entram nesta lista — ficam na lista 'por peso' acima. O valor em R$ é apenas informativo."
+            body="Ordenado pela quantidade de unidades acumuladas (un, pct, cx, etc.). Itens vendidos por peso ficam na lista acima. O R$ é apenas informativo."
+            example="Iogurte: 20 un. Whisky: 1 un (R$ 500). Iogurte fica em 1º porque a lista ordena por quantidade, não por valor."
           />
         </div>
         <div className="space-y-2">
