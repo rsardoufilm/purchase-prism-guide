@@ -19,7 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
 import { paymentLabel } from "@/lib/format";
 
 const FREQS = ["mensal", "bimestral", "trimestral", "semestral", "anual"] as const;
