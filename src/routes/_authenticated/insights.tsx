@@ -294,6 +294,8 @@ function Insights() {
       // Sacolas e embalagens são gasto operacional, não consumo — não comparamos.
       const itemCat = p.expense_item_id ? categoryByItemId.get(p.expense_item_id) : null;
       if (itemCat === "Sacolas" || itemCat === "Embalagens") continue;
+      // Taxa de serviço / gorjeta / couvert não é produto — nunca comparar.
+      if (isServiceCharge(raw) || isServiceCharge(p.normalized_name)) continue;
       const sig = brandSignature(raw);
       // Sem raw_name disponível NÃO podemos garantir mesma marca — ignora.
       if (!sig) continue;
