@@ -88,7 +88,6 @@ export function SubscriptionDialog({
       amount: Number(amount),
       frequency,
       next_due_date: due || null,
-      category: category || null,
       payment_method: payment || null,
     };
     const { error } = isEdit
