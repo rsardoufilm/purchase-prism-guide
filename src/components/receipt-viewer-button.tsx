@@ -108,6 +108,10 @@ export function ReceiptViewerButton({ storagePath, merchantName }: ReceiptViewer
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl p-0 overflow-hidden bg-background">
+          <VisuallyHidden>
+            <DialogTitle>{merchantName ? `Nota original — ${merchantName}` : "Nota original"}</DialogTitle>
+            <DialogDescription>Visualização da nota fiscal escaneada.</DialogDescription>
+          </VisuallyHidden>
           <div className="flex items-center justify-between px-4 py-2 border-b border-border">
             <p className="text-xs font-semibold truncate">
               {merchantName ? `Nota — ${merchantName}` : "Nota original"}
