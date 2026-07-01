@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
 import { loadHighlightFilters, isHighlightable, type HighlightFilters } from "@/lib/highlight-filters";
+import { isServiceCharge } from "@/lib/service-charge";
 
 export const Route = createFileRoute("/_authenticated/insights")({
   component: Insights,
@@ -217,7 +218,9 @@ function Insights() {
       (it) =>
         ids.has(it.expense_id) &&
         (it.category ?? "") !== "Embalagens" &&
-        (it.category ?? "") !== "Sacolas",
+        (it.category ?? "") !== "Sacolas" &&
+        !isServiceCharge(it.raw_name) &&
+        !isServiceCharge(it.normalized_name),
     );
     return { expenses: filteredExp, items: filteredItems };
   }, [allExpenses, allItems, period]);
@@ -291,6 +294,8 @@ function Insights() {
       // Sacolas e embalagens são gasto operacional, não consumo — não comparamos.
       const itemCat = p.expense_item_id ? categoryByItemId.get(p.expense_item_id) : null;
       if (itemCat === "Sacolas" || itemCat === "Embalagens") continue;
+      // Taxa de serviço / gorjeta / couvert não é produto — nunca comparar.
+      if (isServiceCharge(raw) || isServiceCharge(p.normalized_name)) continue;
       const sig = brandSignature(raw);
       // Sem raw_name disponível NÃO podemos garantir mesma marca — ignora.
       if (!sig) continue;
@@ -452,6 +457,8 @@ function Insights() {
       // Sacolas/Embalagens não entram no comparativo de mercados.
       const itemCat = p.expense_item_id ? categoryByItemId.get(p.expense_item_id) : null;
       if (itemCat === "Sacolas" || itemCat === "Embalagens") continue;
+      // Taxa de serviço / gorjeta / couvert não é produto.
+      if (isServiceCharge(raw) || isServiceCharge(p.normalized_name)) continue;
       const sig = brandSignature(raw);
       // Sem assinatura de marca não há como afirmar "mesmo produto e marca".
       if (!sig) continue;

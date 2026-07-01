@@ -1,6 +1,7 @@
 // Filtros de "destaques" — exclui categorias e produtos marcados como
 // ignorados nos rankings (Dashboard, Insights, Chat) sem afetar histórico.
 import { supabase } from "@/integrations/supabase/client";
+import { isServiceCharge } from "@/lib/service-charge";
 
 /** Normaliza nome para comparação case/acento-insensitiva. */
 export function normalizeProductKey(name: string | null | undefined): string {
@@ -45,6 +46,8 @@ export function isHighlightable(
   productName: string | null | undefined,
   category: string | null | undefined,
 ): boolean {
+  // Taxa de serviço / gorjeta / couvert nunca é destaque de consumo.
+  if (isServiceCharge(productName)) return false;
   const cat = (category ?? "").trim().toLowerCase();
   if (cat && filters.ignoredCategories.has(cat)) return false;
   const prod = normalizeProductKey(productName);
