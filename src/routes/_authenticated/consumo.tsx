@@ -135,16 +135,32 @@ function Consumo() {
 
   const hasUncategorized = useMemo(() => expenses.some((e) => !e.category), [expenses]);
 
-  const byProduct = useMemo(() => {
-    const m = new Map<string, { total: number; qty: number; unit: string | null }>();
+  const { byWeight, byUnit } = useMemo(() => {
+    const weight = new Map<string, { total: number; qty: number; unit: "kg" }>();
+    const unit = new Map<string, { total: number; qty: number; unit: string }>();
     for (const it of filteredItems) {
       const k = it.normalized_name || it.raw_name;
-      const v = m.get(k) ?? { total: 0, qty: 0, unit: it.unit };
-      v.total += Number(it.total_price);
-      v.qty += Number(it.quantity);
-      m.set(k, v);
+      const rawUnit = (it.unit || "").toLowerCase().trim();
+      const qty = Number(it.quantity) || 0;
+      const total = Number(it.total_price) || 0;
+      if (rawUnit === "kg" || rawUnit === "g" || rawUnit === "kilo" || rawUnit === "kilos") {
+        const qtyKg = rawUnit === "g" ? qty / 1000 : qty;
+        const v = weight.get(k) ?? { total: 0, qty: 0, unit: "kg" as const };
+        v.total += total;
+        v.qty += qtyKg;
+        weight.set(k, v);
+      } else {
+        const u = rawUnit || "un";
+        const v = unit.get(k) ?? { total: 0, qty: 0, unit: u };
+        v.total += total;
+        v.qty += qty;
+        unit.set(k, v);
+      }
     }
-    return [...m.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 8);
+    return {
+      byWeight: [...weight.entries()].sort((a, b) => b[1].qty - a[1].qty).slice(0, 8),
+      byUnit: [...unit.entries()].sort((a, b) => b[1].qty - a[1].qty).slice(0, 8),
+    };
   }, [filteredItems]);
 
   const byExpenseCategory = useMemo(() => {
@@ -255,22 +271,48 @@ function Consumo() {
       </section>
 
       <section>
-        <h2 className="font-display font-semibold mb-2 text-sm">Produtos mais consumidos</h2>
+        <h2 className="font-display font-semibold mb-2 text-sm">Mais consumidos por peso</h2>
         <div className="space-y-2">
-          {byProduct.map(([prod, v]) => (
+          {byWeight.map(([prod, v]) => (
             <div
-              key={prod}
+              key={`w-${prod}`}
               className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-3 sm:p-4"
             >
               <div className="min-w-0">
                 <p className="text-sm font-semibold truncate">{prod}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
-                  {v.qty.toLocaleString("pt-BR")} {v.unit ?? "un"} acumulado
+                  {v.qty.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg acumulado
                 </p>
               </div>
-              <p className="text-sm font-bold">{brl(v.total)}</p>
+              <p className="text-sm font-bold text-muted-foreground">{brl(v.total)}</p>
             </div>
           ))}
+          {byWeight.length === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhum produto por peso no período.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="mt-4">
+        <h2 className="font-display font-semibold mb-2 text-sm">Mais consumidos por unidade</h2>
+        <div className="space-y-2">
+          {byUnit.map(([prod, v]) => (
+            <div
+              key={`u-${prod}`}
+              className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-3 sm:p-4"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate">{prod}</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+                  {v.qty.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} {v.unit} acumulado
+                </p>
+              </div>
+              <p className="text-sm font-bold text-muted-foreground">{brl(v.total)}</p>
+            </div>
+          ))}
+          {byUnit.length === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhum produto por unidade no período.</p>
+          )}
         </div>
       </section>
 
