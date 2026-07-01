@@ -16,7 +16,8 @@
     "verify:invite": "node scripts/test-invite-normalization.mjs",
     "verify:invite-flow": "node scripts/test-invite-flow.mjs",
     "verify:ranking": "node --experimental-strip-types --no-warnings scripts/test-consumption-ranking.mjs",
-    "verify:all": "bun run format:check && bunx tsc --noEmit && bun run lint && bun run verify:routes && bun run verify:camera && bun run verify:invite && bun run verify:invite-flow && bun run verify:ranking",
+    "verify:recurring": "node --experimental-strip-types --no-warnings scripts/test-recurring-cycles.mjs",
+    "verify:all": "bun run format:check && bunx tsc --noEmit && bun run lint && bun run verify:routes && bun run verify:camera && bun run verify:invite && bun run verify:invite-flow && bun run verify:ranking && bun run verify:recurring",
     "prepare": "node scripts/setup-hooks.mjs"
   },
   "dependencies": {
