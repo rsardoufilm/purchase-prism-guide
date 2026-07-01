@@ -120,20 +120,41 @@ export function ReceiptViewerButton({ storagePath, merchantName }: ReceiptViewer
               <X className="size-4" />
             </button>
           </div>
-          <div className="bg-muted/30 max-h-[80vh] overflow-auto grid place-items-center">
-            {url && (isPdf ? (
-              <iframe
-                src={url}
-                title="Nota original"
-                className="w-full h-[80vh] bg-white"
-              />
+          <div className="bg-muted/30 max-h-[80vh] min-h-[200px] overflow-auto grid place-items-center">
+            {error ? (
+              <div className="flex flex-col items-center gap-3 p-6 text-center">
+                <AlertTriangle className="size-8 text-amber-500" />
+                <p className="text-sm text-foreground max-w-sm">{error.message}</p>
+                {error.kind !== "forbidden" && error.kind !== "not_found" && (
+                  <button
+                    type="button"
+                    onClick={fetchSignedUrl}
+                    disabled={loading}
+                    className="inline-flex items-center gap-2 h-9 px-3 rounded-xl border border-border text-xs font-semibold hover:bg-muted transition-colors"
+                  >
+                    {loading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+                    Tentar novamente
+                  </button>
+                )}
+              </div>
+            ) : url ? (
+              isPdf ? (
+                <iframe
+                  src={url}
+                  title="Nota original"
+                  className="w-full h-[80vh] bg-white"
+                />
+              ) : (
+                <img
+                  src={url}
+                  alt="Nota original"
+                  onError={handleImageError}
+                  className="max-w-full max-h-[80vh] object-contain"
+                />
+              )
             ) : (
-              <img
-                src={url}
-                alt="Nota original"
-                className="max-w-full max-h-[80vh] object-contain"
-              />
-            ))}
+              <Loader2 className="size-6 animate-spin text-muted-foreground m-8" />
+            )}
           </div>
         </DialogContent>
       </Dialog>
