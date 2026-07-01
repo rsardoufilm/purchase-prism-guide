@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Filter, Tag, Loader2 } from "lucide-react";
+import { Filter, Tag, Loader2, Info } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { TourGuide } from "@/components/tour-guide";
@@ -246,7 +247,13 @@ function Consumo() {
       </section>
 
       <section>
-        <h2 className="font-display font-semibold mb-2 text-sm">Mais consumidos por peso</h2>
+        <div className="flex items-center gap-1.5 mb-2">
+          <h2 className="font-display font-semibold text-sm">Mais consumidos por peso</h2>
+          <RankingInfo
+            title="Como é calculado"
+            body="Ordenado pelo peso total acumulado (kg) no período. Gramas são convertidos automaticamente para kg antes da soma. O valor em R$ é apenas informativo e não influencia a posição."
+          />
+        </div>
         <div className="space-y-2">
           {byWeight.map(([prod, v]) => (
             <div
@@ -269,7 +276,13 @@ function Consumo() {
       </section>
 
       <section className="mt-4">
-        <h2 className="font-display font-semibold mb-2 text-sm">Mais consumidos por unidade</h2>
+        <div className="flex items-center gap-1.5 mb-2">
+          <h2 className="font-display font-semibold text-sm">Mais consumidos por unidade</h2>
+          <RankingInfo
+            title="Como é calculado"
+            body="Ordenado pela quantidade de unidades acumuladas (un, pct, cx, etc.) no período. Itens vendidos por peso não entram nesta lista — ficam na lista 'por peso' acima. O valor em R$ é apenas informativo."
+          />
+        </div>
         <div className="space-y-2">
           {byUnit.map(([prod, v]) => (
             <div
