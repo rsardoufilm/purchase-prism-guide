@@ -52,6 +52,7 @@ export type ConsumoCategory =
 /** Tipo de estabelecimento inferido para a despesa como um todo. */
 export type MerchantCategory =
   | "Restaurantes"
+  | "Lanche"
   | "Padaria"
   | "Hortifrutti"
   | "Açougue"
@@ -69,6 +70,7 @@ export type MerchantCategory =
 
 export const MERCHANT_CATEGORY_OPTIONS: MerchantCategory[] = [
   "Restaurantes",
+  "Lanche",
   "Padaria",
   "Açougue",
   "Hortifrutti",
@@ -84,6 +86,11 @@ export const MERCHANT_CATEGORY_OPTIONS: MerchantCategory[] = [
   "Transporte",
   "Outros",
 ];
+
+/** Descrição amigável exibida em selects/tooltips de categoria. */
+export const MERCHANT_CATEGORY_DESCRIPTIONS: Partial<Record<MerchantCategory, string>> = {
+  Lanche: "Delivery, pizza, hambúrguer, lanche rápido e similares",
+};
 
 type Rule = { cat: ConsumoCategory; patterns: RegExp };
 
@@ -284,10 +291,16 @@ interface MerchantRule {
 }
 
 const MERCHANT_RULES: MerchantRule[] = [
+  // Lanche / delivery — avaliado ANTES de Restaurantes para não ser engolido.
+  {
+    cat: "Lanche",
+    patterns:
+      /\b(i[- ]?food|ifood|pizzaria|pizza|hamburgueria|hamburgu?er|burger|lanchonete|hot ?dog|temaki|sushi delivery|delivery)\b/i,
+  },
   {
     cat: "Restaurantes",
     patterns:
-      /\b(restaurante|lanchonete|burger|pizzaria|hamb|sushi|temaki|food|churrascaria|bar e|bar do|bar da|comida|cozinha|gourmet|bistr[oô]|creperia|pastelaria|esfiharia|acai|açaí|caf[eé]teria|cafeteria|self.service|rodizio|rodízio|por.quilo|por kilo|buffet|delivery|ifood|pede\b)/i,
+      /\b(restaurante|sushi|food|churrascaria|bar e|bar do|bar da|comida|cozinha|gourmet|bistr[oô]|creperia|pastelaria|esfiharia|acai|açaí|caf[eé]teria|cafeteria|self.service|rodizio|rodízio|por.quilo|por kilo|buffet|pede\b)/i,
   },
   {
     cat: "Padaria",
