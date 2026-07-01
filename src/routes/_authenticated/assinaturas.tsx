@@ -37,11 +37,13 @@ function monthLabel(d: Date) {
 function Assinaturas() {
   const [rows, setRows] = useState<Sub[]>([]);
   const [deleting, setDeleting] = useState<Set<string>>(new Set());
+  const [editing, setEditing] = useState<EditableSubscription | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const load = () =>
     supabase
       .from("subscriptions")
-      .select("id,name,amount,frequency,next_due_date")
+      .select("id,name,amount,frequency,next_due_date,category,payment_method")
       .order("created_at", { ascending: false })
       .then(({ data }) => setRows((data ?? []) as Sub[]));
 
