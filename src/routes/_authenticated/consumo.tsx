@@ -331,6 +331,70 @@ function Consumo() {
         </div>
       </section>
 
+      <section className="mt-4">
+        <div className="flex items-center gap-1.5 mb-2">
+          <h2 className="font-display font-semibold text-sm">Mais caros por kg</h2>
+          <RankingInfo
+            title="Como é calculado"
+            body="Preço médio por quilo = soma dos R$ pagos ÷ soma dos kg comprados. Ordenado do maior R$/kg para o menor. Considera só itens vendidos por peso."
+            example="Picanha: 2 kg por R$ 180 → R$ 90/kg. Arroz: 10 kg por R$ 50 → R$ 5/kg. Picanha aparece em 1º mesmo comprando menos, porque custa mais por quilo."
+          />
+        </div>
+        <div className="space-y-2">
+          {expensive.byWeight.map(([prod, v]) => (
+            <div
+              key={`ew-${prod}`}
+              className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-3 sm:p-4"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate">{prod}</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+                  {v.qty.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg • {brl(v.total)} total
+                </p>
+              </div>
+              <p className="text-sm font-bold text-primary whitespace-nowrap">
+                {brl(v.unitPrice)}/kg
+              </p>
+            </div>
+          ))}
+          {expensive.byWeight.length === 0 && (
+            <p className="text-sm text-muted-foreground">Sem itens por peso no período.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="mt-4">
+        <div className="flex items-center gap-1.5 mb-2">
+          <h2 className="font-display font-semibold text-sm">Mais caros por unidade</h2>
+          <RankingInfo
+            title="Como é calculado"
+            body="Preço médio por unidade = soma dos R$ pagos ÷ soma das unidades compradas. Ordenado do maior R$/un para o menor. Considera só itens vendidos por unidade discreta."
+            example="Whisky: 1 un por R$ 500 → R$ 500/un. Iogurte: 20 un por R$ 60 → R$ 3/un. Whisky lidera mesmo comprando menos, porque cada unidade custa mais."
+          />
+        </div>
+        <div className="space-y-2">
+          {expensive.byUnit.map(([prod, v]) => (
+            <div
+              key={`eu-${prod}`}
+              className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-3 sm:p-4"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate">{prod}</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+                  {v.qty.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} {v.unit} • {brl(v.total)} total
+                </p>
+              </div>
+              <p className="text-sm font-bold text-primary whitespace-nowrap">
+                {brl(v.unitPrice)}/{v.unit}
+              </p>
+            </div>
+          ))}
+          {expensive.byUnit.length === 0 && (
+            <p className="text-sm text-muted-foreground">Sem itens por unidade no período.</p>
+          )}
+        </div>
+      </section>
+
       <AlertDialog
         open={!!bulkTarget}
         onOpenChange={(o) => !o && !bulkSaving && setBulkTarget(null)}
