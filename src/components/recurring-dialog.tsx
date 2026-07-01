@@ -132,20 +132,6 @@ export function RecurringDialog({
               placeholder="Conta de luz"
             />
           </Field>
-          <Field label="Categoria">
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="—" />
-              </SelectTrigger>
-              <SelectContent>
-                {MERCHANT_CATEGORY_OPTIONS.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Valor">
               <Input
