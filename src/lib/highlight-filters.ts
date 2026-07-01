@@ -1,6 +1,7 @@
 // Filtros de "destaques" — exclui categorias e produtos marcados como
 // ignorados nos rankings (Dashboard, Insights, Chat) sem afetar histórico.
 import { supabase } from "@/integrations/supabase/client";
+import { isServiceCharge } from "@/lib/service-charge";
 
 /** Normaliza nome para comparação case/acento-insensitiva. */
 export function normalizeProductKey(name: string | null | undefined): string {
