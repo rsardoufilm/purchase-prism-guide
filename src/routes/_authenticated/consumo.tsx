@@ -271,22 +271,48 @@ function Consumo() {
       </section>
 
       <section>
-        <h2 className="font-display font-semibold mb-2 text-sm">Produtos mais consumidos</h2>
+        <h2 className="font-display font-semibold mb-2 text-sm">Mais consumidos por peso</h2>
         <div className="space-y-2">
-          {byProduct.map(([prod, v]) => (
+          {byWeight.map(([prod, v]) => (
             <div
-              key={prod}
+              key={`w-${prod}`}
               className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-3 sm:p-4"
             >
               <div className="min-w-0">
                 <p className="text-sm font-semibold truncate">{prod}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
-                  {v.qty.toLocaleString("pt-BR")} {v.unit ?? "un"} acumulado
+                  {v.qty.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg acumulado
                 </p>
               </div>
-              <p className="text-sm font-bold">{brl(v.total)}</p>
+              <p className="text-sm font-bold text-muted-foreground">{brl(v.total)}</p>
             </div>
           ))}
+          {byWeight.length === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhum produto por peso no período.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="mt-4">
+        <h2 className="font-display font-semibold mb-2 text-sm">Mais consumidos por unidade</h2>
+        <div className="space-y-2">
+          {byUnit.map(([prod, v]) => (
+            <div
+              key={`u-${prod}`}
+              className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 bg-card border border-border rounded-2xl p-3 sm:p-4"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate">{prod}</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+                  {v.qty.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} {v.unit} acumulado
+                </p>
+              </div>
+              <p className="text-sm font-bold text-muted-foreground">{brl(v.total)}</p>
+            </div>
+          ))}
+          {byUnit.length === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhum produto por unidade no período.</p>
+          )}
         </div>
       </section>
 
