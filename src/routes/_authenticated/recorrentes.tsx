@@ -9,6 +9,8 @@ import { Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { RecurringDialog, type EditableRecurring } from "@/components/recurring-dialog";
+import { UpcomingCycleAlert } from "@/components/upcoming-cycle-alert";
+import type { Frequency } from "@/lib/recurring-cycles";
 
 export const Route = createFileRoute("/_authenticated/recorrentes")({
   component: Recorrentes,
@@ -17,12 +19,14 @@ export const Route = createFileRoute("/_authenticated/recorrentes")({
 
 interface Bill {
   id: string;
+  user_id: string;
   name: string;
   category: string | null;
   amount: number;
   due_day: number | null;
   frequency: string;
   payment_method: string | null;
+  start_date: string;
 }
 
 function Recorrentes() {
@@ -30,11 +34,12 @@ function Recorrentes() {
   const [deleting, setDeleting] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<EditableRecurring | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const load = () =>
     supabase
       .from("recurring_expenses")
-      .select("id,name,category,amount,due_day,frequency,payment_method")
+      .select("id,user_id,name,category,amount,due_day,frequency,payment_method,start_date")
       .order("created_at", { ascending: false })
       .then(({ data }) => setRows((data ?? []) as Bill[]));
 
@@ -88,52 +93,66 @@ function Recorrentes() {
           {rows.map((r) => (
             <div
               key={r.id}
-              className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-2 items-center bg-card border border-border rounded-2xl p-4"
+              className="bg-card border border-border rounded-2xl p-4 space-y-3"
             >
-              <div className="min-w-0">
-                <p className="text-sm font-semibold truncate">{r.name}</p>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  {r.frequency}
-                  {r.due_day ? ` • dia ${r.due_day}` : ""}
-                  {r.category ? ` • ${r.category}` : ""}
-                </p>
+              <div className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-2 items-center">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">{r.name}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {r.frequency}
+                    {r.due_day ? ` • dia ${r.due_day}` : ""}
+                    {r.category ? ` • ${r.category}` : ""}
+                  </p>
+                </div>
+                <p className="text-sm font-bold whitespace-nowrap">{brl(Number(r.amount))}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditing({
+                      id: r.id,
+                      name: r.name,
+                      category: r.category,
+                      amount: Number(r.amount),
+                      due_day: r.due_day,
+                      frequency: r.frequency,
+                      payment_method: r.payment_method,
+                      start_date: r.start_date,
+                    });
+                    setEditOpen(true);
+                  }}
+                  aria-label={`Editar ${r.name}`}
+                  className="size-9 grid place-items-center rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <Pencil className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(r.id, r.name)}
+                  disabled={deleting.has(r.id)}
+                  aria-label={`Excluir ${r.name}`}
+                  className={cn(
+                    "size-9 grid place-items-center rounded-xl border border-border transition-colors",
+                    "text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/5",
+                  )}
+                >
+                  {deleting.has(r.id) ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="size-4" />
+                  )}
+                </button>
               </div>
-              <p className="text-sm font-bold whitespace-nowrap">{brl(Number(r.amount))}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setEditing({
-                    id: r.id,
-                    name: r.name,
-                    category: r.category,
-                    amount: Number(r.amount),
-                    due_day: r.due_day,
-                    frequency: r.frequency,
-                    payment_method: r.payment_method,
-                  });
-                  setEditOpen(true);
-                }}
-                aria-label={`Editar ${r.name}`}
-                className="size-9 grid place-items-center rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                <Pencil className="size-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(r.id, r.name)}
-                disabled={deleting.has(r.id)}
-                aria-label={`Excluir ${r.name}`}
-                className={cn(
-                  "size-9 grid place-items-center rounded-xl border border-border transition-colors",
-                  "text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/5",
-                )}
-              >
-                {deleting.has(r.id) ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Trash2 className="size-4" />
-                )}
-              </button>
+              <UpcomingCycleAlert
+                key={`${r.id}-${reloadKey}`}
+                recurringId={r.id}
+                userId={r.user_id}
+                name={r.name}
+                defaultAmount={Number(r.amount)}
+                frequency={r.frequency as Frequency}
+                dueDay={r.due_day}
+                startDate={r.start_date}
+                onResolved={() => setReloadKey((k) => k + 1)}
+              />
             </div>
           ))}
         </div>
