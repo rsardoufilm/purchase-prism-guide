@@ -203,7 +203,11 @@ function Insights() {
       return true;
     });
     const ids = new Set(filteredExp.map((x) => x.id));
-    const filteredItems = allItems.filter((it) => ids.has(it.expense_id));
+    // "Embalagens" nunca entra em rankings/insights (sacolas e descartáveis
+    // são gasto operacional do checkout, não consumo). Filtrado na fonte.
+    const filteredItems = allItems.filter(
+      (it) => ids.has(it.expense_id) && (it.category ?? "") !== "Embalagens",
+    );
     return { expenses: filteredExp, items: filteredItems };
   }, [allExpenses, allItems, period]);
 
@@ -359,87 +363,7 @@ function Insights() {
         desc: `De ${brl(priceUp.first)}/${priceUp.unit} para ${brl(priceUp.last)}/${priceUp.unit} no histórico.`,
       });
 
-    // Embalagens (sacolas, descartáveis) — gasto evitável.
-    // Classifica subtipo, calcula preço médio, % de visitas, loja mais cara
-    // por unidade e estimativa de economia anual ao adotar reutilizáveis.
-    const embalagensItems = items.filter((it) => (it.category ?? "") === "Embalagens");
-    if (embalagensItems.length > 0) {
-      const totalEmb = embalagensItems.reduce((s, it) => s + Number(it.total_price ?? 0), 0);
-      const totalQty = embalagensItems.reduce(
-        (s, it) => s + Math.max(1, Number(it.quantity ?? 1)),
-        0,
-      );
-      const avgUnit = totalQty > 0 ? totalEmb / totalQty : 0;
-
-      // subtipo: sacola vs descartável (copo/prato/talher/guardanapo)
-      const isSacola = (n: string) => /sac(ol)?a|sac\b/i.test(n);
-      const isDescart = (n: string) =>
-        /descart|copo|prato|talher|guardanapo|canudo|marmita/i.test(n);
-      let qSac = 0, vSac = 0, qDes = 0, vDes = 0;
-      for (const it of embalagensItems) {
-        const n = (rawNameByItemId.get(it.id) ?? it.normalized_name ?? it.raw_name ?? "").toString();
-        const q = Math.max(1, Number(it.quantity ?? 1));
-        const v = Number(it.total_price ?? 0);
-        if (isSacola(n)) { qSac += q; vSac += v; }
-        else if (isDescart(n)) { qDes += q; vDes += v; }
-      }
-
-      // visitas com embalagem vs total de visitas no período
-      const visitsWithEmb = new Set(embalagensItems.map((it) => it.expense_id));
-      const totalVisits = new Set(expenses.map((e) => e.id)).size;
-      const visitPct = totalVisits > 0 ? (visitsWithEmb.size / totalVisits) * 100 : 0;
-
-      // janela do período em dias para projetar 12 meses
-      const dates = expenses
-        .map((e) => new Date(e.expense_date).getTime())
-        .filter((t) => Number.isFinite(t));
-      const spanDays =
-        dates.length > 1 ? Math.max(1, (Math.max(...dates) - Math.min(...dates)) / 86_400_000) : 30;
-      const annualProj = (totalEmb / spanDays) * 365;
-
-      // ranking por loja: total e preço médio por unidade
-      const byStoreEmb = new Map<string, { total: number; qty: number }>();
-      for (const it of embalagensItems) {
-        const exp = expenses.find((e) => e.id === it.expense_id);
-        if (!exp) continue;
-        const cur = byStoreEmb.get(exp.merchant_name) ?? { total: 0, qty: 0 };
-        cur.total += Number(it.total_price ?? 0);
-        cur.qty += Math.max(1, Number(it.quantity ?? 1));
-        byStoreEmb.set(exp.merchant_name, cur);
-      }
-      const storesRanked = [...byStoreEmb.entries()].sort((a, b) => b[1].total - a[1].total);
-      const dearestUnit = [...byStoreEmb.entries()]
-        .filter(([, v]) => v.qty > 0)
-        .sort((a, b) => b[1].total / b[1].qty - a[1].total / a[1].qty)[0];
-
-      // economia potencial: sacolas são 100% evitáveis; descartáveis ~70%
-      const savingsYear = (vSac / spanDays) * 365 + ((vDes * 0.7) / spanDays) * 365;
-
-      const composicao: string[] = [];
-      if (qSac > 0) composicao.push(`${qSac} sacolas (${brl(vSac)})`);
-      if (qDes > 0) composicao.push(`${qDes} descartáveis (${brl(vDes)})`);
-      const composText = composicao.length > 0 ? composicao.join(" + ") : `${totalQty} un`;
-
-      const linhas: string[] = [];
-      linhas.push(`${composText} · média ${brl(avgUnit)}/un`);
-      linhas.push(`presente em ${visitsWithEmb.size} de ${totalVisits} visitas (${visitPct.toFixed(0)}%)`);
-      if (storesRanked.length > 1 && dearestUnit) {
-        linhas.push(
-          `mais cara: ${dearestUnit[0]} (${brl(dearestUnit[1].total / dearestUnit[1].qty)}/un)`,
-        );
-      } else if (storesRanked[0]) {
-        linhas.push(`só em ${storesRanked[0][0]}`);
-      }
-      linhas.push(
-        `projeção 12m: ${brl(annualProj)} · economia possível: ${brl(savingsYear)}/ano`,
-      );
-
-      out.push({
-        icon: <Tag className="size-5" />,
-        title: `Embalagens: ${brl(totalEmb)} no período`,
-        desc: `${linhas.join(" · ")}. Levar sacola reutilizável e dispensar descartáveis elimina a maior parte desse gasto.`,
-      });
-    }
+    // "Embalagens" é excluído em `items` (ver filtro acima) — sem insight aqui.
 
     return out;
   }, [expenses, items, prices, canon, rawNameByItemId]);
