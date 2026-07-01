@@ -189,6 +189,14 @@ function Insights() {
     return m;
   }, [allItems]);
 
+  const categoryByItemId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const it of allItems) {
+      if (it.id) m.set(it.id, it.category ?? "");
+    }
+    return m;
+  }, [allItems]);
+
 
 
 
@@ -203,10 +211,13 @@ function Insights() {
       return true;
     });
     const ids = new Set(filteredExp.map((x) => x.id));
-    // "Embalagens" nunca entra em rankings/insights (sacolas e descartáveis
+    // "Embalagens" e "Sacolas" nunca entram em rankings/insights (sacolas e descartáveis
     // são gasto operacional do checkout, não consumo). Filtrado na fonte.
     const filteredItems = allItems.filter(
-      (it) => ids.has(it.expense_id) && (it.category ?? "") !== "Embalagens",
+      (it) =>
+        ids.has(it.expense_id) &&
+        (it.category ?? "") !== "Embalagens" &&
+        (it.category ?? "") !== "Sacolas",
     );
     return { expenses: filteredExp, items: filteredItems };
   }, [allExpenses, allItems, period]);
@@ -277,6 +288,9 @@ function Insights() {
     for (const p of prices) {
       if (!p.normalized_name) continue;
       const raw = p.expense_item_id ? rawNameByItemId.get(p.expense_item_id) ?? "" : "";
+      // Sacolas e embalagens são gasto operacional, não consumo — não comparamos.
+      const itemCat = p.expense_item_id ? categoryByItemId.get(p.expense_item_id) : null;
+      if (itemCat === "Sacolas" || itemCat === "Embalagens") continue;
       const sig = brandSignature(raw);
       // Sem raw_name disponível NÃO podemos garantir mesma marca — ignora.
       if (!sig) continue;
@@ -366,7 +380,8 @@ function Insights() {
     // "Embalagens" é excluído em `items` (ver filtro acima) — sem insight aqui.
 
     return out;
-  }, [expenses, items, prices, canon, rawNameByItemId]);
+  }, [expenses, items, prices, canon, rawNameByItemId, categoryByItemId]);
+
 
 
   // Insights por categoria
@@ -434,6 +449,9 @@ function Insights() {
     for (const p of prices) {
       if (!p.normalized_name || !p.merchant_name) continue;
       const raw = p.expense_item_id ? rawNameByItemId.get(p.expense_item_id) ?? "" : "";
+      // Sacolas/Embalagens não entram no comparativo de mercados.
+      const itemCat = p.expense_item_id ? categoryByItemId.get(p.expense_item_id) : null;
+      if (itemCat === "Sacolas" || itemCat === "Embalagens") continue;
       const sig = brandSignature(raw);
       // Sem assinatura de marca não há como afirmar "mesmo produto e marca".
       if (!sig) continue;
@@ -495,7 +513,7 @@ function Insights() {
 
     // Ordena por % de diferença DECRESCENTE — destaca as maiores oportunidades.
     return rows.sort((a, b) => b.diffPct - a.diffPct);
-  }, [prices, canon, rawNameByItemId]);
+  }, [prices, canon, rawNameByItemId, categoryByItemId]);
 
   /** Formata "R$ 12,90/kg" — sempre mostra a unidade base do comparativo. */
   const brlPerUnit = (value: number, unit: "kg" | "L" | "un") =>
