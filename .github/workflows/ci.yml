@@ -84,6 +84,11 @@ jobs:
               ['ESLint',         '${{ steps.lint.outcome }}'],
               ['Rotas',          '${{ steps.routes.outcome }}'],
               ['Câmera',         '${{ steps.camera.outcome }}'],
+              ['Convite',        '${{ steps.invite.outcome }}'],
+              ['Fluxo de convite', '${{ steps.invite-flow.outcome }}'],
+              ['Ranking consumo', '${{ steps.ranking.outcome }}'],
+              ['Recorrentes',    '${{ steps.recurring.outcome }}'],
+              ['Taxa de serviço', '${{ steps.service-charge.outcome }}'],
               ['Build',          '${{ steps.build.outcome }}'],
             ];
             const icon = (o) => o === 'success' ? '✅' : o === 'skipped' ? '⏭️' : '❌';
