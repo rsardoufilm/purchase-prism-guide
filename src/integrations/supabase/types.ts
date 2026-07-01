@@ -468,9 +468,12 @@ export type Database = {
           category: string | null
           created_at: string
           due_day: number | null
+          editado_em: string | null
+          editado_por: string | null
           frequency: Database["public"]["Enums"]["recurrence_frequency"]
           id: string
           name: string
+          payment_method: string | null
           user_id: string
         }
         Insert: {
@@ -479,9 +482,12 @@ export type Database = {
           category?: string | null
           created_at?: string
           due_day?: number | null
+          editado_em?: string | null
+          editado_por?: string | null
           frequency?: Database["public"]["Enums"]["recurrence_frequency"]
           id?: string
           name: string
+          payment_method?: string | null
           user_id: string
         }
         Update: {
@@ -490,9 +496,12 @@ export type Database = {
           category?: string | null
           created_at?: string
           due_day?: number | null
+          editado_em?: string | null
+          editado_por?: string | null
           frequency?: Database["public"]["Enums"]["recurrence_frequency"]
           id?: string
           name?: string
+          payment_method?: string | null
           user_id?: string
         }
         Relationships: []
@@ -501,31 +510,43 @@ export type Database = {
         Row: {
           active: boolean
           amount: number
+          category: string | null
           created_at: string
+          editado_em: string | null
+          editado_por: string | null
           frequency: Database["public"]["Enums"]["recurrence_frequency"]
           id: string
           name: string
           next_due_date: string | null
+          payment_method: string | null
           user_id: string
         }
         Insert: {
           active?: boolean
           amount?: number
+          category?: string | null
           created_at?: string
+          editado_em?: string | null
+          editado_por?: string | null
           frequency?: Database["public"]["Enums"]["recurrence_frequency"]
           id?: string
           name: string
           next_due_date?: string | null
+          payment_method?: string | null
           user_id: string
         }
         Update: {
           active?: boolean
           amount?: number
+          category?: string | null
           created_at?: string
+          editado_em?: string | null
+          editado_por?: string | null
           frequency?: Database["public"]["Enums"]["recurrence_frequency"]
           id?: string
           name?: string
           next_due_date?: string | null
+          payment_method?: string | null
           user_id?: string
         }
         Relationships: []

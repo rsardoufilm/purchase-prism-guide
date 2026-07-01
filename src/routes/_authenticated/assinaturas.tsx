@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { TourGuide } from "@/components/tour-guide";
 import { TOURS } from "@/lib/tours";
-import { SubscriptionDialog } from "@/components/subscription-dialog";
+import { SubscriptionDialog, type EditableSubscription } from "@/components/subscription-dialog";
 import { brl } from "@/lib/format";
-import { CalendarClock, Loader2, Trash2 } from "lucide-react";
+import { CalendarClock, Loader2, Pencil, Trash2 } from "lucide-react";
 import {
   parseDateLocal,
   projectSubscriptionOccurrences,
@@ -37,11 +37,13 @@ function monthLabel(d: Date) {
 function Assinaturas() {
   const [rows, setRows] = useState<Sub[]>([]);
   const [deleting, setDeleting] = useState<Set<string>>(new Set());
+  const [editing, setEditing] = useState<EditableSubscription | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const load = () =>
     supabase
       .from("subscriptions")
-      .select("id,name,amount,frequency,next_due_date")
+      .select("id,name,amount,frequency,next_due_date,category,payment_method")
       .order("created_at", { ascending: false })
       .then(({ data }) => setRows((data ?? []) as Sub[]));
 
@@ -107,7 +109,7 @@ function Assinaturas() {
             {rows.map((r) => (
               <div
                 key={r.id}
-                className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center bg-card border border-border rounded-2xl p-4"
+                className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-2 items-center bg-card border border-border rounded-2xl p-4"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{r.name}</p>
@@ -116,18 +118,37 @@ function Assinaturas() {
                     {r.next_due_date
                       ? ` • próx. ${parseDateLocal(r.next_due_date).toLocaleDateString("pt-BR")}`
                       : ""}
+                    {r.category ? ` • ${r.category}` : ""}
                   </p>
                 </div>
-                <p className="text-sm font-bold">{brl(Number(r.amount))}</p>
+                <p className="text-sm font-bold whitespace-nowrap">{brl(Number(r.amount))}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditing({
+                      id: r.id,
+                      name: r.name,
+                      amount: Number(r.amount),
+                      frequency: r.frequency,
+                      next_due_date: r.next_due_date,
+                      category: r.category ?? null,
+                      payment_method: r.payment_method ?? null,
+                    });
+                    setEditOpen(true);
+                  }}
+                  aria-label={`Editar assinatura ${r.name}`}
+                  className="size-9 grid place-items-center rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <Pencil className="size-4" />
+                </button>
                 <button
                   type="button"
                   onClick={() => handleDelete(r.id, r.name)}
                   disabled={deleting.has(r.id)}
                   aria-label={`Excluir assinatura ${r.name}`}
                   className={cn(
-                    "p-2 rounded-xl transition-colors",
-                    "text-muted-foreground hover:text-destructive hover:bg-destructive/10",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                    "size-9 grid place-items-center rounded-xl border border-border transition-colors",
+                    "text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/5",
                   )}
                 >
                   {deleting.has(r.id) ? (
@@ -139,6 +160,17 @@ function Assinaturas() {
               </div>
             ))}
           </div>
+
+          <SubscriptionDialog
+            trigger={null}
+            editing={editing}
+            open={editOpen}
+            onOpenChange={(o) => {
+              setEditOpen(o);
+              if (!o) setEditing(null);
+            }}
+            onSaved={load}
+          />
 
           <section>
             <div className="flex items-center justify-between px-1 mb-2">

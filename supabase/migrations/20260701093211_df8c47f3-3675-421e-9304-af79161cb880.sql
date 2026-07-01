@@ -1,0 +1,11 @@
+
+ALTER TABLE public.subscriptions
+  ADD COLUMN IF NOT EXISTS category TEXT,
+  ADD COLUMN IF NOT EXISTS payment_method TEXT,
+  ADD COLUMN IF NOT EXISTS editado_em TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS editado_por UUID;
+
+ALTER TABLE public.recurring_expenses
+  ADD COLUMN IF NOT EXISTS payment_method TEXT,
+  ADD COLUMN IF NOT EXISTS editado_em TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS editado_por UUID;
