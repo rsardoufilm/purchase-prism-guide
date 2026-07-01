@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
 import { useSharedCategory } from "@/hooks/use-shared-category";
 import { rankConsumption, rankMostExpensive } from "@/lib/consumption-ranking";
+import { isServiceCharge } from "@/lib/service-charge";
 
 export const Route = createFileRoute("/_authenticated/consumo")({
   component: Consumo,
