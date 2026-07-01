@@ -49,6 +49,26 @@ jobs:
         id: camera
         run: bun run verify:camera
 
+      - name: Invite normalization test
+        id: invite
+        run: bun run verify:invite
+
+      - name: Invite flow test
+        id: invite-flow
+        run: bun run verify:invite-flow
+
+      - name: Consumption ranking test
+        id: ranking
+        run: bun run verify:ranking
+
+      - name: Recurring cycles test
+        id: recurring
+        run: bun run verify:recurring
+
+      - name: Service charge filter test
+        id: service-charge
+        run: bun run verify:service-charge
+
       - name: Build
         id: build
         run: bun run build
