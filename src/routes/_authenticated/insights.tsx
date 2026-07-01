@@ -218,7 +218,9 @@ function Insights() {
       (it) =>
         ids.has(it.expense_id) &&
         (it.category ?? "") !== "Embalagens" &&
-        (it.category ?? "") !== "Sacolas",
+        (it.category ?? "") !== "Sacolas" &&
+        !isServiceCharge(it.raw_name) &&
+        !isServiceCharge(it.normalized_name),
     );
     return { expenses: filteredExp, items: filteredItems };
   }, [allExpenses, allItems, period]);
