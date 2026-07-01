@@ -31,7 +31,7 @@ import { MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
 import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
 import { useSharedCategory } from "@/hooks/use-shared-category";
-import { rankConsumption } from "@/lib/consumption-ranking";
+import { rankConsumption, rankMostExpensive } from "@/lib/consumption-ranking";
 
 export const Route = createFileRoute("/_authenticated/consumo")({
   component: Consumo,
