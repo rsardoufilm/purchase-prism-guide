@@ -162,6 +162,7 @@ function Consumo() {
   const hasUncategorized = useMemo(() => expenses.some((e) => !e.category), [expenses]);
 
   const { byWeight, byUnit } = useMemo(() => rankConsumption(filteredItems, 8), [filteredItems]);
+  const expensive = useMemo(() => rankMostExpensive(filteredItems, 8), [filteredItems]);
 
   const byExpenseCategory = useMemo(() => {
     const m = new Map<string, number>();
