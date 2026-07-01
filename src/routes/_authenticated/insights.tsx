@@ -690,16 +690,23 @@ function Insights() {
               <p className="font-semibold mb-1">Como é calculado</p>
               <p className="text-muted-foreground mb-2">
                 Agrupamos o <strong>mesmo produto + marca</strong> na mesma unidade base
-                (kg, L ou un). Comparamos o preço por unidade base entre mercados e
-                ordenamos pela <strong>maior diferença %</strong> — quanto maior, maior
-                a oportunidade de economia.
+                (kg, L ou un). Para cada mercado calculamos o <strong>preço por unidade
+                base</strong> = total pago ÷ quantidade. Ordenamos pela{" "}
+                <strong>maior diferença %</strong> entre o mercado mais caro e o mais barato.
+              </p>
+              <p className="font-semibold mb-1">Rótulos</p>
+              <p className="text-muted-foreground mb-2">
+                <span className="font-semibold text-emerald-700">Mais barato</span>: menor
+                R$/unidade base entre os mercados onde você comprou o item.{" "}
+                <span className="font-semibold text-red-700">Mais caro</span>: maior R$/unidade
+                base — é o alerta de onde evitar.
               </p>
               <p className="font-semibold mb-1">Exemplo</p>
               <p className="text-muted-foreground">
-                Arroz 5 kg — Mercado A: R$ 25,00 (R$ 5,00/kg) • Mercado B: R$ 32,50
-                (R$ 6,50/kg).<br />
-                Diferença = (6,50 − 5,00) ÷ 5,00 = <strong>30%</strong>. Comprando no A
-                você economiza ~23% em relação ao B.
+                Arroz 5 kg — Mercado A: R$ 25,00 (25 ÷ 5 = <strong>R$ 5,00/kg</strong>) •
+                Mercado B: R$ 32,50 (32,50 ÷ 5 = <strong>R$ 6,50/kg</strong>).<br />
+                Diferença = (6,50 − 5,00) ÷ 5,00 = <strong>30%</strong>. Economia comprando
+                no A = (6,50 − 5,00) ÷ 6,50 ≈ <strong>23%</strong>.
               </p>
             </PopoverContent>
           </Popover>
