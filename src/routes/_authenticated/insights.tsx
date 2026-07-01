@@ -380,7 +380,8 @@ function Insights() {
     // "Embalagens" é excluído em `items` (ver filtro acima) — sem insight aqui.
 
     return out;
-  }, [expenses, items, prices, canon, rawNameByItemId]);
+  }, [expenses, items, prices, canon, rawNameByItemId, categoryByItemId]);
+
 
 
   // Insights por categoria
