@@ -7,7 +7,7 @@
  *  3. Gramas são convertidos para kg antes de acumular.
  *  4. Mesmo produto com preço muito maior mas menor volume fica ABAIXO.
  */
-import { rankConsumption } from "../src/lib/consumption-ranking.ts";
+import { rankConsumption, rankMostExpensive } from "../src/lib/consumption-ranking.ts";
 
 let failed = 0;
 function assert(cond, msg) {
