@@ -295,7 +295,7 @@ const MERCHANT_RULES: MerchantRule[] = [
   {
     cat: "Lanche",
     patterns:
-      /\b(i[- ]?food|ifood|pizzaria|pizza|hamburgueria|hamburgu?er|burger|lanchonete|hot ?dog|temaki|sushi delivery|delivery)\b/i,
+      /\b(i[- ]?food|ifood|pizzaria|pizza|hamburgu?er(?:ia)?|burgu?er|lanchonete|hot ?dog|temaki|sushi delivery|delivery)\b/i,
   },
   {
     cat: "Restaurantes",
