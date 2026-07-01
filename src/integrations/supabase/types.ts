@@ -461,6 +461,54 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_cycles: {
+        Row: {
+          amount: number
+          confirmed_at: string | null
+          created_at: string
+          cycle_date: string
+          expense_id: string | null
+          id: string
+          recurring_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          confirmed_at?: string | null
+          created_at?: string
+          cycle_date: string
+          expense_id?: string | null
+          id?: string
+          recurring_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          confirmed_at?: string | null
+          created_at?: string
+          cycle_date?: string
+          expense_id?: string | null
+          id?: string
+          recurring_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_cycles_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_cycles_recurring_id_fkey"
+            columns: ["recurring_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recurring_expenses: {
         Row: {
           active: boolean
@@ -474,6 +522,7 @@ export type Database = {
           id: string
           name: string
           payment_method: string | null
+          start_date: string
           user_id: string
         }
         Insert: {
@@ -488,6 +537,7 @@ export type Database = {
           id?: string
           name: string
           payment_method?: string | null
+          start_date?: string
           user_id: string
         }
         Update: {
@@ -502,6 +552,7 @@ export type Database = {
           id?: string
           name?: string
           payment_method?: string | null
+          start_date?: string
           user_id?: string
         }
         Relationships: []
