@@ -189,6 +189,14 @@ function Insights() {
     return m;
   }, [allItems]);
 
+  const categoryByItemId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const it of allItems) {
+      if (it.id) m.set(it.id, it.category ?? "");
+    }
+    return m;
+  }, [allItems]);
+
 
 
 
