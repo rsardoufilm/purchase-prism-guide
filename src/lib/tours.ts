@@ -71,6 +71,10 @@ export const TOURS: Record<string, TourStep[]> = {
       body: "Nomes parecidos (\"Coca 2L\" e \"Coca Cola 2 Litros\") são normalizados automaticamente para uma análise consolidada.",
     },
     {
+      title: "Como é a ordenação",
+      body: "\"Mais consumidos\" tem duas listas separadas: por peso (kg, com g convertido automaticamente) e por unidade (un, pct, cx). A ordem é sempre pela quantidade física acumulada — nunca pelo valor em R$, que aparece só como informação secundária.",
+    },
+    {
       title: "Insights de saúde",
       body: "O app destaca itens com alto teor de gordura saturada e açúcar, ajudando você a perceber padrões de consumo.",
     },
