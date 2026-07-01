@@ -67,7 +67,6 @@ export function RecurringDialog({
   useEffect(() => {
     if (!open) return;
     setName(editing?.name ?? "");
-    setCategory(editing?.category ?? "");
     setAmount(editing ? String(editing.amount) : "");
     setDueDay(editing?.due_day ? String(editing.due_day) : "");
     setFrequency(((editing?.frequency as Freq) ?? "mensal") as Freq);
