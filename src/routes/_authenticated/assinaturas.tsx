@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { TourGuide } from "@/components/tour-guide";
 import { TOURS } from "@/lib/tours";
-import { SubscriptionDialog } from "@/components/subscription-dialog";
+import { SubscriptionDialog, type EditableSubscription } from "@/components/subscription-dialog";
 import { brl } from "@/lib/format";
-import { CalendarClock, Loader2, Trash2 } from "lucide-react";
+import { CalendarClock, Loader2, Pencil, Trash2 } from "lucide-react";
 import {
   parseDateLocal,
   projectSubscriptionOccurrences,
