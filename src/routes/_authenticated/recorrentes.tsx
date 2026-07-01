@@ -9,6 +9,8 @@ import { Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { RecurringDialog, type EditableRecurring } from "@/components/recurring-dialog";
+import { UpcomingCycleAlert } from "@/components/upcoming-cycle-alert";
+import type { Frequency } from "@/lib/recurring-cycles";
 
 export const Route = createFileRoute("/_authenticated/recorrentes")({
   component: Recorrentes,
@@ -17,12 +19,14 @@ export const Route = createFileRoute("/_authenticated/recorrentes")({
 
 interface Bill {
   id: string;
+  user_id: string;
   name: string;
   category: string | null;
   amount: number;
   due_day: number | null;
   frequency: string;
   payment_method: string | null;
+  start_date: string;
 }
 
 function Recorrentes() {
@@ -30,11 +34,12 @@ function Recorrentes() {
   const [deleting, setDeleting] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<EditableRecurring | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const load = () =>
     supabase
       .from("recurring_expenses")
-      .select("id,name,category,amount,due_day,frequency,payment_method")
+      .select("id,user_id,name,category,amount,due_day,frequency,payment_method,start_date")
       .order("created_at", { ascending: false })
       .then(({ data }) => setRows((data ?? []) as Bill[]));
 
