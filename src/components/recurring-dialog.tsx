@@ -58,7 +58,6 @@ export function RecurringDialog({
 
   const isEdit = !!editing;
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<string>("");
   const [amount, setAmount] = useState("");
   const [dueDay, setDueDay] = useState("");
   const [frequency, setFrequency] = useState<Freq>("mensal");
