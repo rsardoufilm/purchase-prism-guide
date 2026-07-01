@@ -49,6 +49,26 @@ jobs:
         id: camera
         run: bun run verify:camera
 
+      - name: Invite normalization test
+        id: invite
+        run: bun run verify:invite
+
+      - name: Invite flow test
+        id: invite-flow
+        run: bun run verify:invite-flow
+
+      - name: Consumption ranking test
+        id: ranking
+        run: bun run verify:ranking
+
+      - name: Recurring cycles test
+        id: recurring
+        run: bun run verify:recurring
+
+      - name: Service charge filter test
+        id: service-charge
+        run: bun run verify:service-charge
+
       - name: Build
         id: build
         run: bun run build
@@ -64,6 +84,11 @@ jobs:
               ['ESLint',         '${{ steps.lint.outcome }}'],
               ['Rotas',          '${{ steps.routes.outcome }}'],
               ['Câmera',         '${{ steps.camera.outcome }}'],
+              ['Convite',        '${{ steps.invite.outcome }}'],
+              ['Fluxo de convite', '${{ steps.invite-flow.outcome }}'],
+              ['Ranking consumo', '${{ steps.ranking.outcome }}'],
+              ['Recorrentes',    '${{ steps.recurring.outcome }}'],
+              ['Taxa de serviço', '${{ steps.service-charge.outcome }}'],
               ['Build',          '${{ steps.build.outcome }}'],
             ];
             const icon = (o) => o === 'success' ? '✅' : o === 'skipped' ? '⏭️' : '❌';
