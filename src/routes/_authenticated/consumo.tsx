@@ -135,16 +135,32 @@ function Consumo() {
 
   const hasUncategorized = useMemo(() => expenses.some((e) => !e.category), [expenses]);
 
-  const byProduct = useMemo(() => {
-    const m = new Map<string, { total: number; qty: number; unit: string | null }>();
+  const { byWeight, byUnit } = useMemo(() => {
+    const weight = new Map<string, { total: number; qty: number; unit: "kg" }>();
+    const unit = new Map<string, { total: number; qty: number; unit: string }>();
     for (const it of filteredItems) {
       const k = it.normalized_name || it.raw_name;
-      const v = m.get(k) ?? { total: 0, qty: 0, unit: it.unit };
-      v.total += Number(it.total_price);
-      v.qty += Number(it.quantity);
-      m.set(k, v);
+      const rawUnit = (it.unit || "").toLowerCase().trim();
+      const qty = Number(it.quantity) || 0;
+      const total = Number(it.total_price) || 0;
+      if (rawUnit === "kg" || rawUnit === "g" || rawUnit === "kilo" || rawUnit === "kilos") {
+        const qtyKg = rawUnit === "g" ? qty / 1000 : qty;
+        const v = weight.get(k) ?? { total: 0, qty: 0, unit: "kg" as const };
+        v.total += total;
+        v.qty += qtyKg;
+        weight.set(k, v);
+      } else {
+        const u = rawUnit || "un";
+        const v = unit.get(k) ?? { total: 0, qty: 0, unit: u };
+        v.total += total;
+        v.qty += qty;
+        unit.set(k, v);
+      }
     }
-    return [...m.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 8);
+    return {
+      byWeight: [...weight.entries()].sort((a, b) => b[1].qty - a[1].qty).slice(0, 8),
+      byUnit: [...unit.entries()].sort((a, b) => b[1].qty - a[1].qty).slice(0, 8),
+    };
   }, [filteredItems]);
 
   const byExpenseCategory = useMemo(() => {
