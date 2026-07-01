@@ -52,6 +52,7 @@ export type ConsumoCategory =
 /** Tipo de estabelecimento inferido para a despesa como um todo. */
 export type MerchantCategory =
   | "Restaurantes"
+  | "Lanche"
   | "Padaria"
   | "Hortifrutti"
   | "Açougue"
@@ -69,6 +70,7 @@ export type MerchantCategory =
 
 export const MERCHANT_CATEGORY_OPTIONS: MerchantCategory[] = [
   "Restaurantes",
+  "Lanche",
   "Padaria",
   "Açougue",
   "Hortifrutti",
@@ -84,6 +86,11 @@ export const MERCHANT_CATEGORY_OPTIONS: MerchantCategory[] = [
   "Transporte",
   "Outros",
 ];
+
+/** Descrição amigável exibida em selects/tooltips de categoria. */
+export const MERCHANT_CATEGORY_DESCRIPTIONS: Partial<Record<MerchantCategory, string>> = {
+  Lanche: "Delivery, pizza, hambúrguer, lanche rápido e similares",
+};
 
 type Rule = { cat: ConsumoCategory; patterns: RegExp };
 
