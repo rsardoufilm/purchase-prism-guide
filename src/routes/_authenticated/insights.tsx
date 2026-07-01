@@ -288,6 +288,9 @@ function Insights() {
     for (const p of prices) {
       if (!p.normalized_name) continue;
       const raw = p.expense_item_id ? rawNameByItemId.get(p.expense_item_id) ?? "" : "";
+      // Sacolas e embalagens são gasto operacional, não consumo — não comparamos.
+      const itemCat = p.expense_item_id ? categoryByItemId.get(p.expense_item_id) : null;
+      if (itemCat === "Sacolas" || itemCat === "Embalagens") continue;
       const sig = brandSignature(raw);
       // Sem raw_name disponível NÃO podemos garantir mesma marca — ignora.
       if (!sig) continue;
