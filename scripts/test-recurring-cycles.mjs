@@ -59,8 +59,8 @@ function assert(cond, msg) {
   const start = new Date(2026, 0, 31);
   const end = new Date(2026, 3, 30);
   const cycles = generateCycleDates(start, end, "mensal", 31);
-  // jan=31, fev=28, mar=31 → aceitar 3 parcelas com clamp
-  assert(cycles.length === 3, `clamp gera 3 ciclos (got ${cycles.length})`);
+  // jan=31, fev=28, mar=31, abr=30 → 4 parcelas (todas com clamp aplicado)
+  assert(cycles.length === 4, `clamp gera 4 ciclos (got ${cycles.length})`);
   assert(toISODate(cycles[1]) === "2026-02-28", `fev clampeado (got ${toISODate(cycles[1])})`);
 }
 
