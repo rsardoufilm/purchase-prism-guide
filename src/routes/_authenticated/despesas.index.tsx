@@ -143,10 +143,17 @@ function DespesasIndex() {
   const reclassify = async (row: Row, newCat: string) => {
     const prev = row.category;
     setRows((r) => r.map((x) => (x.id === row.id ? { ...x, category: newCat } : x)));
-    const { error } = await supabase.from("expenses").update({ category: newCat }).eq("id", row.id);
+    const { data, error } = await supabase
+      .from("expenses")
+      .update({ category: newCat })
+      .eq("id", row.id)
+      .select("id");
     if (error) {
       setRows((r) => r.map((x) => (x.id === row.id ? { ...x, category: prev } : x)));
       toast.error("Falha ao reclassificar.");
+    } else if (!data || data.length === 0) {
+      setRows((r) => r.map((x) => (x.id === row.id ? { ...x, category: prev } : x)));
+      toast.error("Sem permissão: esta despesa foi lançada por outro membro do grupo.");
     } else {
       toast.success(`Categoria atualizada: ${newCat}`);
       window.dispatchEvent(new CustomEvent("aura:data-changed"));
