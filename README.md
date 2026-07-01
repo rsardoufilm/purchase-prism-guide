@@ -13,15 +13,30 @@ O workflow `.github/workflows/ci.yml` roda em todo push/PR:
 - `npm run build`
 - `npm run verify:all` (rotas, câmera, convite, ranking, recorrentes, taxa de serviço)
 
-### Tornar obrigatório no `main`
+### Tornar obrigatório no `main` (configuração recomendada)
 
-1. GitHub → **Settings** → **Branches** → **Branch protection rules** → **Add rule**
+1. GitHub → **Settings** → **Branches** → **Branch protection rules** → **Add rule** (ou **Edit** se já existir)
 2. Branch name pattern: `main`
-3. Marque **Require status checks to pass before merging**
-4. Selecione o check **CI / quality-gate** (aparece após o primeiro run)
-5. Salve
+3. Marque:
+   - ✅ **Require a pull request before merging** (com **1 aprovação**)
+   - ✅ **Require status checks to pass before merging**
+     - Status check obrigatório: **Quality Gate**
+   - ✅ **Require branches to be up to date before merging**
+   - ✅ **Do not allow bypassing the above settings**
+   - ⚪ **Require linear history** (opcional — exige rebase em vez de merge commits)
+4. Desmarque (não são necessários agora): *Require signed commits*, *Lock branch*, *Allow force pushes*, *Allow deletions*
+5. **Save changes**
 
-A partir daí, nenhum PR entra no `main` sem o CI verde.
+A partir daí, nenhum commit entra no `main` sem PR + Quality Gate verde + aprovação.
+
+### Como testar a proteção com um PR
+
+1. Faça qualquer pequena alteração pelo Lovable (ex.: ajuste de texto)
+2. O Lovable sincroniza com o GitHub e abre/atualiza um Pull Request automaticamente
+3. Na aba **Checks** do PR, acompanhe o **Quality Gate** rodar
+4. Se falhar 🔴 → o botão de merge fica bloqueado (proteção funcionando)
+5. Se passar 🟢 → aprove o próprio PR e clique **Merge pull request**
+
 
 ## Testar manualmente as novas features
 
