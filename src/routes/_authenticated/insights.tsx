@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
 import { loadHighlightFilters, isHighlightable, type HighlightFilters } from "@/lib/highlight-filters";
+import { isServiceCharge } from "@/lib/service-charge";
 
 export const Route = createFileRoute("/_authenticated/insights")({
   component: Insights,
