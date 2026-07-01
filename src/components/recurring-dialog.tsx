@@ -25,33 +25,31 @@ import { paymentLabel } from "@/lib/format";
 const FREQS = ["mensal", "bimestral", "trimestral", "semestral", "anual"] as const;
 type Freq = (typeof FREQS)[number];
 
-export interface EditableSubscription {
+export interface EditableRecurring {
   id: string;
   name: string;
+  category: string | null;
   amount: number;
+  due_day: number | null;
   frequency: string;
-  next_due_date: string | null;
-  category?: string | null;
   payment_method?: string | null;
 }
 
-interface SubscriptionDialogProps {
+interface RecurringDialogProps {
   trigger?: ReactNode;
-  onCreated?: () => void;
   onSaved?: () => void;
-  editing?: EditableSubscription | null;
+  editing?: EditableRecurring | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
-export function SubscriptionDialog({
+export function RecurringDialog({
   trigger,
-  onCreated,
   onSaved,
   editing,
   open: openProp,
   onOpenChange,
-}: SubscriptionDialogProps) {
+}: RecurringDialogProps) {
   const [openState, setOpenState] = useState(false);
   const open = openProp ?? openState;
   const setOpen = (v: boolean) => {
@@ -61,20 +59,20 @@ export function SubscriptionDialog({
 
   const isEdit = !!editing;
   const [name, setName] = useState("");
-  const [amount, setAmount] = useState("");
-  const [frequency, setFrequency] = useState<Freq>("mensal");
-  const [due, setDue] = useState("");
   const [category, setCategory] = useState<string>("");
+  const [amount, setAmount] = useState("");
+  const [dueDay, setDueDay] = useState("");
+  const [frequency, setFrequency] = useState<Freq>("mensal");
   const [payment, setPayment] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setName(editing?.name ?? "");
-    setAmount(editing ? String(editing.amount) : "");
-    setFrequency(((editing?.frequency as Freq) ?? "mensal") as Freq);
-    setDue(editing?.next_due_date ?? "");
     setCategory(editing?.category ?? "");
+    setAmount(editing ? String(editing.amount) : "");
+    setDueDay(editing?.due_day ? String(editing.due_day) : "");
+    setFrequency(((editing?.frequency as Freq) ?? "mensal") as Freq);
     setPayment(editing?.payment_method ?? "");
   }, [open, editing]);
 
@@ -88,26 +86,25 @@ export function SubscriptionDialog({
     const uid = user.user!.id;
     const payload = {
       name: name.trim(),
-      amount: Number(amount),
-      frequency,
-      next_due_date: due || null,
       category: category || null,
+      amount: Number(amount),
+      due_day: dueDay ? Number(dueDay) : null,
+      frequency,
       payment_method: payment || null,
     };
     const { error } = isEdit
       ? await supabase
-          .from("subscriptions")
+          .from("recurring_expenses")
           .update({ ...payload, editado_em: new Date().toISOString(), editado_por: uid })
           .eq("id", editing!.id)
-      : await supabase.from("subscriptions").insert({ ...payload, user_id: uid });
+      : await supabase.from("recurring_expenses").insert({ ...payload, user_id: uid });
     setSaving(false);
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success(isEdit ? "Assinatura atualizada." : "Assinatura criada.");
+    toast.success(isEdit ? "Conta atualizada." : "Conta recorrente criada.");
     setOpen(false);
-    onCreated?.();
     onSaved?.();
     window.dispatchEvent(new CustomEvent("aura:data-changed"));
   };
@@ -118,22 +115,36 @@ export function SubscriptionDialog({
         <DialogTrigger asChild>
           {trigger ?? (
             <Button className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-semibold mb-5 gap-2">
-              <Plus className="size-4" /> Nova assinatura
+              <Plus className="size-4" /> Nova conta recorrente
             </Button>
           )}
         </DialogTrigger>
       )}
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Editar assinatura" : "Nova assinatura"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Editar conta recorrente" : "Nova conta recorrente"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <Field label="Nome">
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Netflix Premium"
+              placeholder="Conta de luz"
             />
+          </Field>
+          <Field label="Categoria">
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
+              <SelectContent>
+                {MERCHANT_CATEGORY_OPTIONS.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Valor">
@@ -144,6 +155,17 @@ export function SubscriptionDialog({
                 onChange={(e) => setAmount(e.target.value)}
               />
             </Field>
+            <Field label="Dia vencim.">
+              <Input
+                type="number"
+                min="1"
+                max="31"
+                value={dueDay}
+                onChange={(e) => setDueDay(e.target.value)}
+              />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <Field label="Frequência">
               <Select value={frequency} onValueChange={(v) => setFrequency(v as Freq)}>
                 <SelectTrigger>
@@ -153,25 +175,6 @@ export function SubscriptionDialog({
                   {FREQS.map((f) => (
                     <SelectItem key={f} value={f}>
                       {f}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          </div>
-          <Field label="Próximo vencimento">
-            <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Categoria">
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="—" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MERCHANT_CATEGORY_OPTIONS.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -192,7 +195,7 @@ export function SubscriptionDialog({
               </Select>
             </Field>
           </div>
-          {isEdit && editing?.id && (
+          {isEdit && (
             <p className="text-[10px] text-muted-foreground">
               Alterações são registradas no histórico do item (editado_em / editado_por).
             </p>
