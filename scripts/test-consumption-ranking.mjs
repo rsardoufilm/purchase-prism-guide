@@ -7,7 +7,7 @@
  *  3. Gramas são convertidos para kg antes de acumular.
  *  4. Mesmo produto com preço muito maior mas menor volume fica ABAIXO.
  */
-import { rankConsumption } from "../src/lib/consumption-ranking.ts";
+import { rankConsumption, rankMostExpensive } from "../src/lib/consumption-ranking.ts";
 
 let failed = 0;
 function assert(cond, msg) {
@@ -75,6 +75,32 @@ function assert(cond, msg) {
   assert(r.byUnit.length === 8, "topN=8 aplicado");
   assert(r.byUnit[0][0] === "P19", "maior quantidade primeiro");
 }
+
+// 6) Mais caros: ordena por R$/unidade base, não por total nem por quantidade
+{
+  const r = rankMostExpensive([
+    { normalized_name: "Picanha", raw_name: "Picanha", quantity: 2, unit: "kg", total_price: 180 }, // 90/kg
+    { normalized_name: "Arroz", raw_name: "Arroz", quantity: 10, unit: "kg", total_price: 50 },     // 5/kg
+    { normalized_name: "Whisky", raw_name: "Whisky", quantity: 1, unit: "un", total_price: 500 },   // 500/un
+    { normalized_name: "Iogurte", raw_name: "Iogurte", quantity: 20, unit: "un", total_price: 60 }, // 3/un
+  ]);
+  assert(r.byWeight[0][0] === "Picanha", "mais caro por peso: Picanha (R$90/kg) > Arroz (R$5/kg)");
+  assert(Math.abs(r.byWeight[0][1].unitPrice - 90) < 1e-9, "R$/kg calculado corretamente");
+  assert(r.byUnit[0][0] === "Whisky", "mais caro por unidade: Whisky (R$500/un) > Iogurte (R$3/un)");
+  assert(Math.abs(r.byUnit[0][1].unitPrice - 500) < 1e-9, "R$/un calculado corretamente");
+}
+
+// 7) Mais caros: agrega múltiplas compras antes de calcular preço médio
+{
+  const r = rankMostExpensive([
+    { normalized_name: "Café", raw_name: "Café", quantity: 500, unit: "g", total_price: 30 },   // 0.5kg / R$30
+    { normalized_name: "Café", raw_name: "Café", quantity: 0.5, unit: "kg", total_price: 20 },  // +0.5kg / +R$20
+  ]);
+  // Total: 1kg / R$50 → R$50/kg
+  const cafe = r.byWeight.find(([k]) => k === "Café");
+  assert(!!cafe && Math.abs(cafe[1].unitPrice - 50) < 1e-9, "média ponderada: (30+20)/(0.5+0.5) = R$50/kg");
+}
+
 
 if (failed > 0) {
   console.error(`\n${failed} teste(s) falharam`);
