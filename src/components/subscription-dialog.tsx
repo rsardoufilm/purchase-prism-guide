@@ -72,7 +72,6 @@ export function SubscriptionDialog({
     setAmount(editing ? String(editing.amount) : "");
     setFrequency(((editing?.frequency as Freq) ?? "mensal") as Freq);
     setDue(editing?.next_due_date ?? "");
-    setCategory(editing?.category ?? "");
     setPayment(editing?.payment_method ?? "");
   }, [open, editing]);
 
