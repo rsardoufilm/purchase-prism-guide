@@ -291,10 +291,16 @@ interface MerchantRule {
 }
 
 const MERCHANT_RULES: MerchantRule[] = [
+  // Lanche / delivery — avaliado ANTES de Restaurantes para não ser engolido.
+  {
+    cat: "Lanche",
+    patterns:
+      /\b(i[- ]?food|ifood|pizzaria|pizza|hamburgueria|hamburgu?er|burger|lanchonete|hot ?dog|temaki|sushi delivery|delivery)\b/i,
+  },
   {
     cat: "Restaurantes",
     patterns:
-      /\b(restaurante|lanchonete|burger|pizzaria|hamb|sushi|temaki|food|churrascaria|bar e|bar do|bar da|comida|cozinha|gourmet|bistr[oô]|creperia|pastelaria|esfiharia|acai|açaí|caf[eé]teria|cafeteria|self.service|rodizio|rodízio|por.quilo|por kilo|buffet|delivery|ifood|pede\b)/i,
+      /\b(restaurante|sushi|food|churrascaria|bar e|bar do|bar da|comida|cozinha|gourmet|bistr[oô]|creperia|pastelaria|esfiharia|acai|açaí|caf[eé]teria|cafeteria|self.service|rodizio|rodízio|por.quilo|por kilo|buffet|pede\b)/i,
   },
   {
     cat: "Padaria",
