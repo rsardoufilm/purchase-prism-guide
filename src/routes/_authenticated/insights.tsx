@@ -449,6 +449,9 @@ function Insights() {
     for (const p of prices) {
       if (!p.normalized_name || !p.merchant_name) continue;
       const raw = p.expense_item_id ? rawNameByItemId.get(p.expense_item_id) ?? "" : "";
+      // Sacolas/Embalagens não entram no comparativo de mercados.
+      const itemCat = p.expense_item_id ? categoryByItemId.get(p.expense_item_id) : null;
+      if (itemCat === "Sacolas" || itemCat === "Embalagens") continue;
       const sig = brandSignature(raw);
       // Sem assinatura de marca não há como afirmar "mesmo produto e marca".
       if (!sig) continue;
