@@ -63,7 +63,6 @@ export function SubscriptionDialog({
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Freq>("mensal");
   const [due, setDue] = useState("");
-  const [category, setCategory] = useState<string>("");
   const [payment, setPayment] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
