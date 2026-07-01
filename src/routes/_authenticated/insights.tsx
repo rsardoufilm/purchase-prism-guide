@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/format";
 import { askAura } from "@/lib/chat.functions";
-import { Sparkles, TrendingUp, TrendingDown, Store, Loader2, Send, Tag, ArrowUp, ArrowDown, Scale } from "lucide-react";
+import { Sparkles, TrendingUp, TrendingDown, Store, Loader2, Send, Tag, ArrowUp, ArrowDown, Scale, Info } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
 import { loadHighlightFilters, isHighlightable, type HighlightFilters } from "@/lib/highlight-filters";
@@ -678,6 +679,30 @@ function Insights() {
       <section className="mb-5">
         <h2 className="font-display font-semibold text-sm mb-2 flex items-center gap-2">
           <Scale className="size-4 text-primary" /> Comparativo de mercados
+          <Popover>
+            <PopoverTrigger
+              aria-label="Como o comparativo é calculado"
+              className="text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Info className="size-3.5" />
+            </PopoverTrigger>
+            <PopoverContent side="bottom" className="w-80 text-xs leading-relaxed">
+              <p className="font-semibold mb-1">Como é calculado</p>
+              <p className="text-muted-foreground mb-2">
+                Agrupamos o <strong>mesmo produto + marca</strong> na mesma unidade base
+                (kg, L ou un). Comparamos o preço por unidade base entre mercados e
+                ordenamos pela <strong>maior diferença %</strong> — quanto maior, maior
+                a oportunidade de economia.
+              </p>
+              <p className="font-semibold mb-1">Exemplo</p>
+              <p className="text-muted-foreground">
+                Arroz 5 kg — Mercado A: R$ 25,00 (R$ 5,00/kg) • Mercado B: R$ 32,50
+                (R$ 6,50/kg).<br />
+                Diferença = (6,50 − 5,00) ÷ 5,00 = <strong>30%</strong>. Comprando no A
+                você economiza ~23% em relação ao B.
+              </p>
+            </PopoverContent>
+          </Popover>
         </h2>
         {marketCompare.length === 0 ? (
           <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 text-center">
