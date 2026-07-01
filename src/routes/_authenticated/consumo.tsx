@@ -30,6 +30,7 @@ import { MERCHANT_CATEGORY_OPTIONS } from "@/lib/classifier";
 import { toast } from "sonner";
 import { useSharedPeriod } from "@/hooks/use-shared-period";
 import { useSharedCategory } from "@/hooks/use-shared-category";
+import { rankConsumption } from "@/lib/consumption-ranking";
 
 export const Route = createFileRoute("/_authenticated/consumo")({
   component: Consumo,
@@ -135,33 +136,7 @@ function Consumo() {
 
   const hasUncategorized = useMemo(() => expenses.some((e) => !e.category), [expenses]);
 
-  const { byWeight, byUnit } = useMemo(() => {
-    const weight = new Map<string, { total: number; qty: number; unit: "kg" }>();
-    const unit = new Map<string, { total: number; qty: number; unit: string }>();
-    for (const it of filteredItems) {
-      const k = it.normalized_name || it.raw_name;
-      const rawUnit = (it.unit || "").toLowerCase().trim();
-      const qty = Number(it.quantity) || 0;
-      const total = Number(it.total_price) || 0;
-      if (rawUnit === "kg" || rawUnit === "g" || rawUnit === "kilo" || rawUnit === "kilos") {
-        const qtyKg = rawUnit === "g" ? qty / 1000 : qty;
-        const v = weight.get(k) ?? { total: 0, qty: 0, unit: "kg" as const };
-        v.total += total;
-        v.qty += qtyKg;
-        weight.set(k, v);
-      } else {
-        const u = rawUnit || "un";
-        const v = unit.get(k) ?? { total: 0, qty: 0, unit: u };
-        v.total += total;
-        v.qty += qty;
-        unit.set(k, v);
-      }
-    }
-    return {
-      byWeight: [...weight.entries()].sort((a, b) => b[1].qty - a[1].qty).slice(0, 8),
-      byUnit: [...unit.entries()].sort((a, b) => b[1].qty - a[1].qty).slice(0, 8),
-    };
-  }, [filteredItems]);
+  const { byWeight, byUnit } = useMemo(() => rankConsumption(filteredItems, 8), [filteredItems]);
 
   const byExpenseCategory = useMemo(() => {
     const m = new Map<string, number>();
