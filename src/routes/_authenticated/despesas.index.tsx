@@ -50,6 +50,7 @@ import {
 } from "@/lib/subscriptions";
 import { useCurrentGroup } from "@/hooks/use-current-group";
 import { MemberAvatar } from "@/components/member-avatar";
+import { ReceiptViewerButton } from "@/components/receipt-viewer-button";
 
 export const Route = createFileRoute("/_authenticated/despesas/")({
   component: DespesasIndex,
@@ -64,6 +65,7 @@ interface Row {
   total_amount: number;
   payment_method: string;
   user_id: string;
+  storage_path: string | null;
 }
 
 function isoDate(d: Date | null) {
@@ -91,7 +93,7 @@ function DespesasIndex() {
     setLoading(true);
     supabase
       .from("expenses")
-      .select("id,merchant_name,category,expense_date,total_amount,payment_method,user_id")
+      .select("id,merchant_name,category,expense_date,total_amount,payment_method,user_id,storage_path")
       .order("expense_date", { ascending: true })
       .then(({ data }) => {
         setRows((data ?? []) as Row[]);
@@ -556,6 +558,12 @@ const ExpenseRow = memo(function ExpenseRow({
             ))}
           </SelectContent>
         </Select>
+        {row.storage_path && (
+          <ReceiptViewerButton
+            storagePath={row.storage_path}
+            merchantName={row.merchant_name}
+          />
+        )}
       </div>
     </div>
   );
