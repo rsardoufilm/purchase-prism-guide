@@ -152,11 +152,14 @@ function Consumo() {
   const filteredItems = useMemo(() => {
     const ids = new Set(filteredExpenses.map((x) => x.id));
     // "Embalagens" e "Sacolas" nunca entram em rankings/agregações desta aba.
+    // Taxa de serviço / gorjeta / couvert também são excluídos (não são consumo).
     return items.filter(
       (it) =>
         ids.has(it.expense_id) &&
         (it.category ?? "") !== "Embalagens" &&
-        (it.category ?? "") !== "Sacolas",
+        (it.category ?? "") !== "Sacolas" &&
+        !isServiceCharge(it.raw_name) &&
+        !isServiceCharge(it.normalized_name),
     );
   }, [items, filteredExpenses]);
 
